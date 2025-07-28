@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Codeset Automation App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+    <h1>Codeset Automation App</h1>
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="workbook" accept=".xlsx" />
+        <button type="submit">Upload</button>
+    </form>
+
+    {% if sheet_names %}
+    <h2>Sheets</h2>
+    <ul>
+    {% for sheet in sheet_names %}
+        <li>{{ sheet }}</li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+</body>
+</html>
