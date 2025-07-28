@@ -3,7 +3,6 @@ from components.file_parser import load_workbook
 from components.sheet_tabs import render_sheet_tabs
 from utils.dependency_setup import ensure_installed
 
-
 def load_local_css():
     """Load custom CSS for theming."""
     try:
