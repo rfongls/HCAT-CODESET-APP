@@ -15,7 +15,6 @@ python codeset_ui_app/flask_app.py
 
 Upload a codeset workbook (`.xlsx`) and each sheet will be displayed in its own tab as an editable table.
 
-
 ## Project Structure
 
 ```
