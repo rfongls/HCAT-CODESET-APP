@@ -4,6 +4,7 @@ from components.sheet_tabs import render_sheet_tabs
 from utils.dependency_setup import ensure_installed
 
 
+
 def load_local_css():
     """Load custom CSS for theming."""
     try:
@@ -15,6 +16,7 @@ def load_local_css():
 
 def main() -> None:
     ensure_installed()
+
     st.set_page_config(page_title="Codeset Automation App", layout="wide")
     load_local_css()
     st.title("Codeset Automation App")
