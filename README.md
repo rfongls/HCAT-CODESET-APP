@@ -6,10 +6,12 @@ editing multi-sheet Excel workbooks that define various codesets.
 
 ## Running the UI
 
-The UI is built with [Streamlit](https://streamlit.io/). To run it locally:
+
+The UI is built with [Streamlit](https://streamlit.io/). Dependencies can be
+installed automatically using the helper script:
 
 ```bash
-pip install streamlit pandas openpyxl xlsxwriter streamlit-aggrid
+python codeset_ui_app/utils/dependency_setup.py
 streamlit run codeset_ui_app/app.py
 ```
 
@@ -26,7 +28,9 @@ codeset_ui_app/
 │   ├── dropdown_logic.py  # (stub) dropdown extraction helpers
 │   └── file_parser.py     # Workbook loading utilities
 ├── utils/
-│   └── export_excel.py    # (stub) workbook export helpers
+│   ├── export_excel.py     # (stub) workbook export helpers
+│   └── dependency_setup.py # Auto installs required packages
 ├── assets/
 │   └── styles.css         # White and purple theme
+requirements.txt           # Package list
 ```
