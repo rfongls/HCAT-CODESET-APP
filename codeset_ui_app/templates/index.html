@@ -12,13 +12,43 @@
         <button type="submit">Upload</button>
     </form>
 
-    {% if sheet_names %}
-    <h2>Sheets</h2>
-    <ul>
-    {% for sheet in sheet_names %}
-        <li>{{ sheet }}</li>
-    {% endfor %}
-    </ul>
+    {% if workbook %}
+    <div class="tabs">
+        <ul class="tab-links">
+        {% for sheet in workbook.keys() %}
+            <li><a href="#tab{{ loop.index0 }}">{{ sheet }}</a></li>
+        {% endfor %}
+        </ul>
+        <div class="tab-content">
+        {% for sheet, df in workbook.items() %}
+            <div id="tab{{ loop.index0 }}" class="tab">
+                <h2>{{ sheet }}</h2>
+                {{ df.to_html(index=False, classes='codeset-table', border=0) | safe }}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
     {% endif %}
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const links = document.querySelectorAll('.tab-links a');
+        const tabs = document.querySelectorAll('.tab');
+        links.forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                const target = document.querySelector(link.getAttribute('href'));
+                tabs.forEach(t => t.style.display = 'none');
+                links.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                if (target) target.style.display = 'block';
+            });
+        });
+        if (tabs.length > 0) {
+            tabs.forEach((t, i) => t.style.display = i === 0 ? 'block' : 'none');
+            if (links[0]) links[0].classList.add('active');
+        }
+    });
+    </script>
 </body>
 </html>

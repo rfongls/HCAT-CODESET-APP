@@ -6,12 +6,10 @@ import sys
 from importlib import util
 
 REQUIRED_PACKAGES = [
-    "streamlit",
+    "flask",
     "pandas",
     "openpyxl",
     "xlsxwriter",
-    "streamlit-aggrid",
-    "flask",
 ]
 
 

@@ -12,3 +12,15 @@ h1, h2, h3, .stButton>button {
     border-color: #4B0082;
     color: #ffffff;
 }
+
+/* Tab styles */
+.tabs { margin-top: 1em; }
+.tab-links { list-style: none; padding: 0; display: flex; border-bottom: 1px solid #ccc; }
+.tab-links li { margin-right: 4px; }
+.tab-links a { text-decoration: none; padding: 6px 10px; border: 1px solid #4B0082; border-bottom: none; color: #4B0082; border-radius: 4px 4px 0 0; display: block; }
+.tab-links a.active { background-color: #4B0082; color: #fff; }
+.tab { border: 1px solid #4B0082; padding: 10px; }
+
+.codeset-table { border-collapse: collapse; width: 100%; }
+.codeset-table th, .codeset-table td { border: 1px solid #ddd; padding: 4px; }
+.codeset-table th { background-color: #f2f2ff; }

@@ -6,33 +6,23 @@ editing multi-sheet Excel workbooks that define various codesets.
 
 ## Running the UI
 
-The primary UI is built with [Streamlit](https://streamlit.io/). Dependencies can
-be installed automatically using the helper script:
-
+The application now uses [Flask](https://flask.palletsprojects.com/) for the web interface. Install the required packages and start the server with:
 
 ```bash
 python codeset_ui_app/utils/dependency_setup.py
-streamlit run codeset_ui_app/app.py
-```
-
-Once started, upload a codeset workbook (`.xlsx`) and each sheet will be
-rendered in its own tab as an editable table.
-
-A minimal [Flask](https://flask.palletsprojects.com/) entry point is also
-provided if you need a traditional HTML template. Run it with:
-
-```bash
 python codeset_ui_app/flask_app.py
 ```
+
+Upload a codeset workbook (`.xlsx`) and each sheet will be displayed in its own tab as an editable table.
 
 ## Project Structure
 
 ```
 codeset_ui_app/
-├── app.py                 # Streamlit entry point
-├── flask_app.py           # Optional Flask entry
+├── flask_app.py           # Flask entry point
+├── app.py                 # Legacy Streamlit example
 ├── components/
-│   ├── sheet_tabs.py      # Renders sheet tabs and editable tables
+│   ├── sheet_tabs.py      # Streamlit table renderer (legacy)
 │   ├── dropdown_logic.py  # (stub) dropdown extraction helpers
 │   └── file_parser.py     # Workbook loading utilities
 ├── utils/
