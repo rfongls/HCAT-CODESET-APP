@@ -24,6 +24,8 @@ def index():
     global dropdown_data
     global formula_data
     global last_error
+    global mapping_data
+    mapping_data = {}
 
     if request.method == "POST" and "workbook" in request.files:
         file = request.files["workbook"]
@@ -32,7 +34,7 @@ def index():
                 workbook_data = load_workbook(file)
                 dropdown_data = extract_dropdown_options(file)
                 formula_data = extract_column_formulas(file)
-                mapping_data = {}
+
                 for sheet, df in workbook_data.items():
                     mapped_col = None
                     sub_col = None
@@ -54,6 +56,8 @@ def index():
                 workbook_data = {}
                 dropdown_data = {}
                 formula_data = {}
+                mapping_data = {}
+
     workbook_headers: Dict[str, list] = {s: df.columns.tolist() for s, df in workbook_data.items()}
     workbook_records: Dict[str, list] = {s: df.to_dict(orient="records") for s, df in workbook_data.items()}
     return render_template(
@@ -65,5 +69,6 @@ def index():
         mappings=mapping_data,
         error=last_error,
     )
+
 if __name__ == "__main__":
     app.run(debug=True)
