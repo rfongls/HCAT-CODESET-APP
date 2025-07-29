@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Codeset Automation App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+    <header>
+        <h1>Codeset Automation App</h1>
+    </header>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="workbook" accept=".xlsx" />
+        <button type="submit">Upload</button>
+    </form>
+
+    {% if workbook %}
+    <div class="tabs">
+        <div class="tab-buttons">
+        {% for sheet in workbook.keys() %}
+            <button class="tab-btn" data-target="tab-{{ sheet|replace(' ', '_')|replace('.', '_')|replace('/', '_') }}">{{ sheet }}</button>
+        {% endfor %}
+        </div>
+        <div class="tab-content">
+        {% for sheet, rows in workbook.items() %}
+            <div id="tab-{{ sheet|replace(' ', '_')|replace('.', '_')|replace('/', '_') }}" class="tab">
+                <h2>{{ sheet }}</h2>
+                <table id="table-{{ sheet|replace(' ', '_')|replace('.', '_')|replace('/', '_') }}" class="codeset-table">
+                    <thead>
+                        <tr>
+                        {% for col in headers[sheet] %}
+                            <th>{{ col }}</th>
+                        {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            {% for col in headers[sheet] %}
+                                <td>
+                                {% if dropdowns and dropdowns.get(sheet) and dropdowns[sheet].get(col) %}
+                                    <select class="mapped-select" data-sheet="{{ sheet }}" data-col="{{ col }}">
+                                        {% for opt in dropdowns[sheet][col] %}
+                                        <option value="{{ opt }}" {% if row[col] == opt %}selected{% endif %}>{{ opt }}</option>
+                                        {% endfor %}
+                                    </select>
+                                {% else %}
+                                    <input type="text" value="{{ row[col] }}" />
+                                {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button class="add-row" data-sheet="{{ sheet }}">Add Row</button>
+                {% if formulas and formulas.get(sheet) %}
+                <h3>Column Formulas</h3>
+                <ul>
+                    {% for col, formula in formulas[sheet].items() %}
+                    <li><strong>{{ col }}</strong>: {{ formula }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <script>
+    const mappings = {{ mappings|tojson }};
+    const dropdowns = {{ dropdowns|tojson }};
+    const headers = {{ headers|tojson }};
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabs = document.querySelectorAll('.tab');
+        function showSelected(id) {
+            tabs.forEach(t => t.style.display = 'none');
+            tabBtns.forEach(b => b.classList.remove('active'));
+            const target = document.getElementById(id);
+            if (target) target.style.display = 'block';
+            const activeBtn = document.querySelector('.tab-btn[data-target="' + id + '"]');
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+        tabBtns.forEach((btn, i) => {
+            btn.addEventListener('click', () => showSelected(btn.dataset.target));
+            if (i === 0) btn.classList.add('active');
+        });
+        if (tabs.length > 0) {
+            tabs.forEach((t, i) => t.style.display = i === 0 ? 'block' : 'none');
+        }
+
+        function createInput(sheet, header, value='') {
+            const opts = dropdowns[sheet] && dropdowns[sheet][header];
+            if (opts) {
+                const sel = document.createElement('select');
+                sel.className = 'mapped-select';
+                sel.dataset.sheet = sheet;
+                sel.dataset.col = header;
+                opts.forEach(o => {
+                    const option = document.createElement('option');
+                    option.value = o;
+                    option.textContent = o;
+                    if (o === value) option.selected = true;
+                    sel.appendChild(option);
+                });
+                return sel;
+            }
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = value || '';
+            return input;
+        }
+
+        function attachMappingListener(sel) {
+            sel.addEventListener('change', () => {
+                const sheet = sel.dataset.sheet;
+                const mapInfo = mappings[sheet];
+                if (!mapInfo) return;
+                const mapping = mapInfo.map;
+                const subCol = mapInfo.sub_col;
+                const row = sel.closest('tr');
+                if (row && subCol) {
+                    const inputs = row.querySelectorAll('input, select');
+                    const hdrs = Array.from(row.closest('table').querySelectorAll('th')).map(th => th.innerText);
+                    const subIndex = hdrs.indexOf(subCol);
+                    if (subIndex !== -1 && inputs[subIndex]) {
+                        inputs[subIndex].value = mapping[sel.value] || '';
+                    }
+                }
+            });
+        }
+
+        document.querySelectorAll('.add-row').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const sheet = btn.dataset.sheet;
+                const table = document.getElementById('table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_'));
+                if (!table) return;
+                const tbody = table.querySelector('tbody');
+                const row = document.createElement('tr');
+                headers[sheet].forEach(h => {
+                    const td = document.createElement('td');
+                    const input = createInput(sheet, h);
+                    td.appendChild(input);
+                    if (input.classList.contains('mapped-select')) {
+                        attachMappingListener(input);
+                    }
+                    row.appendChild(td);
+                });
+                tbody.appendChild(row);
+            });
+        });
+
+        document.querySelectorAll('.mapped-select').forEach(attachMappingListener);
+    });
+    </script>
+</body>
+</html>
