@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from typing import Dict
-
 import pandas as pd
 from openpyxl import load_workbook as _load_workbook
 
@@ -32,3 +30,4 @@ def load_workbook(file) -> Dict[str, pd.DataFrame]:
             return data
         except Exception:
             return {}
+

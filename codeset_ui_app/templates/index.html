@@ -10,6 +10,7 @@
     {% if error %}
     <div class="error">{{ error }}</div>
     {% endif %}
+
     <form method="post" enctype="multipart/form-data">
         <input type="file" name="workbook" accept=".xlsx" />
         <button type="submit">Upload</button>
