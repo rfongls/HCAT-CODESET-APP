@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Dict
+
 import pandas as pd
 from openpyxl import load_workbook as _load_workbook
 
@@ -11,6 +12,8 @@ def load_workbook(file) -> Dict[str, pd.DataFrame]:
     in the workbook), it falls back to openpyxl's read-only mode. When
     all attempts fail, an empty dictionary is returned.
     """
+    file.seek(0)
+
     try:
         return pd.read_excel(file, sheet_name=None, engine="openpyxl")
     except Exception:

@@ -6,7 +6,7 @@ editing multi-sheet Excel workbooks that define various codesets.
 
 ## Running the UI
 
-The application uses [Flask](https://flask.palletsprojects.com/) for the web interface. Dependencies are installed automatically when the app starts, or you can run the helper script manually. Start the server with:
+The application uses [Flask](https://flask.palletsprojects.com/) for the web interface. Dependencies are installed automatically **before** the rest of the app imports, or you can run the helper script manually. Start the server with:
 
 ```bash
 python codeset_ui_app/app.py
@@ -40,4 +40,3 @@ requirements.txt           # Package list
 Samples/
     README.md              # Location for `codeset template.xlsx`
 ```
-
