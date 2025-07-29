@@ -16,9 +16,8 @@ The `dependency_setup.py` helper installs all Python packages required by the pr
 
 Upload a codeset workbook (`.xlsx`). Each sheet is shown in its own tab and any dropdown validations detected in the workbook are listed below the table for quick reference.
 
-The repository also includes a `Samples` directory. Place the sample workbook
-`codeset template.xlsx` in this folder if you would like to experiment with the
-app using mock data.
+To try the app with mock data, copy `codeset template.xlsx` into the
+`Samples` directory and upload that file from the web interface.
 
 
 ## Project Structure
