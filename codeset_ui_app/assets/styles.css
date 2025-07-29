@@ -18,3 +18,9 @@ h1, h2, h3 {
 .codeset-table { border-collapse: collapse; width: 100%; }
 .codeset-table th, .codeset-table td { border: 1px solid #ddd; padding: 4px; }
 .codeset-table th { background-color: #f2f2ff; }
+
+.error {
+    color: red;
+    margin-top: 1em;
+}
+
