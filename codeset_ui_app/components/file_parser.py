@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import Dict
 
 import pandas as pd
@@ -14,6 +13,7 @@ def load_workbook(file) -> Dict[str, pd.DataFrame]:
     all attempts fail, an empty dictionary is returned.
     """
     file.seek(0)
+
     try:
         return pd.read_excel(file, sheet_name=None, engine="openpyxl")
     except Exception:
@@ -33,3 +33,4 @@ def load_workbook(file) -> Dict[str, pd.DataFrame]:
             return data
         except Exception:
             return {}
+
