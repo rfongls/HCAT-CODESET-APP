@@ -19,6 +19,7 @@ def _parse_formula(formula: str, wb) -> List[str]:
         # Quoted comma-separated list
         if formula.startswith('"') and formula.endswith('"'):
             return [v.strip() for v in formula.strip('"').split(',') if v.strip()]
+
         # Named range reference
         if formula in wb.defined_names:
             values: List[str] = []

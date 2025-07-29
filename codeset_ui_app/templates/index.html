@@ -6,7 +6,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 </head>
 <body>
-    <h1>Codeset Automation App</h1>
+    <header>
+        <h1>Codeset Automation App</h1>
+    </header>
     {% if error %}
     <div class="error">{{ error }}</div>
     {% endif %}
@@ -17,15 +19,16 @@
 
     {% if workbook %}
     <div class="tabs">
-        <label for="sheet-select">Select Sheet:</label>
-        <select id="sheet-select">
+        <label for="sheet-input">Select Sheet:</label>
+        <input id="sheet-input" list="sheet-list" placeholder="Type or select" autocomplete="off" />
+        <datalist id="sheet-list">
         {% for sheet in workbook.keys() %}
-            <option value="tab{{ loop.index0 }}">{{ sheet }}</option>
+            <option value="{{ sheet }}"></option>
         {% endfor %}
-        </select>
+        </datalist>
         <div class="tab-content">
         {% for sheet, df in workbook.items() %}
-            <div id="tab{{ loop.index0 }}" class="tab">
+            <div id="tab-{{ sheet|replace(' ', '_')|replace('.', '_')|replace('/', '_') }}" class="tab">
                 <h2>{{ sheet }}</h2>
                 {{ df.to_html(index=False, classes='codeset-table', border=0) | safe }}
                 {% if dropdowns and dropdowns.get(sheet) %}
@@ -36,6 +39,15 @@
                     {% endfor %}
                 </ul>
                 {% endif %}
+                {% if formulas and formulas.get(sheet) %}
+                <h3>Column Formulas</h3>
+                <ul>
+                    {% for col, formula in formulas[sheet].items() %}
+                    <li><strong>{{ col }}</strong>: {{ formula }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
             </div>
         {% endfor %}
         </div>
@@ -44,15 +56,15 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const select = document.getElementById('sheet-select');
+        const input = document.getElementById('sheet-input');
         const tabs = document.querySelectorAll('.tab');
-        function showSelected() {
+        function showSelected(name) {
             tabs.forEach(t => t.style.display = 'none');
-            const target = document.getElementById(select.value);
+            const target = document.getElementById('tab-' + name.replace(/[^a-zA-Z0-9_]/g, '_'));
             if (target) target.style.display = 'block';
         }
-        if (select) {
-            select.addEventListener('change', showSelected);
+        if (input) {
+            input.addEventListener('change', () => showSelected(input.value));
         }
         if (tabs.length > 0) {
             tabs.forEach((t, i) => t.style.display = i === 0 ? 'block' : 'none');
