@@ -18,7 +18,6 @@ def load_workbook(file) -> Dict[str, pd.DataFrame]:
         for df in data.values():
             df.fillna("", inplace=True)
         return data
-
     except Exception:
         try:
             file.seek(0)
@@ -33,7 +32,6 @@ def load_workbook(file) -> Dict[str, pd.DataFrame]:
                 header, *content = rows
                 df = pd.DataFrame(content, columns=header)
                 df = df.astype(str).fillna("")
-
                 data[sheet] = df
             return data
         except Exception:

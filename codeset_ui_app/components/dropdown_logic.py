@@ -19,6 +19,23 @@ def _parse_formula(formula: str, wb) -> List[str]:
         # Quoted comma-separated list
         if formula.startswith('"') and formula.endswith('"'):
             return [v.strip() for v in formula.strip('"').split(',') if v.strip()]
+        # Named range reference
+        if formula in wb.defined_names:
+            values: List[str] = []
+            defn = wb.defined_names[formula]
+            for title, coord in defn.destinations:
+                try:
+                    sheet = wb[title]
+                    min_col, min_row, max_col, max_row = range_boundaries(coord)
+                except Exception:
+                    continue
+                for row in range(min_row, max_row + 1):
+                    for col in range(min_col, max_col + 1):
+                        value = sheet.cell(row=row, column=col).value
+                        if value is not None:
+                            values.append(str(value))
+            return values
+
         # Range reference, e.g. Sheet1!$A$1:$A$5
         if "!" in formula:
             sheet_name, cell_range = formula.split("!", 1)
@@ -77,7 +94,6 @@ def extract_dropdown_options(file) -> Dict[str, Dict[str, List[str]]]:
                     min_col, min_row, max_col, max_row = range_boundaries(str(rng))
                 except Exception:
                     continue
-
                 # assume validation applies to entire column below header
                 if min_row <= 2:
                     for col in range(min_col, max_col + 1):

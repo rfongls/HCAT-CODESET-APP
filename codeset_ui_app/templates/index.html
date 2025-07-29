@@ -17,11 +17,12 @@
 
     {% if workbook %}
     <div class="tabs">
-        <ul class="tab-links">
+        <label for="sheet-select">Select Sheet:</label>
+        <select id="sheet-select">
         {% for sheet in workbook.keys() %}
-            <li><a href="#tab{{ loop.index0 }}">{{ sheet }}</a></li>
+            <option value="tab{{ loop.index0 }}">{{ sheet }}</option>
         {% endfor %}
-        </ul>
+        </select>
         <div class="tab-content">
         {% for sheet, df in workbook.items() %}
             <div id="tab{{ loop.index0 }}" class="tab">
@@ -43,21 +44,18 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const links = document.querySelectorAll('.tab-links a');
+        const select = document.getElementById('sheet-select');
         const tabs = document.querySelectorAll('.tab');
-        links.forEach(link => {
-            link.addEventListener('click', e => {
-                e.preventDefault();
-                const target = document.querySelector(link.getAttribute('href'));
-                tabs.forEach(t => t.style.display = 'none');
-                links.forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-                if (target) target.style.display = 'block';
-            });
-        });
+        function showSelected() {
+            tabs.forEach(t => t.style.display = 'none');
+            const target = document.getElementById(select.value);
+            if (target) target.style.display = 'block';
+        }
+        if (select) {
+            select.addEventListener('change', showSelected);
+        }
         if (tabs.length > 0) {
             tabs.forEach((t, i) => t.style.display = i === 0 ? 'block' : 'none');
-            if (links[0]) links[0].classList.add('active');
         }
     });
     </script>

@@ -27,7 +27,6 @@ def index():
             try:
                 workbook_data = load_workbook(file)
                 dropdown_data = extract_dropdown_options(file)
-
                 last_error = None
             except Exception as exc:
                 last_error = str(exc)

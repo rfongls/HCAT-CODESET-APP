@@ -9,10 +9,7 @@ h1, h2, h3 {
 
 /* Tab styles */
 .tabs { margin-top: 1em; }
-.tab-links { list-style: none; padding: 0; display: flex; border-bottom: 1px solid #ccc; }
-.tab-links li { margin-right: 4px; }
-.tab-links a { text-decoration: none; padding: 6px 10px; border: 1px solid #4B0082; border-bottom: none; color: #4B0082; border-radius: 4px 4px 0 0; display: block; }
-.tab-links a.active { background-color: #4B0082; color: #fff; }
+.tabs select { margin-bottom: 0.5em; }
 .tab { border: 1px solid #4B0082; padding: 10px; }
 
 .codeset-table { border-collapse: collapse; width: 100%; }
