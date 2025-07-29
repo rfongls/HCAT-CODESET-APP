@@ -14,7 +14,7 @@ python codeset_ui_app/app.py
 
 The `dependency_setup.py` helper installs all Python packages required by the project and is invoked automatically by `app.py` on startup.
 
-Upload a codeset workbook (`.xlsx`) and each sheet will be displayed in its own tab as an editable table.
+Upload a codeset workbook (`.xlsx`). Each sheet is shown in its own tab and any dropdown validations detected in the workbook are listed below the table for quick reference.
 
 The repository also includes a `Samples` directory. Place the sample workbook
 `codeset template.xlsx` in this folder if you would like to experiment with the
@@ -27,7 +27,7 @@ app using mock data.
 codeset_ui_app/
 ├── app.py                 # Flask entry point
 ├── components/
-│   ├── dropdown_logic.py  # (stub) dropdown extraction helpers
+│   ├── dropdown_logic.py  # Extract dropdown validations from Excel
 │   └── file_parser.py     # Workbook loading utilities
 ├── utils/
 │   ├── export_excel.py    # (stub) workbook export helpers

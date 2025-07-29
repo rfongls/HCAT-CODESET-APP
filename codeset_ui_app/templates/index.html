@@ -27,6 +27,14 @@
             <div id="tab{{ loop.index0 }}" class="tab">
                 <h2>{{ sheet }}</h2>
                 {{ df.to_html(index=False, classes='codeset-table', border=0) | safe }}
+                {% if dropdowns and dropdowns.get(sheet) %}
+                <h3>Dropdown Options</h3>
+                <ul>
+                    {% for col, opts in dropdowns[sheet].items() %}
+                    <li><strong>{{ col }}</strong>: {{ opts | join(', ') }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
             </div>
         {% endfor %}
         </div>
