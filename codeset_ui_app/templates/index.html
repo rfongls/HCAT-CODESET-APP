@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Codeset Automation App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+    <header>
+        <h1>Codeset Automation App</h1>
+    </header>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="workbook" accept=".xlsx" />
+        <button type="submit">Upload</button>
+    </form>
+
+    {% if workbook %}
+    <div class="tabs">
+        <label for="sheet-input">Select Sheet:</label>
+        <input id="sheet-input" list="sheet-list" placeholder="Type or select" autocomplete="off" />
+        <datalist id="sheet-list">
+        {% for sheet in workbook.keys() %}
+            <option value="{{ sheet }}"></option>
+        {% endfor %}
+        </datalist>
+        <div class="tab-content">
+        {% for sheet, rows in workbook.items() %}
+            <div id="tab-{{ sheet|replace(' ', '_')|replace('.', '_')|replace('/', '_') }}" class="tab">
+                <h2>{{ sheet }}</h2>
+                <table class="codeset-table">
+                    <thead>
+                        <tr>
+                        {% for col in headers[sheet] %}
+                            <th>{{ col }}</th>
+                        {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            {% for col in headers[sheet] %}
+                                <td>
+                                {% if dropdowns and dropdowns.get(sheet) and dropdowns[sheet].get(col) %}
+                                    <select class="mapped-select" data-sheet="{{ sheet }}" data-col="{{ col }}">
+                                        {% for opt in dropdowns[sheet][col] %}
+                                        <option value="{{ opt }}" {% if row[col] == opt %}selected{% endif %}>{{ opt }}</option>
+                                        {% endfor %}
+                                    </select>
+                                {% else %}
+                                    <input type="text" value="{{ row[col] }}" />
+                                {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if formulas and formulas.get(sheet) %}
+                <h3>Column Formulas</h3>
+                <ul>
+                    {% for col, formula in formulas[sheet].items() %}
+                    <li><strong>{{ col }}</strong>: {{ formula }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <script>
+    const mappings = {{ mappings|tojson }};
+    document.addEventListener('DOMContentLoaded', () => {
+        const input = document.getElementById('sheet-input');
+        const tabs = document.querySelectorAll('.tab');
+        function showSelected(name) {
+            tabs.forEach(t => t.style.display = 'none');
+            const target = document.getElementById('tab-' + name.replace(/[^a-zA-Z0-9_]/g, '_'));
+            if (target) target.style.display = 'block';
+        }
+        if (input) {
+            input.addEventListener('change', () => showSelected(input.value));
+        }
+        if (tabs.length > 0) {
+            tabs.forEach((t, i) => t.style.display = i === 0 ? 'block' : 'none');
+        }
+
+        document.querySelectorAll('.mapped-select').forEach(sel => {
+            sel.addEventListener('change', e => {
+                const sheet = sel.dataset.sheet;
+                const col = sel.dataset.col;
+                const mapInfo = mappings[sheet];
+                if (!mapInfo) return;
+                const mapping = mapInfo.map;
+                const subCol = mapInfo.sub_col;
+                const row = sel.closest('tr');
+                if (row && subCol) {
+                    const inputs = row.querySelectorAll('input, select');
+                    const headers = Array.from(row.closest('table').querySelectorAll('th')).map(th => th.innerText);
+                    let subIndex = headers.indexOf(subCol);
+                    if (subIndex !== -1 && inputs[subIndex]) {
+                        const val = mapping[sel.value] || '';
+                        inputs[subIndex].value = val;
+                    }
+                }
+            });
+        });
+    });
+    </script>
+</body>
+</html>
