@@ -1,9 +1,7 @@
 """Utilities for extracting and handling dropdown validations."""
 
 from __future__ import annotations
-
 from typing import Dict, List
-
 from openpyxl import load_workbook
 from openpyxl.utils import range_boundaries
 
@@ -47,7 +45,6 @@ def _parse_formula(formula: str, wb) -> List[str]:
         # Gracefully handle malformed formulas
         return []
 
-
 def extract_dropdown_options(file) -> Dict[str, Dict[str, List[str]]]:
     """Extract dropdown validation options per sheet and column.
 
@@ -80,6 +77,7 @@ def extract_dropdown_options(file) -> Dict[str, Dict[str, List[str]]]:
                     min_col, min_row, max_col, max_row = range_boundaries(str(rng))
                 except Exception:
                     continue
+
                 # assume validation applies to entire column below header
                 if min_row <= 2:
                     for col in range(min_col, max_col + 1):
