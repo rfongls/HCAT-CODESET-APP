@@ -21,15 +21,31 @@ h1, h2, h3 {
 
 /* Tab styles */
 .tabs { margin-top: 1em; }
-.tabs input[list] {
+.tab-buttons {
+    display: flex;
+    gap: 4px;
     margin-bottom: 0.5em;
-    padding: 4px;
-    font-size: 1em;
-    border: 1px solid #4B0082;
-    border-radius: 4px;
 }
-
-.tab { border: 1px solid #4B0082; padding: 10px; }
+.tab-btn {
+    border: 1px solid #4B0082;
+    background: #ffffff;
+    color: #4B0082;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+.tab-btn.active {
+    background: #4B0082;
+    color: #ffffff;
+}
+.tab { border: 1px solid #4B0082; padding: 10px; margin-bottom: 1em; }
+.add-row {
+    margin-top: 0.5em;
+    padding: 4px 8px;
+    background: #4B0082;
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+}
 
 .codeset-table { border-collapse: collapse; width: 100%; }
 .codeset-table th, .codeset-table td { border: 1px solid #ddd; padding: 4px; }

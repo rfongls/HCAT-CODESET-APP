@@ -62,7 +62,7 @@ def _parse_formula(formula: str, wb) -> List[str]:
     except Exception:
         # Gracefully handle malformed formulas
         return []
-
+      
 def extract_dropdown_options(file) -> Dict[str, Dict[str, List[str]]]:
     """Extract dropdown validation options per sheet and column.
 

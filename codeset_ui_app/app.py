@@ -34,22 +34,28 @@ def index():
                 workbook_data = load_workbook(file)
                 dropdown_data = extract_dropdown_options(file)
                 formula_data = extract_column_formulas(file)
-
                 for sheet, df in workbook_data.items():
                     mapped_col = None
                     sub_col = None
+                    std_col = None
+
                     for col in df.columns:
                         col_key = col.upper().replace(" ", "_")
                         if col_key in ["MAPPED_STANDARD_DESCRIPTION", "MAPPED_STD_DESCRIPTION"]:
                             mapped_col = col
                         if col_key in ["SUB_DEFINITION", "SUB_DEFINITION_DESCRIPTION"]:
                             sub_col = col
+                        if col_key in ["STANDARD_DESCRIPTION", "STD_DESCRIPTION", "STANDARD_DESC"]:
+                            std_col = col
+                    if std_col and mapped_col:
+                        options = sorted({str(v) for v in df[std_col].dropna() if str(v).strip()})
+                        dropdown_data.setdefault(sheet, {})[mapped_col] = options
+
                     if mapped_col and sub_col:
                         sheet_map = {}
                         for _, row in df[[mapped_col, sub_col]].dropna().iterrows():
                             sheet_map[str(row[mapped_col])] = str(row[sub_col])
                         mapping_data[sheet] = {"map": sheet_map, "sub_col": sub_col}
-
                 last_error = None
             except Exception as exc:
                 last_error = str(exc)
