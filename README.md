@@ -10,23 +10,25 @@ The application now uses [Flask](https://flask.palletsprojects.com/) for the web
 
 ```bash
 python codeset_ui_app/utils/dependency_setup.py
-python codeset_ui_app/flask_app.py
+python codeset_ui_app/app.py
 ```
 
+The `dependency_setup.py` helper installs all Python packages required by the
+project.
+
 Upload a codeset workbook (`.xlsx`) and each sheet will be displayed in its own tab as an editable table.
+
 
 ## Project Structure
 
 ```
 codeset_ui_app/
-├── flask_app.py           # Flask entry point
-├── app.py                 # Legacy Streamlit example
+├── app.py                 # Flask entry point
 ├── components/
-│   ├── sheet_tabs.py      # Streamlit table renderer (legacy)
 │   ├── dropdown_logic.py  # (stub) dropdown extraction helpers
 │   └── file_parser.py     # Workbook loading utilities
 ├── utils/
-│   ├── export_excel.py     # (stub) workbook export helpers
+│   ├── export_excel.py    # (stub) workbook export helpers
 │   └── dependency_setup.py # Auto installs required packages
 ├── assets/
 │   └── styles.css         # White and purple theme

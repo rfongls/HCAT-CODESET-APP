@@ -1,29 +1,23 @@
-import streamlit as st
+from __future__ import annotations
+from typing import Dict
+import pandas as pd
+from flask import Flask, render_template, request
 from components.file_parser import load_workbook
-from components.sheet_tabs import render_sheet_tabs
-from utils.dependency_setup import ensure_installed
 
-def load_local_css():
-    """Load custom CSS for theming."""
-    try:
-        with open("codeset_ui_app/assets/styles.css") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        pass
+app = Flask(__name__, static_folder="assets", template_folder="templates")
+workbook_data: Dict[str, "pd.DataFrame"] = {}
 
 
-def main() -> None:
-    ensure_installed()
-    st.set_page_config(page_title="Codeset Automation App", layout="wide")
-    load_local_css()
-    st.title("Codeset Automation App")
-
-    uploaded_file = st.file_uploader("Upload Codeset Workbook", type=["xlsx"])
-
-    if uploaded_file:
-        workbook = load_workbook(uploaded_file)
-        render_sheet_tabs(workbook)
+@app.route("/", methods=["GET", "POST"])
+def index():
+    global workbook_data
+    if request.method == "POST" and "workbook" in request.files:
+        file = request.files["workbook"]
+        if file.filename:
+            workbook_data = load_workbook(file)
+    return render_template("index.html", workbook=workbook_data)
 
 
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)
+

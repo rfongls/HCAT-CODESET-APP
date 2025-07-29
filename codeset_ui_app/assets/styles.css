@@ -3,14 +3,8 @@ body {
     background-color: #ffffff;
 }
 
-h1, h2, h3, .stButton>button {
+h1, h2, h3 {
     color: #4B0082;
-}
-
-.stButton>button {
-    background-color: #4B0082;
-    border-color: #4B0082;
-    color: #ffffff;
 }
 
 /* Tab styles */
