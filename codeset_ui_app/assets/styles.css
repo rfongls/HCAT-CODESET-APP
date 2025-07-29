@@ -1,0 +1,35 @@
+/* Basic white and purple theme */
+body {
+    background-color: #ffffff;
+}
+
+header {
+    background-color: #4B0082;
+    color: #ffffff;
+    padding: 10px;
+    margin-bottom: 1em;
+}
+
+h1, h2, h3 {
+    color: #4B0082;
+}
+
+/* Tab styles */
+.tabs { margin-top: 1em; }
+.tabs input[list] {
+    margin-bottom: 0.5em;
+    padding: 4px;
+    font-size: 1em;
+    border: 1px solid #4B0082;
+    border-radius: 4px;
+}
+.tab { border: 1px solid #4B0082; padding: 10px; }
+
+.codeset-table { border-collapse: collapse; width: 100%; }
+.codeset-table th, .codeset-table td { border: 1px solid #ddd; padding: 4px; }
+.codeset-table th { background-color: #f2f2ff; }
+
+.error {
+    color: red;
+    margin-top: 1em;
+}
