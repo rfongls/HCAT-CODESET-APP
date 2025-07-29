@@ -15,6 +15,7 @@ python codeset_ui_app/app.py
 The `dependency_setup.py` helper installs all Python packages required by the project and is invoked automatically by `app.py` on startup.
 
 Upload a codeset workbook (`.xlsx`). Use the search box to type a sheet name or pick one from the suggestions to view its table. Any dropdown validations detected in the workbook are listed below the table, along with formulas discovered in the first data row of each sheet for reference.
+
 When a sheet includes both `Mapped Standard Description` and `Sub Definition` columns, the table shows a dropdown for the mapped description. Changing it automatically fills the corresponding `Sub Definition` cell using mappings detected in the workbook.
 
 

@@ -1,14 +1,11 @@
 from __future__ import annotations
-
 from typing import Dict, Any
-
 from utils.dependency_setup import ensure_installed
 
 ensure_installed()
 
 import pandas as pd
 from flask import Flask, render_template, request
-
 from components.file_parser import load_workbook
 from components.dropdown_logic import extract_dropdown_options
 from components.formula_logic import extract_column_formulas
@@ -27,7 +24,7 @@ def index():
     global dropdown_data
     global formula_data
     global last_error
-    global mapping_data
+
     if request.method == "POST" and "workbook" in request.files:
         file = request.files["workbook"]
         if file.filename:
@@ -50,6 +47,7 @@ def index():
                         for _, row in df[[mapped_col, sub_col]].dropna().iterrows():
                             sheet_map[str(row[mapped_col])] = str(row[sub_col])
                         mapping_data[sheet] = {"map": sheet_map, "sub_col": sub_col}
+
                 last_error = None
             except Exception as exc:
                 last_error = str(exc)
@@ -67,7 +65,5 @@ def index():
         mappings=mapping_data,
         error=last_error,
     )
-
-
 if __name__ == "__main__":
     app.run(debug=True)
