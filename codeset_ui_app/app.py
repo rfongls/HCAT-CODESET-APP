@@ -1,20 +1,18 @@
 from __future__ import annotations
-
 from typing import Dict
-
 from utils.dependency_setup import ensure_installed
 
 ensure_installed()
 
 import pandas as pd
 from flask import Flask, render_template, request
-
 from components.file_parser import load_workbook
 from components.dropdown_logic import extract_dropdown_options
 
 app = Flask(__name__, static_folder="assets", template_folder="templates")
 workbook_data: Dict[str, "pd.DataFrame"] = {}
 dropdown_data: Dict[str, Dict[str, list]] = {}
+
 last_error: str | None = None
 
 
@@ -29,6 +27,7 @@ def index():
             try:
                 workbook_data = load_workbook(file)
                 dropdown_data = extract_dropdown_options(file)
+
                 last_error = None
             except Exception as exc:
                 last_error = str(exc)
@@ -40,7 +39,6 @@ def index():
         dropdowns=dropdown_data,
         error=last_error,
     )
-
 
 if __name__ == "__main__":
     app.run(debug=True)

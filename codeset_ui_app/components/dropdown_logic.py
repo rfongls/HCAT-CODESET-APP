@@ -1,9 +1,7 @@
 """Utilities for extracting and handling dropdown validations."""
 
 from __future__ import annotations
-
 from typing import Dict, List
-
 from openpyxl import load_workbook
 from openpyxl.utils import range_boundaries
 
