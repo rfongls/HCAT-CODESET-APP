@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Codeset Automation App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+    <h1>Codeset Automation App</h1>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="workbook" accept=".xlsx" />
+        <button type="submit">Upload</button>
+    </form>
+
+    {% if workbook %}
+    <div class="tabs">
+        <label for="sheet-select">Select Sheet:</label>
+        <select id="sheet-select">
+        {% for sheet in workbook.keys() %}
+            <option value="tab{{ loop.index0 }}">{{ sheet }}</option>
+        {% endfor %}
+        </select>
+        <div class="tab-content">
+        {% for sheet, df in workbook.items() %}
+            <div id="tab{{ loop.index0 }}" class="tab">
+                <h2>{{ sheet }}</h2>
+                {{ df.to_html(index=False, classes='codeset-table', border=0) | safe }}
+                {% if dropdowns and dropdowns.get(sheet) %}
+                <h3>Dropdown Options</h3>
+                <ul>
+                    {% for col, opts in dropdowns[sheet].items() %}
+                    <li><strong>{{ col }}</strong>: {{ opts | join(', ') }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const select = document.getElementById('sheet-select');
+        const tabs = document.querySelectorAll('.tab');
+        function showSelected() {
+            tabs.forEach(t => t.style.display = 'none');
+            const target = document.getElementById(select.value);
+            if (target) target.style.display = 'block';
+        }
+        if (select) {
+            select.addEventListener('change', showSelected);
+        }
+        if (tabs.length > 0) {
+            tabs.forEach((t, i) => t.style.display = i === 0 ? 'block' : 'none');
+        }
+    });
+    </script>
+</body>
+</html>
