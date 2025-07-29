@@ -22,20 +22,14 @@ h1, h2, h3 {
 /* Tab styles */
 .tabs { margin-top: 1em; }
 .tab-buttons {
-    display: flex;
-    gap: 4px;
+    display: none;
+}
+.sheet-selector {
     margin-bottom: 0.5em;
 }
-.tab-btn {
+.sheet-selector input {
+    padding: 4px;
     border: 1px solid #4B0082;
-    background: #ffffff;
-    color: #4B0082;
-    padding: 4px 8px;
-    cursor: pointer;
-}
-.tab-btn.active {
-    background: #4B0082;
-    color: #ffffff;
 }
 .tab { border: 1px solid #4B0082; padding: 10px; margin-bottom: 1em; }
 .add-row {

@@ -19,10 +19,13 @@
 
     {% if workbook %}
     <div class="tabs">
-        <div class="tab-buttons">
-        {% for sheet in workbook.keys() %}
-            <button class="tab-btn" data-target="tab-{{ sheet|replace(' ', '_')|replace('.', '_')|replace('/', '_') }}">{{ sheet }}</button>
-        {% endfor %}
+        <div class="sheet-selector">
+            <input list="sheet-list" id="sheet-input" placeholder="Select sheet" />
+            <datalist id="sheet-list">
+            {% for sheet in workbook.keys() %}
+                <option value="{{ sheet }}"></option>
+            {% endfor %}
+            </datalist>
         </div>
         <div class="tab-content">
         {% for sheet, rows in workbook.items() %}
@@ -76,22 +79,25 @@
     const dropdowns = {{ dropdowns|tojson }};
     const headers = {{ headers|tojson }};
     document.addEventListener('DOMContentLoaded', () => {
-        const tabBtns = document.querySelectorAll('.tab-btn');
         const tabs = document.querySelectorAll('.tab');
+        const selector = document.getElementById('sheet-input');
         function showSelected(id) {
             tabs.forEach(t => t.style.display = 'none');
-            tabBtns.forEach(b => b.classList.remove('active'));
             const target = document.getElementById(id);
             if (target) target.style.display = 'block';
-            const activeBtn = document.querySelector('.tab-btn[data-target="' + id + '"]');
-            if (activeBtn) activeBtn.classList.add('active');
         }
-        tabBtns.forEach((btn, i) => {
-            btn.addEventListener('click', () => showSelected(btn.dataset.target));
-            if (i === 0) btn.classList.add('active');
-        });
+        if (selector) {
+            selector.addEventListener('input', () => {
+                const id = 'tab-' + selector.value.replace(/[^a-zA-Z0-9_]/g, '_');
+                showSelected(id);
+            });
+        }
         if (tabs.length > 0) {
             tabs.forEach((t, i) => t.style.display = i === 0 ? 'block' : 'none');
+            if (selector) {
+                selector.value = Object.keys(headers)[0];
+                showSelected('tab-' + selector.value.replace(/[^a-zA-Z0-9_]/g, '_'));
+            }
         }
 
         function createInput(sheet, header, value='') {

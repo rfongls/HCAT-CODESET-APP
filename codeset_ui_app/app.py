@@ -63,7 +63,6 @@ def index():
                 dropdown_data = {}
                 formula_data = {}
                 mapping_data = {}
-
     workbook_headers: Dict[str, list] = {s: df.columns.tolist() for s, df in workbook_data.items()}
     workbook_records: Dict[str, list] = {s: df.to_dict(orient="records") for s, df in workbook_data.items()}
     return render_template(
