@@ -44,14 +44,21 @@
                         <tr>
                             {% for col in headers[sheet] %}
                                 <td>
-                                {% if dropdowns and dropdowns.get(sheet) and dropdowns[sheet].get(col) %}
+                                {% set key = col.upper().replace(' ', '_') %}
+                                {% set map = mappings.get(sheet) %}
+                                {% if map and map.mapped_col == col and dropdowns and dropdowns.get(sheet) and dropdowns[sheet].get(col) %}
+
                                     <select class="mapped-select" data-sheet="{{ sheet }}" data-col="{{ col }}">
                                         {% for opt in dropdowns[sheet][col] %}
                                         <option value="{{ opt }}" {% if row[col] == opt %}selected{% endif %}>{{ opt }}</option>
                                         {% endfor %}
                                     </select>
-                                {% else %}
+                                {% elif key in ['CODE', 'DISPLAY_VALUE'] %}
                                     <input type="text" value="{{ row[col] }}" />
+                                {% elif map and map.sub_col == col %}
+                                    <input type="text" value="{{ row[col] }}" readonly />
+                                {% else %}
+                                    <span>{{ row[col] }}</span>
                                 {% endif %}
                                 </td>
                             {% endfor %}
@@ -101,8 +108,11 @@
         }
 
         function createInput(sheet, header, value='') {
+            const key = header.toUpperCase().replace(' ', '_');
+            const mapInfo = mappings[sheet] || {};
             const opts = dropdowns[sheet] && dropdowns[sheet][header];
-            if (opts) {
+            if (mapInfo.mapped_col && header === mapInfo.mapped_col && opts) {
+
                 const sel = document.createElement('select');
                 sel.className = 'mapped-select';
                 sel.dataset.sheet = sheet;
@@ -116,10 +126,22 @@
                 });
                 return sel;
             }
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.value = value || '';
-            return input;
+            if (key === 'CODE' || key === 'DISPLAY_VALUE') {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = value || '';
+                return input;
+            }
+            if (mapInfo.sub_col && header === mapInfo.sub_col) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.readOnly = true;
+                input.value = value || '';
+                return input;
+            }
+            const span = document.createElement('span');
+            span.textContent = value || '';
+            return span;
         }
 
         function attachMappingListener(sel) {
@@ -160,6 +182,7 @@
                 tbody.appendChild(row);
             });
         });
+
         document.querySelectorAll('.mapped-select').forEach(attachMappingListener);
     });
     </script>

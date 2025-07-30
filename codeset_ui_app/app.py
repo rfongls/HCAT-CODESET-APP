@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Dict, Any
+from typing import Dict, Any
 from utils.dependency_setup import ensure_installed
 
 ensure_installed()
@@ -50,12 +51,16 @@ def index():
                     if std_col and mapped_col:
                         options = sorted({str(v) for v in df[std_col].dropna() if str(v).strip()})
                         dropdown_data.setdefault(sheet, {})[mapped_col] = options
-
+                    sheet_map = {}
                     if mapped_col and sub_col:
-                        sheet_map = {}
                         for _, row in df[[mapped_col, sub_col]].dropna().iterrows():
                             sheet_map[str(row[mapped_col])] = str(row[sub_col])
-                        mapping_data[sheet] = {"map": sheet_map, "sub_col": sub_col}
+                    mapping_data[sheet] = {
+                        "map": sheet_map,
+                        "sub_col": sub_col,
+                        "mapped_col": mapped_col,
+                    }
+
                 last_error = None
             except Exception as exc:
                 last_error = str(exc)

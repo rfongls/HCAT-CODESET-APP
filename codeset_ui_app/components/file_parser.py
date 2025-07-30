@@ -15,8 +15,13 @@ def load_workbook(file) -> Dict[str, pd.DataFrame]:
     try:
         # Read everything as text to avoid NaN propagation
         data = pd.read_excel(file, sheet_name=None, engine="openpyxl", dtype=str)
-        for df in data.values():
+        for sheet, df in data.items():
             df.fillna("", inplace=True)
+            df.dropna(axis=1, how="all", inplace=True)
+            empty_cols = [c for c in df.columns if not c or str(c).startswith("Unnamed")]
+            df.drop(columns=empty_cols, inplace=True, errors="ignore")
+            data[sheet] = df
+
         return data
     except Exception:
         try:
@@ -32,6 +37,10 @@ def load_workbook(file) -> Dict[str, pd.DataFrame]:
                 header, *content = rows
                 df = pd.DataFrame(content, columns=header)
                 df = df.astype(str).fillna("")
+                df.dropna(axis=1, how="all", inplace=True)
+                empty_cols = [c for c in df.columns if not c or str(c).startswith("Unnamed")]
+                df.drop(columns=empty_cols, inplace=True, errors="ignore")
+
                 data[sheet] = df
             return data
         except Exception:
