@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import Dict, Any
 import pandas as pd
 from flask import Flask, render_template, request
-from openpyxl import load_workbook as xl_load_workbook
 from components.file_parser import load_workbook
 from components.dropdown_logic import extract_dropdown_options
 from components.formula_logic import (
@@ -30,9 +29,7 @@ def index():
         file = request.files["workbook"]
         if file.filename:
             try:
-                workbook_data = load_workbook(file)
-                file.seek(0)
-                wb = xl_load_workbook(file, data_only=False)
+                workbook_data, wb = load_workbook(file)
                 dropdown_data = extract_dropdown_options(wb)
                 formula_data = extract_column_formulas(wb)
                 lookup_maps = extract_lookup_mappings(wb)
@@ -60,20 +57,30 @@ def index():
                         options = sorted({str(v) for v in df[std_col].dropna() if str(v).strip()})
                         dropdown_data.setdefault(sheet, {})[mapped_col] = options
                     sheet_map = {}
+
+                    if std_col and std_code_col and std_desc_col:
+                        for _, row in df.iterrows():
+                            desc = str(row.get(std_col, "")).strip()
+                            code = str(row.get(std_code_col, "")).strip()
+                            full = f"{code}^{desc}" if code or desc else ""
+                            if desc:
+                                sheet_map.setdefault(desc, full)
+
                     if mapped_col:
                         for _, row in df.iterrows():
                             key = str(row[mapped_col]).strip()
                             if not key:
                                 continue
-                            if std_code_col and std_desc_col:
-                                code = str(row.get(std_code_col, "")).strip()
-                                desc = str(row.get(std_desc_col, "")).strip()
-                                val = f"{code}^{desc}" if code or desc else ""
-                            elif sub_col:
-                                val = str(row.get(sub_col, "")).strip()
-                            else:
-                                val = ""
-                            sheet_map.setdefault(key, val)
+                            if key not in sheet_map:
+                                if std_code_col and std_desc_col:
+                                    code = str(row.get(std_code_col, "")).strip()
+                                    desc = str(row.get(std_desc_col, "")).strip()
+                                    val = f"{code}^{desc}" if code or desc else ""
+                                elif sub_col:
+                                    val = str(row.get(sub_col, "")).strip()
+                                else:
+                                    val = ""
+                                sheet_map[key] = val
 
                     # Merge lookup-based mappings if available
                     lookup_sheet = lookup_maps.get(sheet, {})
