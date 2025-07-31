@@ -1,0 +1,101 @@
+Certainly. Here's a full Codex handoff instruction for referencing the workbook, validating mapping logic, and ensuring that all logic derives from the authoritative markdown file: `codex-spreadsheet-definition.md`.
+
+---
+
+## 🧩 Codex Integration Handoff: Codeset Template Validation & Agent Reference
+
+### 🔗 Source Files
+
+* **Spreadsheet to Process:**
+  `codeset_ui_app/samples/Codeset Template.xlsx`
+
+* **Reference Definition File:**
+  `codex-spreadsheet-definition.md`
+
+This markdown file contains authoritative rules regarding:
+
+* Which tabs require mapped standard descriptions.
+* The presence and structure of formulas.
+* Conditional enforcement based on actual data (not just headers).
+
+---
+
+### ✅ Objective
+
+Create the following components in Codex:
+
+---
+
+### 1. **Validation Node: `validate_codeset_tab_logic`**
+
+This node performs sheet-level validation logic as defined in `codex-spreadsheet-definition.md`.
+
+#### Responsibilities:
+
+* Open `Codeset Template.xlsx` using `pandas` or `openpyxl`.
+* For each sheet:
+
+  * Confirm if `STANDARD_CODE` and `STANDARD_DESCRIPTION` columns exist and contain data.
+  * If both exist and contain values, ensure `MAPPED_STD_DESCRIPTION` is not null.
+  * If formulas are present (column `D`), confirm the formula output matches the logic in the markdown spec (e.g., `UNK^UNKNOWN`, etc).
+
+#### Output:
+
+```json
+{
+  "sheet_name": "CS_RACE",
+  "requires_mapping": true,
+  "missing_mapped_std_descriptions": 2,
+  "formula_issues": []
+}
+```
+
+---
+
+### 2. **Reference Agent: `codeset_context_agent`**
+
+This is a persistent agent (or knowledge reference) for any logic or UI behavior referencing the codeset UI or imported Excel workbooks.
+
+#### Behavior:
+
+* On interaction with `codeset_ui_app/samples/Codeset Template.xlsx`, it:
+
+  * Loads and references `codex-spreadsheet-definition.md` as a grounding document.
+  * Injects context from that file before prompting the user for any new mapping action.
+  * Uses the file to inform dropdown population, enforcement logic, and validation criteria.
+
+#### Notes:
+
+* If a new codeset template is added, this agent should confirm if a corresponding `.md` definition exists and validate it first.
+* This agent acts as a **single source of truth** for how `MAPPED_STD_DESCRIPTION` and formulas behave in the UI.
+
+---
+
+### 🧪 Optional Test Task
+
+Include a test routine in `tests/test_validation.py` that:
+
+* Loads the `Codeset Template.xlsx`
+* Applies `validate_codeset_tab_logic`
+* Confirms all sheets expected to require mappings do so
+* Fails gracefully on sheets that omit standard fields (and ensures no enforcement applied)
+
+---
+
+### 📂 Folder Integration
+
+Suggested layout:
+
+```
+codex/
+├── spreadsheet_definitions/
+│   └── codex-spreadsheet-definition.md
+├── validators/
+│   └── validate_codeset_tab_logic.py
+├── agents/
+│   └── codeset_context_agent.py
+└── tests/
+    └── test_validation.py
+```
+
+Let me know if you’d like scaffold code for the validator or agent setup.
