@@ -140,7 +140,6 @@
             span.textContent = value || '';
             return span;
         }
-
         function updateSubDefinition(sel) {
             const sheet = sel.dataset.sheet;
             const mapInfo = mappings[sheet];
@@ -181,7 +180,6 @@
                 tbody.appendChild(row);
             });
         });
-
         document.addEventListener('change', (ev) => {
             const target = ev.target;
             if (target.classList.contains('mapped-select')) {

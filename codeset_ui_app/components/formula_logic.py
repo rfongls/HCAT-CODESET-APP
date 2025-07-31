@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import Dict, Any
 import re
 from openpyxl import load_workbook
@@ -23,7 +22,6 @@ def extract_column_formulas(file) -> Dict[str, Dict[str, str]]:
             break
         formulas[sheet_name] = sheet_formulas
     return formulas
-
 
 def _extract_table(wb, table_ref: str, col_index: int) -> Dict[str, str] | None:
     """Return mapping from a worksheet range."""
@@ -61,7 +59,6 @@ def _extract_table(wb, table_ref: str, col_index: int) -> Dict[str, str] | None:
             mapping[str(key)] = "" if val is None else str(val)
     return mapping
 
-
 def _parse_vlookup_range(formula: str, wb) -> Dict[str, str] | None:
     """Return mapping from simple or concatenated VLOOKUP formulas."""
     if not formula:
@@ -91,7 +88,6 @@ def _parse_vlookup_range(formula: str, wb) -> Dict[str, str] | None:
     for key in keys:
         combined[key] = "^".join(p.get(key, "") for p in parts)
     return combined
-
 
 def extract_lookup_mappings(file) -> Dict[str, Dict[str, Dict[str, str]]]:
     """Extract lookup mappings defined via simple VLOOKUP formulas."""

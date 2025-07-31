@@ -1,11 +1,7 @@
 from __future__ import annotations
-
 from typing import Dict, Any
-
-
 import pandas as pd
 from flask import Flask, render_template, request
-
 from components.file_parser import load_workbook
 from components.dropdown_logic import extract_dropdown_options
 from components.formula_logic import (
@@ -29,6 +25,7 @@ def index():
     global last_error
     global mapping_data
     mapping_data = {}
+
     if request.method == "POST" and "workbook" in request.files:
         file = request.files["workbook"]
         if file.filename:
@@ -37,6 +34,7 @@ def index():
                 dropdown_data = extract_dropdown_options(file)
                 formula_data = extract_column_formulas(file)
                 lookup_maps = extract_lookup_mappings(file)
+
                 for sheet, df in workbook_data.items():
                     mapped_col = None
                     sub_col = None
@@ -83,7 +81,6 @@ def index():
         mappings=mapping_data,
         error=last_error,
     )
-
 
 if __name__ == "__main__":
     app.run(debug=True)
