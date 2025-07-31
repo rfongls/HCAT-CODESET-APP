@@ -29,7 +29,10 @@ def _parse_vlookup_range(formula: str, wb) -> Dict[str, str] | None:
     Only handles simple formulas like ``VLOOKUP(A2,Sheet!A:B,2,0)``. Named ranges
     are also supported. If parsing fails, ``None`` is returned.
     """
-    m = re.search(r"VLOOKUP\([^,]+,([^,]+),(\d+)", formula, re.IGNORECASE)
+    if not formula:
+        return None
+    formula = formula.lstrip('=')
+    m = re.search(r"VLOOKUP\([^,]+,([^,]+?),(\d+)", formula, re.IGNORECASE)
     if not m:
         return None
     table_ref = m.group(1).strip().strip('"')

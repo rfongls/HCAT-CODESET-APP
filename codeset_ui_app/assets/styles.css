@@ -27,7 +27,7 @@ h1, h2, h3 {
 .sheet-selector {
     margin-bottom: 0.5em;
 }
-.sheet-selector input {
+.sheet-selector select {
     padding: 4px;
     border: 1px solid #4B0082;
 }

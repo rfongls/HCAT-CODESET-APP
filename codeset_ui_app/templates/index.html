@@ -20,12 +20,11 @@
     {% if workbook %}
     <div class="tabs">
         <div class="sheet-selector">
-            <input list="sheet-list" id="sheet-input" placeholder="Select sheet" />
-            <datalist id="sheet-list">
+            <select id="sheet-select">
             {% for sheet in workbook.keys() %}
-                <option value="{{ sheet }}"></option>
+                <option value="{{ sheet }}">{{ sheet }}</option>
             {% endfor %}
-            </datalist>
+            </select>
         </div>
         <div class="tab-content">
         {% for sheet, rows in workbook.items() %}
@@ -86,14 +85,14 @@
     const headers = {{ headers|tojson }};
     document.addEventListener('DOMContentLoaded', () => {
         const tabs = document.querySelectorAll('.tab');
-        const selector = document.getElementById('sheet-input');
+        const selector = document.getElementById('sheet-select');
         function showSelected(id) {
             tabs.forEach(t => t.style.display = 'none');
             const target = document.getElementById(id);
             if (target) target.style.display = 'block';
         }
         if (selector) {
-            selector.addEventListener('input', () => {
+            selector.addEventListener('change', () => {
                 const id = 'tab-' + selector.value.replace(/[^a-zA-Z0-9_]/g, '_');
                 showSelected(id);
             });
@@ -151,11 +150,18 @@
                 const subCol = mapInfo.sub_col;
                 const row = sel.closest('tr');
                 if (row && subCol) {
-                    const inputs = row.querySelectorAll('input, select');
-                    const hdrs = Array.from(row.closest('table').querySelectorAll('th')).map(th => th.innerText);
-                    const subIndex = hdrs.indexOf(subCol);
-                    if (subIndex !== -1 && inputs[subIndex]) {
-                        inputs[subIndex].value = mapping[sel.value] || '';
+                    const headers = Array.from(row.closest('table').querySelectorAll('th')).map(th => th.innerText);
+                    const subIndex = headers.indexOf(subCol);
+                    if (subIndex !== -1) {
+                        const cell = row.children[subIndex];
+                        if (cell) {
+                            const input = cell.querySelector('input, select');
+                            if (input) {
+                                input.value = mapping[sel.value] || '';
+                            } else {
+                                cell.textContent = mapping[sel.value] || '';
+                            }
+                        }
                     }
                 }
             });
