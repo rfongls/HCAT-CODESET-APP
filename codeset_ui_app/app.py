@@ -76,6 +76,7 @@ def index():
                                 sheet_map.setdefault(mapped_desc, full)
 
                     if mapped_col and not (std_col and std_code_col):
+
                         for _, row in df.iterrows():
                             key = str(row.get(mapped_col, "")).strip()
                             if not key:
