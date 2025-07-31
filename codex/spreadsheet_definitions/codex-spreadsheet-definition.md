@@ -104,7 +104,6 @@ Only enforce `MAPPED_STD_DESCRIPTION` selection **if mapping is required** for t
 
 ### 2. Formula Replication
 Recreate the Excel logic within your backend/frontend to compute a `CODE^DESC` combo string when a mapped value is selected.
-When the user picks a value in `MAPPED_STD_DESCRIPTION`, the corresponding `SUB_DEFINITION` field should be set to `STANDARD_CODE^STANDARD_DESCRIPTION` for that row.
 
 ### 3. Skip Tabs with No Mapping Data
 If `STANDARD_CODE` or `STANDARD_DESCRIPTION` is blank across all rows, the mapping field is **not required**. Codex should skip enforcement and formula computation for that tab.
