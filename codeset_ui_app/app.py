@@ -58,7 +58,7 @@ def index():
                         dropdown_data.setdefault(sheet, {})[mapped_col] = options
                     sheet_map = {}
 
-                    if std_col and std_code_col and std_desc_col:
+                    if std_col and std_code_col:
                         for _, row in df.iterrows():
                             desc = str(row.get(std_col, "")).strip()
                             code = str(row.get(std_code_col, "")).strip()
@@ -66,21 +66,23 @@ def index():
                             if desc:
                                 sheet_map.setdefault(desc, full)
 
-                    if mapped_col:
+                    if mapped_col and std_col and std_code_col:
                         for _, row in df.iterrows():
-                            key = str(row[mapped_col]).strip()
+                            mapped_desc = str(row.get(mapped_col, "")).strip()
+                            desc = str(row.get(std_col, "")).strip()
+                            code = str(row.get(std_code_col, "")).strip()
+                            full = f"{code}^{desc}" if code or desc else ""
+                            if mapped_desc:
+                                sheet_map.setdefault(mapped_desc, full)
+
+                    if mapped_col and not (std_col and std_code_col):
+
+                        for _, row in df.iterrows():
+                            key = str(row.get(mapped_col, "")).strip()
                             if not key:
                                 continue
-                            if key not in sheet_map:
-                                if std_code_col and std_desc_col:
-                                    code = str(row.get(std_code_col, "")).strip()
-                                    desc = str(row.get(std_desc_col, "")).strip()
-                                    val = f"{code}^{desc}" if code or desc else ""
-                                elif sub_col:
-                                    val = str(row.get(sub_col, "")).strip()
-                                else:
-                                    val = ""
-                                sheet_map[key] = val
+                            val = str(row.get(sub_col, "")) if sub_col else ""
+                            sheet_map.setdefault(key, val)
 
                     # Merge lookup-based mappings if available
                     lookup_sheet = lookup_maps.get(sheet, {})
