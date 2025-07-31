@@ -6,13 +6,15 @@ editing multi-sheet Excel workbooks that define various codesets.
 
 ## Running the UI
 
-The application uses [Flask](https://flask.palletsprojects.com/) for the web interface. Dependencies are installed automatically **before** the rest of the app imports, or you can run the helper script manually. Start the server with:
+The application uses [Flask](https://flask.palletsprojects.com/) for the web interface. Install dependencies from `requirements.txt` and start the server with:
 
 ```bash
+pip install -r requirements.txt
 python codeset_ui_app/app.py
 ```
 
-The `dependency_setup.py` helper installs all Python packages required by the project and is invoked automatically by `app.py` on startup.
+You can also run `utils/dependency_setup.py` to install the packages individually when network access is available.
+
 
 Upload a codeset workbook (`.xlsx`). After uploading, pick a sheet using the search box at the top of the page. The table for that sheet is shown along with an **Add Row** button. Any dropdown validations detected in the workbook are listed below the table along with formulas discovered in the first data row.
 When a sheet includes both `Mapped Standard Description` and `Sub Definition` columns, the mapped description column is rendered as a dropdown. Its options come from the sheet's `Standard Description` values and any Excel validations. Selecting a value automatically fills the corresponding `Sub Definition` cell. If the workbook uses simple `VLOOKUP` formulas to populate the sub definition, those lookup tables are read and used for this automatic fill behavior.
@@ -35,7 +37,7 @@ codeset_ui_app/
 │   └── formula_logic.py   # Parse example formulas
 ├── utils/
 │   ├── export_excel.py    # (stub) workbook export helpers
-│   └── dependency_setup.py # Auto installs required packages
+│   └── dependency_setup.py # Optional helper to install packages
 ├── assets/
 │   └── styles.css         # White and purple theme
 ├── templates/

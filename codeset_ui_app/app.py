@@ -1,9 +1,5 @@
 from __future__ import annotations
 from typing import Dict, Any
-from utils.dependency_setup import ensure_installed
-
-ensure_installed()
-
 import pandas as pd
 from flask import Flask, render_template, request
 from components.file_parser import load_workbook
