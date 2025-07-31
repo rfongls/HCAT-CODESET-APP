@@ -140,31 +140,28 @@
             span.textContent = value || '';
             return span;
         }
-
-        function attachMappingListener(sel) {
-            sel.addEventListener('change', () => {
-                const sheet = sel.dataset.sheet;
-                const mapInfo = mappings[sheet];
-                if (!mapInfo) return;
-                const mapping = mapInfo.map;
-                const subCol = mapInfo.sub_col;
-                const row = sel.closest('tr');
-                if (row && subCol) {
-                    const headers = Array.from(row.closest('table').querySelectorAll('th')).map(th => th.innerText);
-                    const subIndex = headers.indexOf(subCol);
-                    if (subIndex !== -1) {
-                        const cell = row.children[subIndex];
-                        if (cell) {
-                            const input = cell.querySelector('input, select');
-                            if (input) {
-                                input.value = mapping[sel.value] || '';
-                            } else {
-                                cell.textContent = mapping[sel.value] || '';
-                            }
+        function updateSubDefinition(sel) {
+            const sheet = sel.dataset.sheet;
+            const mapInfo = mappings[sheet];
+            if (!mapInfo) return;
+            const mapping = mapInfo.map;
+            const subCol = mapInfo.sub_col;
+            const row = sel.closest('tr');
+            if (row && subCol) {
+                const headers = Array.from(row.closest('table').querySelectorAll('th')).map(th => th.innerText);
+                const subIndex = headers.indexOf(subCol);
+                if (subIndex !== -1) {
+                    const cell = row.children[subIndex];
+                    if (cell) {
+                        const input = cell.querySelector('input, select');
+                        if (input) {
+                            input.value = mapping[sel.value] || '';
+                        } else {
+                            cell.textContent = mapping[sel.value] || '';
                         }
                     }
                 }
-            });
+            }
         }
 
         document.querySelectorAll('.add-row').forEach(btn => {
@@ -178,16 +175,17 @@
                     const td = document.createElement('td');
                     const input = createInput(sheet, h);
                     td.appendChild(input);
-                    if (input.classList.contains('mapped-select')) {
-                        attachMappingListener(input);
-                    }
                     row.appendChild(td);
                 });
                 tbody.appendChild(row);
             });
         });
-
-        document.querySelectorAll('.mapped-select').forEach(attachMappingListener);
+        document.addEventListener('change', (ev) => {
+            const target = ev.target;
+            if (target.classList.contains('mapped-select')) {
+                updateSubDefinition(target);
+            }
+        });
     });
     </script>
 </body>

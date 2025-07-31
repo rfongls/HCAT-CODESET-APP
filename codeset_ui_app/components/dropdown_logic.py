@@ -36,7 +36,6 @@ def _parse_formula(formula: str, wb) -> List[str]:
                         if value is not None:
                             values.append(str(value))
             return values
-
         # Range reference, e.g. Sheet1!$A$1:$A$5
         if "!" in formula:
             sheet_name, cell_range = formula.split("!", 1)

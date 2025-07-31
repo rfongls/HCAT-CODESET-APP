@@ -23,24 +23,8 @@ def extract_column_formulas(file) -> Dict[str, Dict[str, str]]:
         formulas[sheet_name] = sheet_formulas
     return formulas
 
-def _parse_vlookup_range(formula: str, wb) -> Dict[str, str] | None:
-    """Return mapping from the table referenced in a VLOOKUP formula.
-
-    Only handles simple formulas like ``VLOOKUP(A2,Sheet!A:B,2,0)``. Named ranges
-    are also supported. If parsing fails, ``None`` is returned.
-    """
-    if not formula:
-        return None
-    formula = formula.lstrip('=')
-    m = re.search(r"VLOOKUP\([^,]+,([^,]+?),(\d+)", formula, re.IGNORECASE)
-    if not m:
-        return None
-    table_ref = m.group(1).strip().strip('"')
-    try:
-        col_index = int(m.group(2))
-    except Exception:
-        return None
-
+def _extract_table(wb, table_ref: str, col_index: int) -> Dict[str, str] | None:
+    """Return mapping from a worksheet range."""
     if "!" in table_ref:
         sheet_name, cell_range = table_ref.split("!", 1)
         sheet_name = sheet_name.strip("'")
@@ -75,6 +59,35 @@ def _parse_vlookup_range(formula: str, wb) -> Dict[str, str] | None:
             mapping[str(key)] = "" if val is None else str(val)
     return mapping
 
+def _parse_vlookup_range(formula: str, wb) -> Dict[str, str] | None:
+    """Return mapping from simple or concatenated VLOOKUP formulas."""
+    if not formula:
+        return None
+    formula = formula.lstrip('=')
+    matches = list(re.finditer(r"VLOOKUP\([^,]+,([^,]+?),(\d+)", formula, re.IGNORECASE))
+    if not matches:
+        return None
+
+    parts = []
+    for m in matches:
+        table_ref = m.group(1).strip().strip('"')
+        try:
+            col_index = int(m.group(2))
+        except Exception:
+            return None
+        mapping = _extract_table(wb, table_ref, col_index)
+        if mapping is None:
+            return None
+        parts.append(mapping)
+
+    if len(parts) == 1:
+        return parts[0]
+
+    keys = set(parts[0].keys())
+    combined: Dict[str, str] = {}
+    for key in keys:
+        combined[key] = "^".join(p.get(key, "") for p in parts)
+    return combined
 
 def extract_lookup_mappings(file) -> Dict[str, Dict[str, Dict[str, str]]]:
     """Extract lookup mappings defined via simple VLOOKUP formulas."""

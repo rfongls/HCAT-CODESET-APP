@@ -39,7 +39,6 @@ def index():
                     mapped_col = None
                     sub_col = None
                     std_col = None
-
                     for col in df.columns:
                         col_key = col.upper().replace(" ", "_")
                         if col_key in ["MAPPED_STANDARD_DESCRIPTION", "MAPPED_STD_DESCRIPTION"]:
@@ -59,13 +58,11 @@ def index():
                     lookup_sheet = lookup_maps.get(sheet, {})
                     if sub_col and sub_col in lookup_sheet:
                         sheet_map = {**lookup_sheet[sub_col], **sheet_map}
-
                     mapping_data[sheet] = {
                         "map": sheet_map,
                         "sub_col": sub_col,
                         "mapped_col": mapped_col,
                     }
-
                 last_error = None
             except Exception as exc:
                 last_error = str(exc)
