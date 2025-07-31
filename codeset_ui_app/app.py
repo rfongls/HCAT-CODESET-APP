@@ -54,7 +54,7 @@ def index():
                             std_desc_col = col
 
                     if std_col and mapped_col:
-                        options = sorted({str(v) for v in df[std_col].dropna() if str(v).strip()})
+                        options = sorted({str(v) for v in df[std_col] if str(v).strip()})
                         dropdown_data.setdefault(sheet, {})[mapped_col] = options
                     sheet_map = {}
 
@@ -76,7 +76,6 @@ def index():
                                 sheet_map.setdefault(mapped_desc, full)
 
                     if mapped_col and not (std_col and std_code_col):
-
                         for _, row in df.iterrows():
                             key = str(row.get(mapped_col, "")).strip()
                             if not key:
@@ -88,6 +87,19 @@ def index():
                     lookup_sheet = lookup_maps.get(sheet, {})
                     if sub_col and sub_col in lookup_sheet:
                         sheet_map = {**lookup_sheet[sub_col], **sheet_map}
+
+                    # populate sub_definition column with calculated values
+                    if sub_col:
+                        if std_col and std_code_col:
+                            df[sub_col] = df.apply(
+                                lambda r: f"{str(r.get(std_code_col, '')).strip()}^{str(r.get(std_col, '')).strip()}"
+                                if str(r.get(std_code_col, '')).strip() or str(r.get(std_col, '')).strip()
+                                else "",
+                                axis=1,
+                            )
+                        elif mapped_col:
+                            df[sub_col] = df[mapped_col].map(sheet_map).fillna(df[sub_col])
+
                     mapping_data[sheet] = {
                         "map": sheet_map,
                         "sub_col": sub_col,
