@@ -62,21 +62,27 @@ def _parse_formula(formula: str, wb) -> List[str]:
         # Gracefully handle malformed formulas
         return []
 
-def extract_dropdown_options(file) -> Dict[str, Dict[str, List[str]]]:
+def extract_dropdown_options(file_or_wb) -> Dict[str, Dict[str, List[str]]]:
+
     """Extract dropdown validation options per sheet and column.
 
     Parameters
     ----------
-    file: path or file-like object
-        The Excel workbook to inspect.
+    file_or_wb: ``Workbook`` or file-like object
+        The Excel workbook to inspect. Passing an already loaded
+        ``openpyxl`` workbook avoids reading the file again.
+
 
     Returns
     -------
     Dict[str, Dict[str, List[str]]]
         Mapping of sheet names to columns and their list of allowed values.
     """
-    file.seek(0)
-    wb = load_workbook(file, data_only=True)
+    if hasattr(file_or_wb, "worksheets"):
+        wb = file_or_wb
+    else:
+        file_or_wb.seek(0)
+        wb = load_workbook(file_or_wb, data_only=True)
     dropdowns: Dict[str, Dict[str, List[str]]] = {}
     for sheet_name in wb.sheetnames:
         ws = wb[sheet_name]

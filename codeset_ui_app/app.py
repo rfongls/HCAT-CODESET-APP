@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Dict, Any
 import pandas as pd
 from flask import Flask, render_template, request
+from openpyxl import load_workbook as xl_load_workbook
 from components.file_parser import load_workbook
 from components.dropdown_logic import extract_dropdown_options
 from components.formula_logic import (
@@ -25,20 +26,23 @@ def index():
     global last_error
     global mapping_data
     mapping_data = {}
-
     if request.method == "POST" and "workbook" in request.files:
         file = request.files["workbook"]
         if file.filename:
             try:
                 workbook_data = load_workbook(file)
-                dropdown_data = extract_dropdown_options(file)
-                formula_data = extract_column_formulas(file)
-                lookup_maps = extract_lookup_mappings(file)
+                file.seek(0)
+                wb = xl_load_workbook(file, data_only=False)
+                dropdown_data = extract_dropdown_options(wb)
+                formula_data = extract_column_formulas(wb)
+                lookup_maps = extract_lookup_mappings(wb)
 
                 for sheet, df in workbook_data.items():
                     mapped_col = None
                     sub_col = None
                     std_col = None
+                    std_code_col = None
+                    std_desc_col = None
                     for col in df.columns:
                         col_key = col.upper().replace(" ", "_")
                         if col_key in ["MAPPED_STANDARD_DESCRIPTION", "MAPPED_STD_DESCRIPTION"]:
@@ -47,13 +51,30 @@ def index():
                             sub_col = col
                         if col_key in ["STANDARD_DESCRIPTION", "STD_DESCRIPTION", "STANDARD_DESC"]:
                             std_col = col
+                        if col_key in ["STANDARD_CODE", "STD_CODE"]:
+                            std_code_col = col
+                        if col_key in ["STANDARD_DEFINITION", "STD_DEFINITION"]:
+                            std_desc_col = col
+
                     if std_col and mapped_col:
                         options = sorted({str(v) for v in df[std_col].dropna() if str(v).strip()})
                         dropdown_data.setdefault(sheet, {})[mapped_col] = options
                     sheet_map = {}
-                    if mapped_col and sub_col:
-                        for _, row in df[[mapped_col, sub_col]].dropna().iterrows():
-                            sheet_map[str(row[mapped_col])] = str(row[sub_col])
+                    if mapped_col:
+                        for _, row in df.iterrows():
+                            key = str(row[mapped_col]).strip()
+                            if not key:
+                                continue
+                            if std_code_col and std_desc_col:
+                                code = str(row.get(std_code_col, "")).strip()
+                                desc = str(row.get(std_desc_col, "")).strip()
+                                val = f"{code}^{desc}" if code or desc else ""
+                            elif sub_col:
+                                val = str(row.get(sub_col, "")).strip()
+                            else:
+                                val = ""
+                            sheet_map.setdefault(key, val)
+
                     # Merge lookup-based mappings if available
                     lookup_sheet = lookup_maps.get(sheet, {})
                     if sub_col and sub_col in lookup_sheet:
