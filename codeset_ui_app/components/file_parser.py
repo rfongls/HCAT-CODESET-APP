@@ -1,45 +1,34 @@
 from __future__ import annotations
-from typing import Dict
+from typing import Dict, Tuple
 import pandas as pd
 from openpyxl import load_workbook as _load_workbook
+from openpyxl.workbook.workbook import Workbook
 
 
-def load_workbook(file) -> Dict[str, pd.DataFrame]:
-    """Load all sheets from an Excel workbook as data frames.
+def load_workbook(file) -> Tuple[Dict[str, pd.DataFrame], Workbook]:
+    """Load all sheets from an Excel workbook as data frames and return
+    the underlying openpyxl workbook.
 
-    Tries using pandas first. If that fails (often due to malformed XML
-    in the workbook), it falls back to openpyxl's read-only mode. When
-    all attempts fail, an empty dictionary is returned.
+    The file is parsed only once using :mod:`openpyxl` to avoid repeated
+    reads for dropdown extraction and formula inspection. All cells are
+    converted to strings and empty columns are removed.
     """
     file.seek(0)
-    try:
-        # Read everything as text to avoid NaN propagation
-        data = pd.read_excel(file, sheet_name=None, engine="openpyxl", dtype=str)
-        for sheet, df in data.items():
-            df.fillna("", inplace=True)
-            df.dropna(axis=1, how="all", inplace=True)
-            empty_cols = [c for c in df.columns if not c or str(c).startswith("Unnamed")]
-            df.drop(columns=empty_cols, inplace=True, errors="ignore")
-            data[sheet] = df
-        return data
-    except Exception:
-        try:
-            file.seek(0)
-            wb = _load_workbook(file, data_only=True, read_only=True)
-            data: Dict[str, pd.DataFrame] = {}
-            for sheet in wb.sheetnames:
-                ws = wb[sheet]
-                rows = list(ws.values)
-                if not rows:
-                    data[sheet] = pd.DataFrame()
-                    continue
-                header, *content = rows
-                df = pd.DataFrame(content, columns=header)
-                df = df.astype(str).fillna("")
-                df.dropna(axis=1, how="all", inplace=True)
-                empty_cols = [c for c in df.columns if not c or str(c).startswith("Unnamed")]
-                df.drop(columns=empty_cols, inplace=True, errors="ignore")
-                data[sheet] = df
-            return data
-        except Exception:
-            return {}
+    wb = _load_workbook(file, data_only=False)
+
+    data: Dict[str, pd.DataFrame] = {}
+    for sheet in wb.sheetnames:
+        ws = wb[sheet]
+        rows = list(ws.values)
+        if not rows:
+            data[sheet] = pd.DataFrame()
+            continue
+        header, *content = rows
+        df = pd.DataFrame(content, columns=header)
+        df = df.astype(str).fillna("")
+        df.dropna(axis=1, how="all", inplace=True)
+        empty_cols = [c for c in df.columns if not c or str(c).startswith("Unnamed")]
+        df.drop(columns=empty_cols, inplace=True, errors="ignore")
+        data[sheet] = df
+
+    return data, wb
