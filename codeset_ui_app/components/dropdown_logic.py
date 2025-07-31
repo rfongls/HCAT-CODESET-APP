@@ -1,9 +1,7 @@
 """Utilities for extracting and handling dropdown validations."""
 
 from __future__ import annotations
-
 from typing import Dict, List
-
 from openpyxl import load_workbook
 from openpyxl.utils import range_boundaries
 
@@ -64,8 +62,8 @@ def _parse_formula(formula: str, wb) -> List[str]:
         # Gracefully handle malformed formulas
         return []
 
-
 def extract_dropdown_options(file_or_wb) -> Dict[str, Dict[str, List[str]]]:
+
     """Extract dropdown validation options per sheet and column.
 
     Parameters
@@ -73,6 +71,7 @@ def extract_dropdown_options(file_or_wb) -> Dict[str, Dict[str, List[str]]]:
     file_or_wb: ``Workbook`` or file-like object
         The Excel workbook to inspect. Passing an already loaded
         ``openpyxl`` workbook avoids reading the file again.
+
 
     Returns
     -------

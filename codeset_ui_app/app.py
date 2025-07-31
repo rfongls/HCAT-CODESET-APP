@@ -1,12 +1,8 @@
 from __future__ import annotations
-
 from typing import Dict, Any
-
-
 import pandas as pd
 from flask import Flask, render_template, request
 from openpyxl import load_workbook as xl_load_workbook
-
 from components.file_parser import load_workbook
 from components.dropdown_logic import extract_dropdown_options
 from components.formula_logic import (
@@ -40,6 +36,7 @@ def index():
                 dropdown_data = extract_dropdown_options(wb)
                 formula_data = extract_column_formulas(wb)
                 lookup_maps = extract_lookup_mappings(wb)
+
                 for sheet, df in workbook_data.items():
                     mapped_col = None
                     sub_col = None
@@ -58,6 +55,7 @@ def index():
                             std_code_col = col
                         if col_key in ["STANDARD_DEFINITION", "STD_DEFINITION"]:
                             std_desc_col = col
+
                     if std_col and mapped_col:
                         options = sorted({str(v) for v in df[std_col].dropna() if str(v).strip()})
                         dropdown_data.setdefault(sheet, {})[mapped_col] = options
@@ -76,6 +74,7 @@ def index():
                             else:
                                 val = ""
                             sheet_map.setdefault(key, val)
+
                     # Merge lookup-based mappings if available
                     lookup_sheet = lookup_maps.get(sheet, {})
                     if sub_col and sub_col in lookup_sheet:
@@ -103,7 +102,6 @@ def index():
         mappings=mapping_data,
         error=last_error,
     )
-
 
 if __name__ == "__main__":
     app.run(debug=True)

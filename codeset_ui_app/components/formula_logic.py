@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import Dict, Any
 import re
 from openpyxl import load_workbook
@@ -26,8 +25,7 @@ def extract_column_formulas(file_or_wb) -> Dict[str, Dict[str, str]]:
             break
         formulas[sheet_name] = sheet_formulas
     return formulas
-
-
+  
 def _extract_table(wb, table_ref: str, col_index: int) -> Dict[str, str] | None:
     """Return mapping from a worksheet range."""
     if "!" in table_ref:
@@ -64,7 +62,6 @@ def _extract_table(wb, table_ref: str, col_index: int) -> Dict[str, str] | None:
             mapping[str(key)] = "" if val is None else str(val)
     return mapping
 
-
 def _parse_vlookup_range(formula: str, wb) -> Dict[str, str] | None:
     """Return mapping from simple or concatenated VLOOKUP formulas."""
     if not formula:
@@ -95,7 +92,6 @@ def _parse_vlookup_range(formula: str, wb) -> Dict[str, str] | None:
         combined[key] = "^".join(p.get(key, "") for p in parts)
     return combined
 
-
 def extract_lookup_mappings(file_or_wb) -> Dict[str, Dict[str, Dict[str, str]]]:
     """Extract lookup mappings defined via simple VLOOKUP formulas."""
     if hasattr(file_or_wb, "worksheets"):
@@ -103,6 +99,7 @@ def extract_lookup_mappings(file_or_wb) -> Dict[str, Dict[str, Dict[str, str]]]:
     else:
         file_or_wb.seek(0)
         wb = load_workbook(file_or_wb, data_only=False)
+
     mappings: Dict[str, Dict[str, Dict[str, str]]] = {}
     for sheet_name in wb.sheetnames:
         ws = wb[sheet_name]
