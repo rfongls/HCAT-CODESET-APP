@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import Dict, Any
-from typing import Dict, Any
 from utils.dependency_setup import ensure_installed
 
 ensure_installed()
@@ -9,7 +8,10 @@ import pandas as pd
 from flask import Flask, render_template, request
 from components.file_parser import load_workbook
 from components.dropdown_logic import extract_dropdown_options
-from components.formula_logic import extract_column_formulas
+from components.formula_logic import (
+    extract_column_formulas,
+    extract_lookup_mappings,
+)
 
 app = Flask(__name__, static_folder="assets", template_folder="templates")
 workbook_data: Dict[str, "pd.DataFrame"] = {}
@@ -35,6 +37,8 @@ def index():
                 workbook_data = load_workbook(file)
                 dropdown_data = extract_dropdown_options(file)
                 formula_data = extract_column_formulas(file)
+                lookup_maps = extract_lookup_mappings(file)
+
                 for sheet, df in workbook_data.items():
                     mapped_col = None
                     sub_col = None
@@ -55,6 +59,11 @@ def index():
                     if mapped_col and sub_col:
                         for _, row in df[[mapped_col, sub_col]].dropna().iterrows():
                             sheet_map[str(row[mapped_col])] = str(row[sub_col])
+                    # Merge lookup-based mappings if available
+                    lookup_sheet = lookup_maps.get(sheet, {})
+                    if sub_col and sub_col in lookup_sheet:
+                        sheet_map = {**lookup_sheet[sub_col], **sheet_map}
+
                     mapping_data[sheet] = {
                         "map": sheet_map,
                         "sub_col": sub_col,

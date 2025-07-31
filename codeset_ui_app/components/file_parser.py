@@ -40,7 +40,6 @@ def load_workbook(file) -> Dict[str, pd.DataFrame]:
                 df.dropna(axis=1, how="all", inplace=True)
                 empty_cols = [c for c in df.columns if not c or str(c).startswith("Unnamed")]
                 df.drop(columns=empty_cols, inplace=True, errors="ignore")
-
                 data[sheet] = df
             return data
         except Exception:

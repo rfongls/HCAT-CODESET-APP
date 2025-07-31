@@ -47,7 +47,6 @@
                                 {% set key = col.upper().replace(' ', '_') %}
                                 {% set map = mappings.get(sheet) %}
                                 {% if map and map.mapped_col == col and dropdowns and dropdowns.get(sheet) and dropdowns[sheet].get(col) %}
-
                                     <select class="mapped-select" data-sheet="{{ sheet }}" data-col="{{ col }}">
                                         {% for opt in dropdowns[sheet][col] %}
                                         <option value="{{ opt }}" {% if row[col] == opt %}selected{% endif %}>{{ opt }}</option>
@@ -112,7 +111,6 @@
             const mapInfo = mappings[sheet] || {};
             const opts = dropdowns[sheet] && dropdowns[sheet][header];
             if (mapInfo.mapped_col && header === mapInfo.mapped_col && opts) {
-
                 const sel = document.createElement('select');
                 sel.className = 'mapped-select';
                 sel.dataset.sheet = sheet;
