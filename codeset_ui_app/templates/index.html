@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Codeset Automation App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+    <header>
+        <h1>Codeset Automation App</h1>
+    </header>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="workbook" accept=".xlsx" />
+        <button type="submit">Upload</button>
+    </form>
+
+    {% if workbook %}
+    <div class="tabs">
+        <div class="sheet-selector">
+            <select id="sheet-select">
+            {% for sheet in workbook.keys() %}
+                <option value="{{ sheet }}">{{ sheet }}</option>
+            {% endfor %}
+            </select>
+        </div>
+        <div class="tab-content">
+        {% for sheet, rows in workbook.items() %}
+            <div id="tab-{{ sheet|replace(' ', '_')|replace('.', '_')|replace('/', '_') }}" class="tab">
+                <h2>{{ sheet }}</h2>
+                <table id="table-{{ sheet|replace(' ', '_')|replace('.', '_')|replace('/', '_') }}" class="codeset-table">
+                    <thead>
+                        <tr>
+                        {% for col in headers[sheet] %}
+                            <th>{{ col }}</th>
+                        {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            {% for col in headers[sheet] %}
+                                <td>
+                                {% set key = col.upper().replace(' ', '_') %}
+                                {% set map = mappings.get(sheet) %}
+                                {% if map and map.mapped_col == col and dropdowns and dropdowns.get(sheet) and dropdowns[sheet].get(col) %}
+                                    <select class="mapped-select" data-sheet="{{ sheet }}" data-col="{{ col }}">
+                                        {% for opt in dropdowns[sheet][col] %}
+                                        <option value="{{ opt }}" {% if row[col] == opt %}selected{% endif %}>{{ opt }}</option>
+                                        {% endfor %}
+                                    </select>
+                                {% elif key in ['CODE', 'DISPLAY_VALUE'] %}
+                                    <input type="text" value="{{ row[col] }}" />
+                                {% elif map and map.sub_col == col %}
+                                    <input type="text" value="{{ row[col] }}" readonly />
+                                {% else %}
+                                    <span>{{ row[col] }}</span>
+                                {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button class="add-row" data-sheet="{{ sheet }}">Add Row</button>
+                {% if formulas and formulas.get(sheet) %}
+                <h3>Column Formulas</h3>
+                <ul>
+                    {% for col, formula in formulas[sheet].items() %}
+                    <li><strong>{{ col }}</strong>: {{ formula }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <script>
+    const mappings = {{ mappings|tojson }};
+    const dropdowns = {{ dropdowns|tojson }};
+    const headers = {{ headers|tojson }};
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabs = document.querySelectorAll('.tab');
+        const selector = document.getElementById('sheet-select');
+        function showSelected(id) {
+            tabs.forEach(t => t.style.display = 'none');
+            const target = document.getElementById(id);
+            if (target) target.style.display = 'block';
+        }
+        if (selector) {
+            selector.addEventListener('change', () => {
+                const id = 'tab-' + selector.value.replace(/[^a-zA-Z0-9_]/g, '_');
+                showSelected(id);
+            });
+        }
+        if (tabs.length > 0) {
+            tabs.forEach((t, i) => t.style.display = i === 0 ? 'block' : 'none');
+            if (selector) {
+                selector.value = Object.keys(headers)[0];
+                showSelected('tab-' + selector.value.replace(/[^a-zA-Z0-9_]/g, '_'));
+            }
+        }
+
+        function createInput(sheet, header, value='') {
+            const key = header.toUpperCase().replace(' ', '_');
+            const mapInfo = mappings[sheet] || {};
+            const opts = dropdowns[sheet] && dropdowns[sheet][header];
+            if (mapInfo.mapped_col && header === mapInfo.mapped_col && opts) {
+                const sel = document.createElement('select');
+                sel.className = 'mapped-select';
+                sel.dataset.sheet = sheet;
+                sel.dataset.col = header;
+                opts.forEach(o => {
+                    const option = document.createElement('option');
+                    option.value = o;
+                    option.textContent = o;
+                    if (o === value) option.selected = true;
+                    sel.appendChild(option);
+                });
+                return sel;
+            }
+            if (key === 'CODE' || key === 'DISPLAY_VALUE') {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = value || '';
+                return input;
+            }
+            if (mapInfo.sub_col && header === mapInfo.sub_col) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.readOnly = true;
+                input.value = value || '';
+                return input;
+            }
+            const span = document.createElement('span');
+            span.textContent = value || '';
+            return span;
+        }
+
+        function updateSubDefinition(sel) {
+            const sheet = sel.dataset.sheet;
+            const mapInfo = mappings[sheet];
+            if (!mapInfo) return;
+            const mapping = mapInfo.map;
+            const subCol = mapInfo.sub_col;
+            const row = sel.closest('tr');
+            if (row && subCol) {
+                const headers = Array.from(row.closest('table').querySelectorAll('th')).map(th => th.innerText);
+                const subIndex = headers.indexOf(subCol);
+                if (subIndex !== -1) {
+                    const cell = row.children[subIndex];
+                    if (cell) {
+                        const input = cell.querySelector('input, select');
+                        if (input) {
+                            input.value = mapping[sel.value] || '';
+                        } else {
+                            cell.textContent = mapping[sel.value] || '';
+                        }
+                    }
+                }
+            }
+        }
+
+        document.querySelectorAll('.add-row').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const sheet = btn.dataset.sheet;
+                const table = document.getElementById('table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_'));
+                if (!table) return;
+                const tbody = table.querySelector('tbody');
+                const row = document.createElement('tr');
+                headers[sheet].forEach(h => {
+                    const td = document.createElement('td');
+                    const input = createInput(sheet, h);
+                    td.appendChild(input);
+                    row.appendChild(td);
+                });
+                tbody.appendChild(row);
+            });
+        });
+
+        document.addEventListener('change', (ev) => {
+            const target = ev.target;
+            if (target.classList.contains('mapped-select')) {
+                updateSubDefinition(target);
+            }
+        });
+    });
+    </script>
+</body>
+</html>
