@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import Dict, Any
 import re
 from openpyxl import load_workbook
@@ -23,7 +22,6 @@ def extract_column_formulas(file) -> Dict[str, Dict[str, str]]:
             break
         formulas[sheet_name] = sheet_formulas
     return formulas
-
 
 def _parse_vlookup_range(formula: str, wb) -> Dict[str, str] | None:
     """Return mapping from the table referenced in a VLOOKUP formula.
