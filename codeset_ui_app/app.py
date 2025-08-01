@@ -39,41 +39,29 @@ def index():
                     sub_col = None
                     std_col = None
                     std_code_col = None
-                    std_desc_col = None
                     for col in df.columns:
                         col_key = col.upper().replace(" ", "_")
                         if col_key in ["MAPPED_STANDARD_DESCRIPTION", "MAPPED_STD_DESCRIPTION"]:
                             mapped_col = col
-                        if col_key in ["SUB_DEFINITION", "SUB_DEFINITION_DESCRIPTION"]:
+                        if col_key in ["SUB_DEFINITION", "SUB_DEFINITION_DESCRIPTION", "SUBDEFINITION", "SUB DEFINITION"]:
                             sub_col = col
                         if col_key in ["STANDARD_DESCRIPTION", "STD_DESCRIPTION", "STANDARD_DESC"]:
                             std_col = col
                         if col_key in ["STANDARD_CODE", "STD_CODE"]:
                             std_code_col = col
-                        if col_key in ["STANDARD_DEFINITION", "STD_DEFINITION"]:
-                            std_desc_col = col
 
                     if std_col and mapped_col:
-                        options = sorted({str(v) for v in df[std_col] if str(v).strip()})
+                        options = sorted({str(v).strip() for v in df[std_col] if str(v).strip()})
                         dropdown_data.setdefault(sheet, {})[mapped_col] = options
+
                     sheet_map = {}
 
                     if std_col and std_code_col:
                         for _, row in df.iterrows():
                             desc = str(row.get(std_col, "")).strip()
                             code = str(row.get(std_code_col, "")).strip()
-                            full = f"{code}^{desc}" if code or desc else ""
                             if desc:
-                                sheet_map.setdefault(desc, full)
-
-                    if mapped_col and std_col and std_code_col:
-                        for _, row in df.iterrows():
-                            mapped_desc = str(row.get(mapped_col, "")).strip()
-                            desc = str(row.get(std_col, "")).strip()
-                            code = str(row.get(std_code_col, "")).strip()
-                            full = f"{code}^{desc}" if code or desc else ""
-                            if mapped_desc:
-                                sheet_map.setdefault(mapped_desc, full)
+                                sheet_map.setdefault(desc, f"{code}^{desc}")
 
                     if mapped_col and not (std_col and std_code_col):
                         for _, row in df.iterrows():
@@ -88,17 +76,9 @@ def index():
                     if sub_col and sub_col in lookup_sheet:
                         sheet_map = {**lookup_sheet[sub_col], **sheet_map}
 
-                    # populate sub_definition column with calculated values
-                    if sub_col:
-                        if std_col and std_code_col:
-                            df[sub_col] = df.apply(
-                                lambda r: f"{str(r.get(std_code_col, '')).strip()}^{str(r.get(std_col, '')).strip()}"
-                                if str(r.get(std_code_col, '')).strip() or str(r.get(std_col, '')).strip()
-                                else "",
-                                axis=1,
-                            )
-                        elif mapped_col:
-                            df[sub_col] = df[mapped_col].map(sheet_map).fillna(df[sub_col])
+                    # populate sub_definition column dynamically from mapped description
+                    if sub_col and mapped_col:
+                        df[sub_col] = df[mapped_col].map(sheet_map).fillna(df[sub_col])
 
                     mapping_data[sheet] = {
                         "map": sheet_map,
