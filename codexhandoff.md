@@ -68,6 +68,9 @@ This is a persistent agent (or knowledge reference) for any logic or UI behavior
 
 * If a new codeset template is added, this agent should confirm if a corresponding `.md` definition exists and validate it first.
 * This agent acts as a **single source of truth** for how `MAPPED_STD_DESCRIPTION` and formulas behave in the UI.
+* When a mapped description is chosen, the agent ensures the `SUB_DEFINITION` cell contains `STANDARD_CODE^STANDARD_DESCRIPTION`.
+  The workbook may label this column as either `SUB_DEFINITION` or `SUBDEFINITION`.
+* `SUB_DEFINITION` is read-only and auto-populated. `MAPPED_STD_DESCRIPTION` pulls its options from `STANDARD_DESCRIPTION`, and selecting a value automatically fills the `SUB_DEFINITION` cell with the code and description pair.
 
 ---
 
