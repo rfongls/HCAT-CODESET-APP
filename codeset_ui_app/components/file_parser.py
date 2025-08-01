@@ -21,6 +21,7 @@ def load_workbook(file) -> Tuple[Dict[str, pd.DataFrame], Workbook]:
     data: Dict[str, pd.DataFrame] = {}
     for sheet in data_wb.sheetnames:
         ws = data_wb[sheet]
+
         rows = list(ws.values)
         if not rows:
             data[sheet] = pd.DataFrame()
