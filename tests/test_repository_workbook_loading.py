@@ -9,6 +9,7 @@ def setup_app(tmp_path, monkeypatch):
     repo = samples / "repo1"
     repo.mkdir(parents=True)
     wb_path = repo / "CodesetSample.xlsx"
+
     wb = Workbook()
     ws = wb.active
     ws.title = "Sheet1"
@@ -35,10 +36,10 @@ def test_load_workbook_via_repo(tmp_path, monkeypatch):
     assert resp.status_code == 200
     assert bytes(f"<option value=\"{fname}\" selected>", "utf-8") in resp.data
 
-
 def test_repository_list(tmp_path, monkeypatch):
     app_module, repo, fname = setup_app(tmp_path, monkeypatch)
     client = app_module.app.test_client()
     resp = client.get("/")
     assert resp.status_code == 200
     assert f'<option value="{repo}"' in resp.get_data(as_text=True)
+
