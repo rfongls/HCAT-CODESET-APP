@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Dict, Any
 import pandas as pd
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from components.file_parser import load_workbook
 from components.dropdown_logic import extract_dropdown_options
 from components.formula_logic import (
@@ -57,19 +57,21 @@ def index():
                     sheet_map = {}
 
                     if std_col and std_code_col:
-                        for _, row in df.iterrows():
-                            desc = str(row.get(std_col, "")).strip()
-                            code = str(row.get(std_code_col, "")).strip()
-                            if desc:
-                                sheet_map.setdefault(desc, f"{code}^{desc}")
+                        std_series = df[std_col].astype(str).str.strip()
+                        code_series = df[std_code_col].astype(str).str.strip()
+                        mask = std_series != ""
+                        sheet_map.update(
+                            {
+                                desc: f"{code}^{desc}"
+                                for desc, code in zip(std_series[mask], code_series[mask])
+                            }
+                        )
 
-                    if mapped_col and not (std_col and std_code_col):
-                        for _, row in df.iterrows():
-                            key = str(row.get(mapped_col, "")).strip()
-                            if not key:
-                                continue
-                            val = str(row.get(sub_col, "")) if sub_col else ""
-                            sheet_map.setdefault(key, val)
+                    if mapped_col and not (std_col and std_code_col) and sub_col:
+                        mapped_series = df[mapped_col].astype(str).str.strip()
+                        sub_series = df[sub_col].astype(str)
+                        mask = mapped_series != ""
+                        sheet_map.update({k: v for k, v in zip(mapped_series[mask], sub_series[mask])})
 
                     # Merge lookup-based mappings if available
                     lookup_sheet = lookup_maps.get(sheet, {})
@@ -92,17 +94,32 @@ def index():
                 dropdown_data = {}
                 formula_data = {}
                 mapping_data = {}
-    workbook_headers: Dict[str, list] = {s: df.columns.tolist() for s, df in workbook_data.items()}
-    workbook_records: Dict[str, list] = {s: df.to_dict(orient="records") for s, df in workbook_data.items()}
+
+    sheet_names = list(workbook_data.keys())
+    headers: Dict[str, list] = {s: df.columns.tolist() for s, df in workbook_data.items()}
+    initial_sheet = sheet_names[0] if sheet_names else None
+    initial_records = (
+        workbook_data[initial_sheet].to_dict(orient="records") if initial_sheet else []
+    )
     return render_template(
         "index.html",
-        workbook=workbook_records,
-        headers=workbook_headers,
+        sheet_names=sheet_names,
+        initial_sheet=initial_sheet,
+        initial_records=initial_records,
+        headers=headers,
         dropdowns=dropdown_data,
         formulas=formula_data,
         mappings=mapping_data,
         error=last_error,
     )
+
+
+@app.route("/sheet/<sheet_name>")
+def get_sheet(sheet_name: str):
+    df = workbook_data.get(sheet_name)
+    if df is None:
+        return jsonify([])
+    return jsonify(df.to_dict(orient="records"))
 
 if __name__ == "__main__":
     app.run(debug=True)
