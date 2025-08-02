@@ -39,6 +39,7 @@
     const initialSheet = {{ initial_sheet|tojson }};
     const workbook = {};
     workbook[initialSheet] = {{ initial_records|tojson }};
+    const originalFilename = {{ filename|tojson }};
 
     document.addEventListener('DOMContentLoaded', () => {
         const selector = document.getElementById('sheet-select');
@@ -192,7 +193,7 @@
                     const a = document.createElement('a');
                     a.href = url;
                     const disposition = resp.headers.get('Content-Disposition');
-                    let fname = 'updated_workbook.xlsx';
+                    let fname = originalFilename || 'updated_workbook.xlsx';
                     if (disposition) {
                         const match = disposition.match(/filename="?([^";]+)"?/);
                         if (match) fname = match[1];
@@ -235,7 +236,6 @@
 
         selector?.addEventListener('change', async () => {
             syncCurrentSheet();
-
             const sheet = selector.value;
             await ensureSheetLoaded(sheet);
             renderSheet(sheet);

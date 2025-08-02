@@ -38,6 +38,7 @@ def index():
             try:
                 workbook_data, wb = load_workbook(file)
                 workbook_obj = wb
+                original_filename = file.filename
                 dropdown_data = extract_dropdown_options(wb)
                 formula_data = extract_column_formulas(wb)
                 lookup_maps = extract_lookup_mappings(wb)
@@ -137,6 +138,44 @@ def index():
         formulas=formula_data,
         mappings=mapping_data,
         error=last_error,
+        filename=original_filename,
+    )
+
+
+@app.route("/sheet/<sheet_name>")
+def get_sheet(sheet_name: str):
+    df = workbook_data.get(sheet_name)
+    if df is None:
+        return jsonify([])
+    return jsonify(df.to_dict(orient="records"))
+
+
+@app.route("/export", methods=["POST"])
+def export():
+    """Export the in-memory workbook with updated values."""
+    global workbook_obj, workbook_data, original_filename
+    if workbook_obj is None:
+        return "No workbook loaded", 400
+
+    payload = request.get_json() or {}
+    if not isinstance(payload, dict):
+        return "Invalid payload", 400
+
+    for sheet, rows in payload.items():
+        if sheet in workbook_data:
+            df = pd.DataFrame(rows, columns=workbook_data[sheet].columns)
+            df = df.where(pd.notna(df), "")
+            workbook_data[sheet] = df
+
+    buffer = BytesIO()
+    export_workbook(workbook_obj, workbook_data, buffer)
+    buffer.seek(0)
+    filename = original_filename or "updated_workbook.xlsx"
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
 
