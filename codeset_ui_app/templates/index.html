@@ -235,6 +235,7 @@
 
         selector?.addEventListener('change', async () => {
             syncCurrentSheet();
+
             const sheet = selector.value;
             await ensureSheetLoaded(sheet);
             renderSheet(sheet);

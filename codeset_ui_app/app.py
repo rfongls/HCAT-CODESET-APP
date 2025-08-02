@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import Dict, Any
 from io import BytesIO
-
 import pandas as pd
 from flask import Flask, render_template, request, jsonify, send_file
 from components.file_parser import load_workbook
@@ -39,7 +38,6 @@ def index():
             try:
                 workbook_data, wb = load_workbook(file)
                 workbook_obj = wb
-                original_filename = file.filename
                 dropdown_data = extract_dropdown_options(wb)
                 formula_data = extract_column_formulas(wb)
                 lookup_maps = extract_lookup_mappings(wb)
@@ -148,7 +146,6 @@ def get_sheet(sheet_name: str):
     if df is None:
         return jsonify([])
     return jsonify(df.to_dict(orient="records"))
-
 
 @app.route("/export", methods=["POST"])
 def export():
