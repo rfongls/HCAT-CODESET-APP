@@ -95,11 +95,16 @@ def index():
                         "mapped_col": mapped_col,
                     }
 
-                    if code_col and display_col:
+                    # Preserve all rows so the full standard code list remains visible
+                    if code_col and display_col and mapped_col:
                         code_series = df[code_col].astype(str).str.strip()
                         display_series = df[display_col].astype(str).str.strip()
-                        keep_mask = code_series.ne("") | display_series.ne("")
-                        workbook_data[sheet] = df[keep_mask]
+                        blank_mask = code_series.eq("") & display_series.eq("")
+                        if blank_mask.any():
+                            df.loc[blank_mask, mapped_col] = ""
+                            if sub_col:
+                                df.loc[blank_mask, sub_col] = ""
+                    workbook_data[sheet] = df
                 last_error = None
             except Exception as exc:
                 last_error = str(exc)
