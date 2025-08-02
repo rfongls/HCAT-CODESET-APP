@@ -104,17 +104,9 @@ Only enforce `MAPPED_STD_DESCRIPTION` selection **if mapping is required** for t
 
 ### 2. Formula Replication
 Recreate the Excel logic within your backend/frontend to compute a `CODE^DESC` combo string when a mapped value is selected.
-When the user picks a value in `MAPPED_STD_DESCRIPTION`, the corresponding `SUB_DEFINITION` field should be set to `STANDARD_CODE^STANDARD_DESCRIPTION` for that row.
-The "sub definition" column may appear as either `SUB_DEFINITION` or `SUBDEFINITION` in the workbook headers.
-`SUB_DEFINITION` itself is not a dropdown. Options for `MAPPED_STD_DESCRIPTION` come from the `STANDARD_DESCRIPTION` column, and the selected value dynamically fills the `SUB_DEFINITION` cell with `STANDARD_CODE^STANDARD_DESCRIPTION`.
 
 ### 3. Skip Tabs with No Mapping Data
 If `STANDARD_CODE` or `STANDARD_DESCRIPTION` is blank across all rows, the mapping field is **not required**. Codex should skip enforcement and formula computation for that tab.
 
 ### 4. Maintain Column Order and Naming
-Avoid renaming or reordering columns to preserve downstream interoperability. Columns
-are retained even when completely blank so that all expected fields remain
-available for data entry.
-
-### 5. UI Loading Efficiency
-The workbook is parsed once on upload and the web interface renders one sheet at a time, fetching data for other sheets only when selected. This prevents the page from hanging on large workbooks.
+Avoid renaming or reordering columns to preserve downstream interoperability.
