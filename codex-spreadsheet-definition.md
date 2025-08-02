@@ -113,7 +113,9 @@ The "sub definition" column may appear as either `SUB_DEFINITION` or `SUBDEFINIT
 If `STANDARD_CODE` or `STANDARD_DESCRIPTION` is blank across all rows, the mapping field is **not required**. Codex should skip enforcement and formula computation for that tab.
 
 ### 4. Maintain Column Order and Naming
-Avoid renaming or reordering columns to preserve downstream interoperability.
+Avoid renaming or reordering columns to preserve downstream interoperability. Columns
+are retained even when completely blank so that all expected fields remain
+available for data entry.
 
 ### 5. UI Loading Efficiency
 The workbook is parsed once on upload and the web interface renders one sheet at a time, fetching data for other sheets only when selected. This prevents the page from hanging on large workbooks.

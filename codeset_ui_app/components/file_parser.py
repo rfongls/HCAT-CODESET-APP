@@ -21,7 +21,6 @@ def load_workbook(file) -> Tuple[Dict[str, pd.DataFrame], Workbook]:
     data: Dict[str, pd.DataFrame] = {}
     for sheet in data_wb.sheetnames:
         ws = data_wb[sheet]
-
         rows = list(ws.values)
         if not rows:
             data[sheet] = pd.DataFrame()
@@ -29,10 +28,10 @@ def load_workbook(file) -> Tuple[Dict[str, pd.DataFrame], Workbook]:
         header, *content = rows
         df = pd.DataFrame(content, columns=header)
         df = df.where(pd.notna(df), "").astype(str)
-        # Remove completely empty columns and rows
+        # Remove completely empty rows but preserve blank columns so the UI retains
+        # all expected headers, even when no data is present in a column.
         df.replace("", pd.NA, inplace=True)
         df.dropna(axis=0, how="all", inplace=True)
-        df.dropna(axis=1, how="all", inplace=True)
         df.fillna("", inplace=True)
         empty_cols = [c for c in df.columns if not c or str(c).startswith("Unnamed")]
         df.drop(columns=empty_cols, inplace=True, errors="ignore")
