@@ -52,6 +52,11 @@
                 sel.className = 'mapped-select';
                 sel.dataset.sheet = sheet;
                 sel.dataset.col = header;
+                const blank = document.createElement('option');
+                blank.value = '';
+                blank.textContent = '';
+                if (!value) blank.selected = true;
+                sel.appendChild(blank);
                 opts.forEach(o => {
                     const option = document.createElement('option');
                     option.value = o;

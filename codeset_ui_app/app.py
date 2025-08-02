@@ -34,11 +34,13 @@ def index():
                 formula_data = extract_column_formulas(wb)
                 lookup_maps = extract_lookup_mappings(wb)
 
-                for sheet, df in workbook_data.items():
+                for sheet, df in list(workbook_data.items()):
                     mapped_col = None
                     sub_col = None
                     std_col = None
                     std_code_col = None
+                    code_col = None
+                    display_col = None
                     for col in df.columns:
                         col_key = col.upper().replace(" ", "_")
                         if col_key in ["MAPPED_STANDARD_DESCRIPTION", "MAPPED_STD_DESCRIPTION"]:
@@ -49,10 +51,15 @@ def index():
                             std_col = col
                         if col_key in ["STANDARD_CODE", "STD_CODE"]:
                             std_code_col = col
+                        if col_key == "CODE":
+                            code_col = col
+                        if col_key in ["DISPLAY_VALUE", "DISPLAY"]:
+                            display_col = col
 
                     if std_col and mapped_col:
                         options = sorted({str(v).strip() for v in df[std_col] if str(v).strip()})
-                        dropdown_data.setdefault(sheet, {})[mapped_col] = options
+                        if options:
+                            dropdown_data.setdefault(sheet, {})[mapped_col] = options
 
                     sheet_map = {}
 
@@ -87,6 +94,12 @@ def index():
                         "sub_col": sub_col,
                         "mapped_col": mapped_col,
                     }
+
+                    if code_col and display_col:
+                        code_series = df[code_col].astype(str).str.strip()
+                        display_series = df[display_col].astype(str).str.strip()
+                        keep_mask = code_series.ne("") | display_series.ne("")
+                        workbook_data[sheet] = df[keep_mask]
                 last_error = None
             except Exception as exc:
                 last_error = str(exc)

@@ -101,6 +101,7 @@ Formulas, when present, are generally embedded in column `D` and follow a struct
 
 ### 1. Conditional UI Enforcement
 Only enforce `MAPPED_STD_DESCRIPTION` selection **if mapping is required** for that tab.
+Rows that lack values in both `CODE` and `DISPLAY VALUE` are treated as lookup data and ignored when rendering; their `MAPPED_STD_DESCRIPTION` cell starts with a blank option until a user chooses a mapping.
 
 ### 2. Formula Replication
 Recreate the Excel logic within your backend/frontend to compute a `CODE^DESC` combo string when a mapped value is selected.
