@@ -75,7 +75,7 @@ This is a persistent agent (or knowledge reference) for any logic or UI behavior
 * The application parses the workbook once and renders only the requested sheet, fetching other tabs on demand to avoid UI hangs on large files.
 * Empty columns are preserved during parsing so each sheet's expected headers remain available even when no data exists for a column.
 * A dedicated export routine overwrites the uploaded workbook on disk, retaining the original file name and formatting while also returning it for download if needed.
-* The web UI can scan the top-level `Samples` directory for repository folders and lets users choose an existing workbook from those repositories instead of uploading one manually.
+* The web UI scans the `Samples` directory for folders containing `Codeset*.xlsx` files and offers those parent folders as repositories so users can choose an existing workbook instead of uploading.
 
 ---
 

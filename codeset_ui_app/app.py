@@ -21,7 +21,6 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for imports when pack
         extract_lookup_mappings,
     )
     from .utils.export_excel import export_workbook
-
 from openpyxl.workbook.workbook import Workbook
 
 app = Flask(__name__, static_folder="assets", template_folder="templates")
@@ -35,7 +34,16 @@ workbook_path: Path | None = None
 last_error: str | None = None
 
 # Directory containing sample repositories and workbooks
-SAMPLES_DIR = Path("Samples")
+SAMPLES_DIR = Path(__file__).resolve().parent.parent / "Samples"
+
+
+def discover_repositories(base: Path) -> list[str]:
+    """Return folder names containing Codeset workbooks under ``base``."""
+    repos: set[str] = set()
+    if base.exists():
+        for wb in base.rglob("*Codeset*.xlsx"):
+            repos.add(wb.parent.name)
+    return sorted(repos)
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -51,7 +59,7 @@ def index():
     mapping_data = {}
     selected_repo: str | None = None
     selected_workbook: str | None = None
-    repo_names = [d.name for d in SAMPLES_DIR.iterdir() if d.is_dir()]
+    repo_names = discover_repositories(SAMPLES_DIR)
     repo_files: list[str] = []
 
     if request.method == "POST":
@@ -244,7 +252,7 @@ def index():
     if selected_repo:
         repo_dir = (SAMPLES_DIR / selected_repo)
         if repo_dir.is_dir():
-            repo_files = [p.name for p in repo_dir.glob("*.xlsx")]
+            repo_files = [p.name for p in repo_dir.glob("*Codeset*.xlsx")]
 
     sheet_names = list(workbook_data.keys())
     headers: Dict[str, list] = {s: df.columns.tolist() for s, df in workbook_data.items()}
@@ -285,7 +293,7 @@ def list_workbooks(repo: str):
     repo_path = (SAMPLES_DIR / repo).resolve()
     if not repo_path.is_dir() or not repo_path.is_relative_to(base):
         return jsonify([])
-    files = [p.name for p in repo_path.glob("*.xlsx")]
+    files = [p.name for p in repo_path.glob("*Codeset*.xlsx")]
     return jsonify(files)
 
 @app.route("/export", methods=["POST"])
