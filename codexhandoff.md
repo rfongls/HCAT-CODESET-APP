@@ -74,6 +74,7 @@ This is a persistent agent (or knowledge reference) for any logic or UI behavior
 * Rows lacking entries for both `CODE` and `DISPLAY VALUE` remain visible so the full list of `STANDARD_CODE` and `STANDARD_DESCRIPTION` values is viewable; their `MAPPED_STD_DESCRIPTION` and `SUB_DEFINITION` cells start blank until a value is chosen.
 * The application parses the workbook once and renders only the requested sheet, fetching other tabs on demand to avoid UI hangs on large files.
 * Empty columns are preserved during parsing so each sheet's expected headers remain available even when no data exists for a column.
+* A dedicated export routine saves user edits back into the uploaded workbook, retaining the original file name and formatting.
 
 ---
 

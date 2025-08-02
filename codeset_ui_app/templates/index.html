@@ -110,6 +110,28 @@
             }
         }
 
+        function readSheet(table, sheet) {
+            const rows = [];
+            const headerList = headers[sheet];
+            table.querySelectorAll('tbody tr').forEach(tr => {
+                const obj = {};
+                headerList.forEach((h, idx) => {
+                    const cell = tr.children[idx];
+                    const input = cell.querySelector('input, select');
+                    obj[h] = input ? input.value : cell.textContent;
+                });
+                rows.push(obj);
+            });
+            return rows;
+        }
+
+        function syncCurrentSheet() {
+            const sheet = selector.value;
+            const table = document.querySelector('#table-wrapper table');
+            if (!table) return;
+            workbook[sheet] = readSheet(table, sheet);
+        }
+
         function renderSheet(sheet) {
             const container = document.getElementById('table-wrapper');
             container.innerHTML = '';
@@ -154,6 +176,36 @@
             });
             container.appendChild(addBtn);
 
+            const saveBtn = document.createElement('button');
+            saveBtn.id = 'export-workbook';
+            saveBtn.textContent = 'Export Workbook';
+            saveBtn.addEventListener('click', async () => {
+                syncCurrentSheet();
+                const resp = await fetch('/export', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(workbook)
+                });
+                if (resp.ok) {
+                    const blob = await resp.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const disposition = resp.headers.get('Content-Disposition');
+                    let fname = 'updated_workbook.xlsx';
+                    if (disposition) {
+                        const match = disposition.match(/filename="?([^";]+)"?/);
+                        if (match) fname = match[1];
+                    }
+                    a.download = fname;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                }
+            });
+            container.appendChild(saveBtn);
+
             if (formulas[sheet] && Object.keys(formulas[sheet]).length) {
                 const h3 = document.createElement('h3');
                 h3.textContent = 'Column Formulas';
@@ -182,6 +234,8 @@
         }
 
         selector?.addEventListener('change', async () => {
+            syncCurrentSheet();
+
             const sheet = selector.value;
             await ensureSheetLoaded(sheet);
             renderSheet(sheet);

@@ -1,19 +1,24 @@
 from __future__ import annotations
 from typing import Dict, Any
+from io import BytesIO
 import pandas as pd
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 from components.file_parser import load_workbook
 from components.dropdown_logic import extract_dropdown_options
 from components.formula_logic import (
     extract_column_formulas,
     extract_lookup_mappings,
 )
+from utils.export_excel import export_workbook
+from openpyxl.workbook.workbook import Workbook
 
 app = Flask(__name__, static_folder="assets", template_folder="templates")
 workbook_data: Dict[str, "pd.DataFrame"] = {}
 dropdown_data: Dict[str, Dict[str, list]] = {}
 formula_data: Dict[str, Dict[str, str]] = {}
 mapping_data: Dict[str, Dict[str, Any]] = {}
+workbook_obj: Workbook | None = None
+original_filename: str | None = None
 last_error: str | None = None
 
 
@@ -24,12 +29,15 @@ def index():
     global formula_data
     global last_error
     global mapping_data
+    global workbook_obj
+    global original_filename
     mapping_data = {}
     if request.method == "POST" and "workbook" in request.files:
         file = request.files["workbook"]
         if file.filename:
             try:
                 workbook_data, wb = load_workbook(file)
+                workbook_obj = wb
                 dropdown_data = extract_dropdown_options(wb)
                 formula_data = extract_column_formulas(wb)
                 lookup_maps = extract_lookup_mappings(wb)
@@ -138,6 +146,34 @@ def get_sheet(sheet_name: str):
     if df is None:
         return jsonify([])
     return jsonify(df.to_dict(orient="records"))
+
+@app.route("/export", methods=["POST"])
+def export():
+    """Export the in-memory workbook with updated values."""
+    global workbook_obj, workbook_data, original_filename
+    if workbook_obj is None:
+        return "No workbook loaded", 400
+
+    payload = request.get_json() or {}
+    if not isinstance(payload, dict):
+        return "Invalid payload", 400
+
+    for sheet, rows in payload.items():
+        if sheet in workbook_data:
+            df = pd.DataFrame(rows, columns=workbook_data[sheet].columns)
+            df = df.where(pd.notna(df), "")
+            workbook_data[sheet] = df
+
+    buffer = BytesIO()
+    export_workbook(workbook_obj, workbook_data, buffer)
+    buffer.seek(0)
+    filename = original_filename or "updated_workbook.xlsx"
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 if __name__ == "__main__":
     app.run(debug=True)

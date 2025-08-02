@@ -120,3 +120,6 @@ available for data entry.
 
 ### 5. UI Loading Efficiency
 The workbook is parsed once on upload and the web interface renders one sheet at a time, fetching data for other sheets only when selected. This prevents the page from hanging on large workbooks.
+
+### 6. Workbook Export
+After mappings are applied, the application can write the updated values back to the uploaded workbook while preserving the original file name and Excel formatting.
