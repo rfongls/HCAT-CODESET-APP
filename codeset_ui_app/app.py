@@ -1,8 +1,10 @@
 from __future__ import annotations
 from typing import Dict, Any
-from io import BytesIO
+from pathlib import Path
+import tempfile
 import pandas as pd
 from flask import Flask, render_template, request, jsonify, send_file
+from werkzeug.utils import secure_filename
 from components.file_parser import load_workbook
 from components.dropdown_logic import extract_dropdown_options
 from components.formula_logic import (
@@ -31,14 +33,21 @@ def index():
     global mapping_data
     global workbook_obj
     global original_filename
+    global workbook_path
     mapping_data = {}
     if request.method == "POST" and "workbook" in request.files:
         file = request.files["workbook"]
         if file.filename:
             try:
-                workbook_data, wb = load_workbook(file)
+                filename = secure_filename(file.filename)
+                temp_dir = Path(tempfile.gettempdir())
+                workbook_path = temp_dir / filename
+                file.save(workbook_path)
+                with workbook_path.open("rb") as fh:
+                    workbook_data, wb = load_workbook(fh)
                 workbook_obj = wb
-                original_filename = file.filename
+                original_filename = filename
+
                 dropdown_data = extract_dropdown_options(wb)
                 formula_data = extract_column_formulas(wb)
                 lookup_maps = extract_lookup_mappings(wb)
@@ -153,8 +162,8 @@ def sheet_data(sheet_name: str):
 @app.route("/export", methods=["POST"])
 def export():
     """Export the in-memory workbook with updated values."""
-    global workbook_obj, workbook_data, original_filename
-    if workbook_obj is None:
+    global workbook_obj, workbook_data, original_filename, workbook_path
+    if workbook_obj is None or workbook_path is None:
         return "No workbook loaded", 400
 
     payload = request.get_json() or {}
@@ -167,12 +176,11 @@ def export():
             df = df.where(pd.notna(df), "")
             workbook_data[sheet] = df
 
-    buffer = BytesIO()
-    export_workbook(workbook_obj, workbook_data, buffer)
-    buffer.seek(0)
-    filename = original_filename or "updated_workbook.xlsx"
+    export_workbook(workbook_obj, workbook_data, workbook_path)
+    filename = original_filename or workbook_path.name
     return send_file(
-        buffer,
+        workbook_path,
+
         as_attachment=True,
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
