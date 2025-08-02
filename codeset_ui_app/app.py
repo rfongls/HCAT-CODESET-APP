@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import Dict, Any
 from pathlib import Path
 import tempfile
-
 import pandas as pd
 from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
@@ -22,7 +21,6 @@ formula_data: Dict[str, Dict[str, str]] = {}
 mapping_data: Dict[str, Dict[str, Any]] = {}
 workbook_obj: Workbook | None = None
 original_filename: str | None = None
-workbook_path: Path | None = None
 last_error: str | None = None
 
 
@@ -49,6 +47,7 @@ def index():
                     workbook_data, wb = load_workbook(fh)
                 workbook_obj = wb
                 original_filename = filename
+
                 dropdown_data = extract_dropdown_options(wb)
                 formula_data = extract_column_formulas(wb)
                 lookup_maps = extract_lookup_mappings(wb)
@@ -181,6 +180,7 @@ def export():
     filename = original_filename or workbook_path.name
     return send_file(
         workbook_path,
+
         as_attachment=True,
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
