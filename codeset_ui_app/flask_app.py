@@ -15,7 +15,7 @@ def index():
     if request.method == "POST" and "workbook" in request.files:
         file = request.files["workbook"]
         if file.filename:
-            workbook_data = load_workbook(file)
+            workbook_data, _ = load_workbook(file)
     return render_template("index.html", workbook=workbook_data)
 
 if __name__ == "__main__":
