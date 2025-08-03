@@ -9,25 +9,18 @@ from werkzeug.utils import secure_filename
 try:  # allow running as a package or standalone script
     from components.file_parser import load_workbook
     from components.dropdown_logic import extract_dropdown_options
-    from components.formula_logic import (
-        extract_column_formulas,
-        extract_lookup_mappings,
-    )
+    from components.formula_logic import extract_lookup_mappings
     from utils.export_excel import export_workbook
 except ModuleNotFoundError:  # pragma: no cover - fallback for imports when packaged
     from .components.file_parser import load_workbook
     from .components.dropdown_logic import extract_dropdown_options
-    from .components.formula_logic import (
-        extract_column_formulas,
-        extract_lookup_mappings,
-    )
+    from .components.formula_logic import extract_lookup_mappings
     from .utils.export_excel import export_workbook
 from openpyxl.workbook.workbook import Workbook
 
 app = Flask(__name__, static_folder="assets", template_folder="templates")
 workbook_data: Dict[str, "pd.DataFrame"] = {}
 dropdown_data: Dict[str, Dict[str, list]] = {}
-formula_data: Dict[str, Dict[str, str]] = {}
 mapping_data: Dict[str, Dict[str, Any]] = {}
 workbook_obj: Workbook | None = None
 original_filename: str | None = None
@@ -58,16 +51,16 @@ def refresh_repository_cache() -> None:
     global REPOSITORY_CACHE
     REPOSITORY_CACHE = discover_repository_workbooks(SAMPLES_DIR)
 
+
 def _load_workbook_path(path: Path, filename: str) -> None:
     """Load workbook at ``path`` and populate globals for UI rendering."""
-    global workbook_data, workbook_obj, dropdown_data, formula_data, mapping_data, original_filename, last_error
+    global workbook_data, workbook_obj, dropdown_data, mapping_data, original_filename, last_error
 
     with path.open("rb") as fh:
         workbook_data, wb = load_workbook(fh)
     workbook_obj = wb
     original_filename = filename
     dropdown_data = extract_dropdown_options(wb)
-    formula_data = extract_column_formulas(wb)
     lookup_maps = extract_lookup_mappings(wb)
 
     mapping_data = {}
@@ -148,7 +141,6 @@ def _load_workbook_path(path: Path, filename: str) -> None:
 def index():
     global workbook_data
     global dropdown_data
-    global formula_data
     global last_error
     global mapping_data
     global workbook_obj
@@ -173,7 +165,6 @@ def index():
                     last_error = str(exc)
                     workbook_data = {}
                     dropdown_data = {}
-                    formula_data = {}
                     mapping_data = {}
         elif request.form.get("repo") and request.form.get("workbook_name"):
             selected_repo = request.form.get("repo")
@@ -191,7 +182,6 @@ def index():
                 last_error = str(exc)
                 workbook_data = {}
                 dropdown_data = {}
-                formula_data = {}
                 mapping_data = {}
 
     if selected_repo:
@@ -210,7 +200,6 @@ def index():
         initial_records=initial_records,
         headers=headers,
         dropdowns=dropdown_data,
-        formulas=formula_data,
         mappings=mapping_data,
         error=last_error,
         filename=original_filename,

@@ -79,6 +79,7 @@ This is a persistent agent (or knowledge reference) for any logic or UI behavior
 * An import endpoint lets users replace the currently loaded workbook with a new file so EMR exports or offline edits can be pulled in without restarting the session.
 * The web UI scans the `Samples` directory for folders containing `Codeset*.xlsx` files and offers those parent folders as repositories so users can choose an existing workbook instead of uploading.
 * Repository and workbook listings are cached when the server starts, allowing users to immediately select a repository without waiting for a filesystem scan.
+* The interface shows a sidebar with guidance (e.g., "If CODE is populated, Display Value must be populated") that will later surface validation results.
 
 ---
 

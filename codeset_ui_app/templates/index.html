@@ -63,7 +63,16 @@
                 {% endfor %}
                 </select>
             </div>
-            <div id="table-wrapper" class="table-wrapper"></div>
+            <div class="row">
+                <div class="col-lg-9">
+                    <div id="table-wrapper" class="table-wrapper"></div>
+                </div>
+                <div class="col-lg-3">
+                    <div id="instruction-box" class="alert alert-secondary">
+                        If CODE is populated, Display Value must be populated.
+                    </div>
+                </div>
+            </div>
         </div>
         {% endif %}
     </main>
@@ -77,7 +86,6 @@
     const mappings = {{ mappings|tojson }};
     const dropdowns = {{ dropdowns|tojson }};
     const headers = {{ headers|tojson }};
-    const formulas = {{ formulas|tojson }};
     const sheetNames = {{ sheet_names|tojson }};
     const initialSheet = {{ initial_sheet|tojson }};
     const workbook = {};
@@ -274,45 +282,26 @@
             });
             container.appendChild(saveBtn);
 
-            const importForm = document.createElement('form');
-            importForm.enctype = 'multipart/form-data';
-            importForm.className = 'd-inline-block ms-2';
             const importInput = document.createElement('input');
             importInput.type = 'file';
-            importInput.name = 'workbook';
             importInput.accept = '.xlsx';
-            importInput.className = 'form-control d-inline-block';
+            importInput.style.display = 'none';
             const importBtn = document.createElement('button');
-            importBtn.type = 'submit';
+            importBtn.type = 'button';
             importBtn.className = 'btn btn-secondary ms-2';
-            importBtn.textContent = 'Import Updates';
-            importForm.appendChild(importInput);
-            importForm.appendChild(importBtn);
-            importForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const fd = new FormData(importForm);
+            importBtn.textContent = 'Import Workbook';
+            importBtn.addEventListener('click', () => importInput.click());
+            importInput.addEventListener('change', async () => {
+                if (!importInput.files.length) return;
+                const fd = new FormData();
+                fd.append('workbook', importInput.files[0]);
                 const resp = await fetch('/import', { method: 'POST', body: fd });
                 if (resp.ok) {
                     location.reload();
                 }
             });
-            container.appendChild(importForm);
-
-            if (formulas[sheet] && Object.keys(formulas[sheet]).length) {
-                const h3 = document.createElement('h3');
-                h3.textContent = 'Column Formulas';
-                container.appendChild(h3);
-                const ul = document.createElement('ul');
-                Object.entries(formulas[sheet]).forEach(([col, formula]) => {
-                    const li = document.createElement('li');
-                    const strong = document.createElement('strong');
-                    strong.textContent = col;
-                    li.appendChild(strong);
-                    li.appendChild(document.createTextNode(': ' + formula));
-                    ul.appendChild(li);
-                });
-                container.appendChild(ul);
-            }
+            container.appendChild(importBtn);
+            container.appendChild(importInput);
         }
 
         async function ensureSheetLoaded(sheet) {
