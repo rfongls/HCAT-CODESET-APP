@@ -302,7 +302,6 @@ def list_workbooks(repo: str):
     """Return available workbooks for ``repo`` from the cached scan."""
     return jsonify(REPOSITORY_CACHE.get(repo, []))
 
-
 @app.route("/export", methods=["POST"])
 def export():
     """Export the in-memory workbook with updated values."""
