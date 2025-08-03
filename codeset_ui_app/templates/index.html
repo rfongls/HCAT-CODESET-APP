@@ -70,6 +70,9 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
     <script>
     const mappings = {{ mappings|tojson }};
     const dropdowns = {{ dropdowns|tojson }};
@@ -81,8 +84,6 @@
     workbook[initialSheet] = {{ initial_records|tojson }};
     const originalFilename = {{ filename|tojson }};
     let currentSheet = initialSheet;
-
-
     document.addEventListener('DOMContentLoaded', () => {
         const selector = document.getElementById('sheet-select');
         const repoSelect = document.getElementById('repo-select');
@@ -272,6 +273,30 @@
                 }
             });
             container.appendChild(saveBtn);
+
+            const importForm = document.createElement('form');
+            importForm.enctype = 'multipart/form-data';
+            importForm.className = 'd-inline-block ms-2';
+            const importInput = document.createElement('input');
+            importInput.type = 'file';
+            importInput.name = 'workbook';
+            importInput.accept = '.xlsx';
+            importInput.className = 'form-control d-inline-block';
+            const importBtn = document.createElement('button');
+            importBtn.type = 'submit';
+            importBtn.className = 'btn btn-secondary ms-2';
+            importBtn.textContent = 'Import Updates';
+            importForm.appendChild(importInput);
+            importForm.appendChild(importBtn);
+            importForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fd = new FormData(importForm);
+                const resp = await fetch('/import', { method: 'POST', body: fd });
+                if (resp.ok) {
+                    location.reload();
+                }
+            });
+            container.appendChild(importForm);
 
             if (formulas[sheet] && Object.keys(formulas[sheet]).length) {
                 const h3 = document.createElement('h3');

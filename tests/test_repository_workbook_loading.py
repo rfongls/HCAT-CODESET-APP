@@ -43,3 +43,41 @@ def test_repository_list(tmp_path, monkeypatch):
     resp = client.get("/")
     assert resp.status_code == 200
     assert f'<option value="{repo}"' in resp.get_data(as_text=True)
+
+
+def test_import_updates_overwrites_file(tmp_path, monkeypatch):
+    app_module, repo, fname = setup_app(tmp_path, monkeypatch)
+    client = app_module.app.test_client()
+
+    # load existing workbook via repo selection
+    resp = client.post("/", data={"repo": repo, "workbook_name": fname})
+    assert resp.status_code == 200
+
+    from openpyxl import Workbook, load_workbook as xl_load
+    import io
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sheet1"
+    ws.append(["CODE", "DISPLAY VALUE"])
+    ws.append(["A", "Alpha"])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    resp = client.post(
+        "/import",
+        data={"workbook": (buf, fname)},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200
+
+    # ensure file on disk was replaced
+    wb2 = xl_load(tmp_path / "Samples" / repo / fname)
+    ws2 = wb2["Sheet1"]
+    assert ws2.max_row == 2
+    assert ws2["A2"].value == "A"
+
+    # ensure in-memory data updated
+    resp = client.get("/sheet/Sheet1")
+    assert resp.get_json()[0]["CODE"] == "A"
