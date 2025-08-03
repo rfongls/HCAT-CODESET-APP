@@ -67,10 +67,7 @@
         </div>
         {% endif %}
     </main>
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
     <script>
@@ -83,6 +80,8 @@
     const workbook = {};
     workbook[initialSheet] = {{ initial_records|tojson }};
     const originalFilename = {{ filename|tojson }};
+    let currentSheet = initialSheet;
+
 
     document.addEventListener('DOMContentLoaded', () => {
         const selector = document.getElementById('sheet-select');
@@ -194,10 +193,9 @@
         }
 
         function syncCurrentSheet() {
-            const sheet = selector.value;
             const table = document.querySelector('#table-wrapper table');
             if (!table) return;
-            workbook[sheet] = readSheet(table, sheet);
+            workbook[currentSheet] = readSheet(table, currentSheet);
         }
 
         function renderSheet(sheet) {
@@ -304,9 +302,9 @@
 
         selector?.addEventListener('change', async () => {
             syncCurrentSheet();
-            const sheet = selector.value;
-            await ensureSheetLoaded(sheet);
-            renderSheet(sheet);
+            currentSheet = selector.value;
+            await ensureSheetLoaded(currentSheet);
+            renderSheet(currentSheet);
         });
 
         (async () => {
