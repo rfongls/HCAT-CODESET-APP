@@ -58,7 +58,6 @@ def refresh_repository_cache() -> None:
     global REPOSITORY_CACHE
     REPOSITORY_CACHE = discover_repository_workbooks(SAMPLES_DIR)
 
-
 def _load_workbook_path(path: Path, filename: str) -> None:
     """Load workbook at ``path`` and populate globals for UI rendering."""
     global workbook_data, workbook_obj, dropdown_data, formula_data, mapping_data, original_filename, last_error
