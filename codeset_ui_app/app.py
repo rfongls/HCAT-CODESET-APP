@@ -329,4 +329,7 @@ def export():
     )
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Disable the Flask reloader so the server doesn't restart when a workbook
+    # is loaded. The reloader can interrupt the initial request and appear as a
+    # connection reset in the browser.
+    app.run(debug=True, use_reloader=False)

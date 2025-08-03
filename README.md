@@ -13,13 +13,14 @@ pip install -r requirements.txt
 python codeset_ui_app/app.py
 ```
 
-You can also run `utils/dependency_setup.py` to install the packages individually when network access is available.
+The development server runs with the Flask reloader disabled to avoid an
+initial connection reset when loading workbooks. You can also run
+`utils/dependency_setup.py` to install the packages individually when network
+access is available.
 
 Upload a codeset workbook (`.xlsx`). After uploading, choose a sheet from the dropdown at the top of the page. Only the selected sheet's table is shown along with an **Add Row** button. Any dropdown validations detected in the workbook are listed below the table along with formulas discovered in the first data row. The table spans the available width and scrolls vertically so long lists remain readable.
 
 At startup the application scans the `Samples` directory for folders containing `Codeset*.xlsx` workbooks and caches the results. These parent folders appear in a repository dropdown so you can open an existing workbook without uploading it and subsequent visits do not rescan the filesystem.
-
-The application also scans the `Samples` directory for folders containing `Codeset*.xlsx` workbooks. These parent folders appear in a repository dropdown so you can open an existing workbook without uploading it.
 
 When a sheet includes both `Mapped Standard Description` and `Sub Definition` columns, the mapped description column is rendered as a dropdown. Its options come from the sheet's `Standard Description` values and any Excel validations. Selecting a value automatically fills the corresponding `Sub Definition` cell. If the workbook uses simple `VLOOKUP` formulas to populate the sub definition, those lookup tables are read and used for this automatic fill behavior. When `Standard Code` and `Standard Definition` columns are present the sub-definition is derived from them as `code^definition` whenever a mapped description is selected.
 
