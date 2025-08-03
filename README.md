@@ -6,7 +6,7 @@ editing multi-sheet Excel workbooks that define various codesets.
 
 ## Running the UI
 
-The application uses [Flask](https://flask.palletsprojects.com/) for the web interface. Install dependencies from `requirements.txt` and start the server with:
+The application uses [Flask](https://flask.palletsprojects.com/) for the web interface and [Bootstrap 5](https://getbootstrap.com/) for responsive styling. Install dependencies from `requirements.txt` and start the server with:
 
 ```bash
 pip install -r requirements.txt

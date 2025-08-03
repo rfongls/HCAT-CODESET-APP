@@ -9,7 +9,6 @@ def setup_app(tmp_path, monkeypatch):
     repo = samples / "repo1"
     repo.mkdir(parents=True)
     wb_path = repo / "CodesetSample.xlsx"
-
     wb = Workbook()
     ws = wb.active
     ws.title = "Sheet1"
