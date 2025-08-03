@@ -3,109 +3,122 @@
 <head>
     <meta charset="UTF-8" />
     <title>Codeset Automation App</title>
+    <!-- Bootstrap CSS -->
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+        crossorigin="anonymous"
+    />
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 </head>
 <body>
     <header>
         <h1>Codeset Automation App</h1>
     </header>
-    {% if error %}
-    <div class="error">{{ error }}</div>
-    {% endif %}
-    <form method="post" enctype="multipart/form-data">
-        <input type="file" name="workbook" accept=".xlsx" />
-        <button type="submit">Upload</button>
-    </form>
+    <main class="container-fluid my-4">
+        {% if error %}
+        <div class="alert alert-danger" role="alert">{{ error }}</div>
+        {% endif %}
+        <section class="controls mb-3">
+            <form id="repo-form" method="post" class="row g-2 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label for="repo-select" class="form-label">Select the repository you want to edit a codeset for:</label>
+                    <select id="repo-select" name="repo" class="form-select">
+                        <option value="">Select repository</option>
+                        {% for repo in repositories %}
+                        <option value="{{ repo }}" {% if repo == selected_repo %}selected{% endif %}>{{ repo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label for="workbook-select" class="form-label">Workbook</label>
+                    <select id="workbook-select" name="workbook_name" class="form-select" {% if not repo_files %}disabled{% endif %}>
+                        <option value="">Select workbook</option>
+                        {% for wb in repo_files %}
+                        <option value="{{ wb }}" {% if wb == selected_workbook %}selected{% endif %}>{{ wb }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Load Workbook</button>
+                </div>
+            </form>
+            <form id="upload-form" method="post" enctype="multipart/form-data" class="row g-2 align-items-end mt-2">
+                <div class="col-12 col-md-8">
+                    <input type="file" name="workbook" accept=".xlsx" class="form-control" />
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-secondary w-100">Upload</button>
+                </div>
+            </form>
+        </section>
 
-    {% if workbook %}
-    <div class="tabs">
-        <div class="sheet-selector">
-            <select id="sheet-select">
-            {% for sheet in workbook.keys() %}
-                <option value="{{ sheet }}">{{ sheet }}</option>
-            {% endfor %}
-            </select>
-        </div>
-        <div class="tab-content">
-        {% for sheet, rows in workbook.items() %}
-            <div id="tab-{{ sheet|replace(' ', '_')|replace('.', '_')|replace('/', '_') }}" class="tab">
-                <h2>{{ sheet }}</h2>
-                <table id="table-{{ sheet|replace(' ', '_')|replace('.', '_')|replace('/', '_') }}" class="codeset-table">
-                    <thead>
-                        <tr>
-                        {% for col in headers[sheet] %}
-                            <th>{{ col }}</th>
-                        {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in rows %}
-                        <tr>
-                            {% for col in headers[sheet] %}
-                                <td>
-                                {% set key = col.upper().replace(' ', '_') %}
-                                {% set map = mappings.get(sheet) %}
-                                {% if map and map.mapped_col == col and dropdowns and dropdowns.get(sheet) and dropdowns[sheet].get(col) %}
-                                    <select class="mapped-select" data-sheet="{{ sheet }}" data-col="{{ col }}">
-                                        {% for opt in dropdowns[sheet][col] %}
-                                        <option value="{{ opt }}" {% if row[col] == opt %}selected{% endif %}>{{ opt }}</option>
-                                        {% endfor %}
-                                    </select>
-                                {% elif key in ['CODE', 'DISPLAY_VALUE'] %}
-                                    <input type="text" value="{{ row[col] }}" />
-                                {% elif map and map.sub_col == col %}
-                                    <input type="text" value="{{ row[col] }}" readonly />
-                                {% else %}
-                                    <span>{{ row[col] }}</span>
-                                {% endif %}
-                                </td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <button class="add-row" data-sheet="{{ sheet }}">Add Row</button>
-                {% if formulas and formulas.get(sheet) %}
-                <h3>Column Formulas</h3>
-                <ul>
-                    {% for col, formula in formulas[sheet].items() %}
-                    <li><strong>{{ col }}</strong>: {{ formula }}</li>
-                    {% endfor %}
-                </ul>
-                {% endif %}
+        {% if sheet_names %}
+        <div class="tabs">
+            <div class="sheet-selector mb-3">
+                <select id="sheet-select" class="form-select">
+                {% for sheet in sheet_names %}
+                    <option value="{{ sheet }}" {% if sheet == initial_sheet %}selected{% endif %}>{{ sheet }}</option>
+                {% endfor %}
+                </select>
             </div>
-        {% endfor %}
+            <div class="row">
+                <div class="col-lg-9">
+                    <div id="table-wrapper" class="table-wrapper"></div>
+                </div>
+                <div class="col-lg-3">
+                    <div id="instruction-box" class="alert alert-secondary">
+                        If CODE is populated, Display Value must be populated.
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-    {% endif %}
+        {% endif %}
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
 
     <script>
     const mappings = {{ mappings|tojson }};
     const dropdowns = {{ dropdowns|tojson }};
     const headers = {{ headers|tojson }};
-    document.addEventListener('DOMContentLoaded', () => {
-        const tabs = document.querySelectorAll('.tab');
-        const selector = document.getElementById('sheet-select');
-        function showSelected(id) {
-            tabs.forEach(t => t.style.display = 'none');
-            const target = document.getElementById(id);
-            if (target) target.style.display = 'block';
-        }
-        if (selector) {
-            selector.addEventListener('change', () => {
-                const id = 'tab-' + selector.value.replace(/[^a-zA-Z0-9_]/g, '_');
-                showSelected(id);
-            });
-        }
-        if (tabs.length > 0) {
-            tabs.forEach((t, i) => t.style.display = i === 0 ? 'block' : 'none');
-            if (selector) {
-                selector.value = Object.keys(headers)[0];
-                showSelected('tab-' + selector.value.replace(/[^a-zA-Z0-9_]/g, '_'));
-            }
-        }
+    const sheetNames = {{ sheet_names|tojson }};
+    const initialSheet = {{ initial_sheet|tojson }};
+    const workbook = {};
+    workbook[initialSheet] = {{ initial_records|tojson }};
+    const originalFilename = {{ filename|tojson }};
+    let currentSheet = initialSheet;
 
-        function createInput(sheet, header, value='') {
+    document.addEventListener('DOMContentLoaded', () => {
+        const selector = document.getElementById('sheet-select');
+        const repoSelect = document.getElementById('repo-select');
+        const workbookSelect = document.getElementById('workbook-select');
+
+        repoSelect?.addEventListener('change', async () => {
+            const repo = repoSelect.value;
+            workbookSelect.innerHTML = '<option value="">Select workbook</option>';
+            if (repo) {
+                const resp = await fetch(`/workbooks/${encodeURIComponent(repo)}`);
+                if (resp.ok) {
+                    const files = await resp.json();
+                    files.forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f;
+                        opt.textContent = f;
+                        workbookSelect.appendChild(opt);
+                    });
+                    workbookSelect.disabled = files.length === 0;
+                } else {
+                    workbookSelect.disabled = true;
+                }
+            } else {
+                workbookSelect.disabled = true;
+            }
+        });
+
+        function createInput(sheet, header, value = '') {
             const key = header.toUpperCase().replace(' ', '_');
             const mapInfo = mappings[sheet] || {};
             const opts = dropdowns[sheet] && dropdowns[sheet][header];
@@ -114,6 +127,11 @@
                 sel.className = 'mapped-select';
                 sel.dataset.sheet = sheet;
                 sel.dataset.col = header;
+                const blank = document.createElement('option');
+                blank.value = '';
+                blank.textContent = '';
+                if (!value) blank.selected = true;
+                sel.appendChild(blank);
                 opts.forEach(o => {
                     const option = document.createElement('option');
                     option.value = o;
@@ -149,8 +167,10 @@
             const subCol = mapInfo.sub_col;
             const row = sel.closest('tr');
             if (row && subCol) {
-                const headers = Array.from(row.closest('table').querySelectorAll('th')).map(th => th.innerText);
-                const subIndex = headers.indexOf(subCol);
+                const headerList = Array.from(
+                    row.closest('table').querySelectorAll('th')
+                ).map(th => th.innerText);
+                const subIndex = headerList.indexOf(subCol);
                 if (subIndex !== -1) {
                     const cell = row.children[subIndex];
                     if (cell) {
@@ -165,24 +185,149 @@
             }
         }
 
-        document.querySelectorAll('.add-row').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const sheet = btn.dataset.sheet;
-                const table = document.getElementById('table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_'));
-                if (!table) return;
-                const tbody = table.querySelector('tbody');
-                const row = document.createElement('tr');
+        function readSheet(table, sheet) {
+            const rows = [];
+            const headerList = headers[sheet];
+            table.querySelectorAll('tbody tr').forEach(tr => {
+                const obj = {};
+                headerList.forEach((h, idx) => {
+                    const cell = tr.children[idx];
+                    const input = cell.querySelector('input, select');
+                    obj[h] = input ? input.value : cell.textContent;
+                });
+                rows.push(obj);
+            });
+            return rows;
+        }
+
+        function syncCurrentSheet() {
+            const table = document.querySelector('#table-wrapper table');
+            if (!table) return;
+            workbook[currentSheet] = readSheet(table, currentSheet);
+        }
+
+        function renderSheet(sheet) {
+            const container = document.getElementById('table-wrapper');
+            container.innerHTML = '';
+            const table = document.createElement('table');
+            table.className = 'table table-bordered table-sm codeset-table';
+            table.id = 'table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_');
+            const thead = document.createElement('thead');
+            const headRow = document.createElement('tr');
+            headers[sheet].forEach(h => {
+                const th = document.createElement('th');
+                th.textContent = h;
+                headRow.appendChild(th);
+            });
+            thead.appendChild(headRow);
+            table.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            (workbook[sheet] || []).forEach(row => {
+                const tr = document.createElement('tr');
+                headers[sheet].forEach(h => {
+                    const td = document.createElement('td');
+                    const input = createInput(sheet, h, row[h]);
+                    td.appendChild(input);
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            container.appendChild(table);
+
+            const addBtn = document.createElement('button');
+            addBtn.className = 'btn btn-primary add-row';
+            addBtn.textContent = 'Add Row';
+            addBtn.addEventListener('click', () => {
+                const tr = document.createElement('tr');
                 headers[sheet].forEach(h => {
                     const td = document.createElement('td');
                     const input = createInput(sheet, h);
                     td.appendChild(input);
-                    row.appendChild(td);
+                    tr.appendChild(td);
                 });
-                tbody.appendChild(row);
+                tbody.appendChild(tr);
             });
+            container.appendChild(addBtn);
+
+            const saveBtn = document.createElement('button');
+            saveBtn.id = 'export-workbook';
+            saveBtn.className = 'btn btn-success ms-2';
+            saveBtn.textContent = 'Export Workbook';
+            saveBtn.addEventListener('click', async () => {
+                syncCurrentSheet();
+                const resp = await fetch('/export', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(workbook)
+                });
+                if (resp.ok) {
+                    const blob = await resp.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const disposition = resp.headers.get('Content-Disposition');
+                    let fname = originalFilename || 'updated_workbook.xlsx';
+                    if (disposition) {
+                        const match = disposition.match(/filename="?([^";]+)"?/);
+                        if (match) fname = match[1];
+                    }
+                    a.download = fname;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                }
+            });
+            container.appendChild(saveBtn);
+
+            const importInput = document.createElement('input');
+            importInput.type = 'file';
+            importInput.accept = '.xlsx';
+            importInput.style.display = 'none';
+            const importBtn = document.createElement('button');
+            importBtn.type = 'button';
+            importBtn.className = 'btn btn-secondary ms-2';
+            importBtn.textContent = 'Import Workbook';
+            importBtn.addEventListener('click', () => importInput.click());
+            importInput.addEventListener('change', async () => {
+                if (!importInput.files.length) return;
+                const fd = new FormData();
+                fd.append('workbook', importInput.files[0]);
+                const resp = await fetch('/import', { method: 'POST', body: fd });
+                if (resp.ok) {
+                    location.reload();
+                }
+            });
+            container.appendChild(importBtn);
+            container.appendChild(importInput);
+        }
+
+        async function ensureSheetLoaded(sheet) {
+            if (workbook[sheet]) return;
+            const resp = await fetch(`/sheet/${encodeURIComponent(sheet)}`);
+            if (resp.ok) {
+                workbook[sheet] = await resp.json();
+            } else {
+                workbook[sheet] = [];
+            }
+        }
+
+        selector?.addEventListener('change', async () => {
+            syncCurrentSheet();
+            currentSheet = selector.value;
+            await ensureSheetLoaded(currentSheet);
+            renderSheet(currentSheet);
         });
 
-        document.addEventListener('change', (ev) => {
+        (async () => {
+            if (initialSheet) {
+                await ensureSheetLoaded(initialSheet);
+                renderSheet(initialSheet);
+            }
+        })();
+
+        document.addEventListener('change', ev => {
             const target = ev.target;
             if (target.classList.contains('mapped-select')) {
                 updateSubDefinition(target);
