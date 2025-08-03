@@ -19,6 +19,8 @@ Upload a codeset workbook (`.xlsx`). After uploading, choose a sheet from the dr
 
 At startup the application scans the `Samples` directory for folders containing `Codeset*.xlsx` workbooks and caches the results. These parent folders appear in a repository dropdown so you can open an existing workbook without uploading it and subsequent visits do not rescan the filesystem.
 
+The application also scans the `Samples` directory for folders containing `Codeset*.xlsx` workbooks. These parent folders appear in a repository dropdown so you can open an existing workbook without uploading it.
+
 When a sheet includes both `Mapped Standard Description` and `Sub Definition` columns, the mapped description column is rendered as a dropdown. Its options come from the sheet's `Standard Description` values and any Excel validations. Selecting a value automatically fills the corresponding `Sub Definition` cell. If the workbook uses simple `VLOOKUP` formulas to populate the sub definition, those lookup tables are read and used for this automatic fill behavior. When `Standard Code` and `Standard Definition` columns are present the sub-definition is derived from them as `code^definition` whenever a mapped description is selected.
 
 
