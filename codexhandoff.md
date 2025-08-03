@@ -73,9 +73,11 @@ This is a persistent agent (or knowledge reference) for any logic or UI behavior
 * `SUB_DEFINITION` is read-only and auto-populated. `MAPPED_STD_DESCRIPTION` pulls its options from `STANDARD_DESCRIPTION`, and selecting a value automatically fills the `SUB_DEFINITION` cell with the code and description pair.
 * Rows lacking entries for both `CODE` and `DISPLAY VALUE` remain visible so the full list of `STANDARD_CODE` and `STANDARD_DESCRIPTION` values is viewable; their `MAPPED_STD_DESCRIPTION` and `SUB_DEFINITION` cells start blank until a value is chosen.
 * The application parses the workbook once and renders only the requested sheet, fetching other tabs on demand to avoid UI hangs on large files.
+* Tables stretch to their natural width and include a vertical scrollbar so long sheets remain readable without shrinking columns.
 * Empty columns are preserved during parsing so each sheet's expected headers remain available even when no data exists for a column.
 * A dedicated export routine overwrites the uploaded workbook on disk, retaining the original file name and formatting while also returning it for download if needed.
 * The web UI scans the `Samples` directory for folders containing `Codeset*.xlsx` files and offers those parent folders as repositories so users can choose an existing workbook instead of uploading.
+* Repository and workbook listings are cached when the server starts, allowing users to immediately select a repository without waiting for a filesystem scan.
 
 ---
 

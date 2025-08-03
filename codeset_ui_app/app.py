@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Dict, Any
 from pathlib import Path
 import tempfile
+
 import pandas as pd
 from flask import Flask, render_template, request, jsonify, send_file
 from werkzeug.utils import secure_filename
@@ -37,13 +38,25 @@ last_error: str | None = None
 SAMPLES_DIR = Path(__file__).resolve().parent.parent / "Samples"
 
 
-def discover_repositories(base: Path) -> list[str]:
-    """Return folder names containing Codeset workbooks under ``base``."""
-    repos: set[str] = set()
+def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
+    """Return a mapping of repository folder to codeset workbooks."""
+    repo_map: Dict[str, list[str]] = {}
     if base.exists():
-        for wb in base.rglob("*Codeset*.xlsx"):
-            repos.add(wb.parent.name)
-    return sorted(repos)
+        for repo_dir in base.iterdir():
+            if repo_dir.is_dir():
+                files = [p.name for p in repo_dir.glob("*Codeset*.xlsx")]
+                if files:
+                    repo_map[repo_dir.name] = sorted(files)
+    return repo_map
+
+
+REPOSITORY_CACHE: Dict[str, list[str]] = discover_repository_workbooks(SAMPLES_DIR)
+
+
+def refresh_repository_cache() -> None:
+    """Refresh repository cache; used at startup or when Samples path changes."""
+    global REPOSITORY_CACHE
+    REPOSITORY_CACHE = discover_repository_workbooks(SAMPLES_DIR)
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -59,7 +72,7 @@ def index():
     mapping_data = {}
     selected_repo: str | None = None
     selected_workbook: str | None = None
-    repo_names = discover_repositories(SAMPLES_DIR)
+    repo_names = sorted(REPOSITORY_CACHE.keys())
     repo_files: list[str] = []
 
     if request.method == "POST":
@@ -250,9 +263,7 @@ def index():
                 mapping_data = {}
 
     if selected_repo:
-        repo_dir = (SAMPLES_DIR / selected_repo)
-        if repo_dir.is_dir():
-            repo_files = [p.name for p in repo_dir.glob("*Codeset*.xlsx")]
+        repo_files = REPOSITORY_CACHE.get(selected_repo, [])
 
     sheet_names = list(workbook_data.keys())
     headers: Dict[str, list] = {s: df.columns.tolist() for s, df in workbook_data.items()}
@@ -288,13 +299,8 @@ def sheet_data(sheet_name: str):
 
 @app.route("/workbooks/<repo>")
 def list_workbooks(repo: str):
-    """Return available workbooks within a repository under Samples."""
-    base = SAMPLES_DIR.resolve()
-    repo_path = (SAMPLES_DIR / repo).resolve()
-    if not repo_path.is_dir() or not repo_path.is_relative_to(base):
-        return jsonify([])
-    files = [p.name for p in repo_path.glob("*Codeset*.xlsx")]
-    return jsonify(files)
+    """Return available workbooks for ``repo`` from the cached scan."""
+    return jsonify(REPOSITORY_CACHE.get(repo, []))
 
 @app.route("/export", methods=["POST"])
 def export():
