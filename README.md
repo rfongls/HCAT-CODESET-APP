@@ -6,7 +6,7 @@ editing multi-sheet Excel workbooks that define various codesets.
 
 ## Running the UI
 
-The application uses [Flask](https://flask.palletsprojects.com/) for the web interface. Install dependencies from `requirements.txt` and start the server with:
+The application uses [Flask](https://flask.palletsprojects.com/) for the web interface and [Bootstrap 5](https://getbootstrap.com/) for responsive styling. Install dependencies from `requirements.txt` and start the server with:
 
 ```bash
 pip install -r requirements.txt
@@ -16,6 +16,8 @@ python codeset_ui_app/app.py
 You can also run `utils/dependency_setup.py` to install the packages individually when network access is available.
 
 Upload a codeset workbook (`.xlsx`). After uploading, choose a sheet from the dropdown at the top of the page. Only the selected sheet's table is shown along with an **Add Row** button. Any dropdown validations detected in the workbook are listed below the table along with formulas discovered in the first data row.
+
+The application also scans the `Samples` directory for folders containing `Codeset*.xlsx` workbooks. These parent folders appear in a repository dropdown so you can open an existing workbook without uploading it.
 
 When a sheet includes both `Mapped Standard Description` and `Sub Definition` columns, the mapped description column is rendered as a dropdown. Its options come from the sheet's `Standard Description` values and any Excel validations. Selecting a value automatically fills the corresponding `Sub Definition` cell. If the workbook uses simple `VLOOKUP` formulas to populate the sub definition, those lookup tables are read and used for this automatic fill behavior. When `Standard Code` and `Standard Definition` columns are present the sub-definition is derived from them as `code^definition` whenever a mapped description is selected.
 
