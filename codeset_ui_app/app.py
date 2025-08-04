@@ -202,7 +202,6 @@ def _combine_sheet(sheet: str) -> pd.DataFrame | None:
         )
     return combined
 
-
 @app.route("/", methods=["GET", "POST"])
 def index():
     global workbook_data
@@ -294,7 +293,6 @@ def index():
         else []
     )
     comparison_repos = [r for r in repo_names if r != selected_repo]
-
     return render_template(
         "index.html",
         sheet_names=sheet_names,
@@ -361,7 +359,6 @@ def export():
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-
 
 @app.route("/import", methods=["POST"])
 def import_workbook():
