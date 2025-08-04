@@ -18,7 +18,7 @@ initial connection reset when loading workbooks. You can also run
 `utils/dependency_setup.py` to install the packages individually when network
 access is available.
 
-Upload a codeset workbook (`.xlsx`). After uploading, choose a sheet from the dropdown at the top of the page. Only the selected sheet's table is shown along with an **Add Row** button. A sidebar on the right displays guidance such as "If CODE is populated, Display Value must be populated" and will later surface validation results. The table spans the available width and scrolls vertically so long lists remain readable.
+Upload a codeset workbook (`.xlsx`). After uploading, choose a sheet from the dropdown at the top of the page. Only the selected sheet's table is shown along with an **Add Row** button. A sidebar on the right lists real-time validation errors—e.g., "On tab *CS_RACE* - Code X does not have a display value"—and reverts to guidance such as "If CODE is populated, Display Value must be populated" when no issues exist. The table spans the available width and scrolls vertically so long lists remain readable.
 
 At startup the application scans the `Samples` directory for folders containing `Codeset*.xlsx` workbooks and caches the results. These parent folders appear in a repository dropdown so you can open an existing workbook without uploading it and subsequent visits do not rescan the filesystem.
 

@@ -114,6 +114,9 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
     <script>
     const mappings = {{ mappings|tojson }};
     const dropdowns = {{ dropdowns|tojson }};
@@ -133,7 +136,60 @@
         const workbookSelect = document.getElementById('workbook-select');
         const compareRepoSelect = document.getElementById('compare-repo-select');
         const compareWorkbookSelect = document.getElementById('compare-workbook-select');
+        const instructionBox = document.getElementById('instruction-box');
+        const defaultInstructions = instructionBox ? instructionBox.innerHTML : '';
+        const errorsPerSheet = {};
 
+        function renderErrors() {
+            if (!instructionBox) return;
+            const allErrors = Object.values(errorsPerSheet).flat();
+            if (allErrors.length) {
+                instructionBox.classList.remove('alert-secondary');
+                instructionBox.classList.add('alert-danger');
+                instructionBox.innerHTML = '<ul class="mb-0">' + allErrors.map(e => `<li>${e}</li>`).join('') + '</ul>';
+            } else {
+                instructionBox.classList.remove('alert-danger');
+                instructionBox.classList.add('alert-secondary');
+                instructionBox.innerHTML = defaultInstructions;
+            }
+        }
+
+        function validateSheet(sheet) {
+            const info = mappings[sheet] || {};
+            const codeCol = info.code_col;
+            const displayCol = info.display_col;
+            const mappedCol = info.mapped_col;
+            const stdCol = info.std_col;
+            const stdCodeCol = info.std_code_col;
+            const rows = workbook[sheet] || [];
+            const seenCodes = {};
+            const errs = [];
+            rows.forEach((row, idx) => {
+                const code = (row[codeCol] || '').trim();
+                const display = (row[displayCol] || '').trim();
+                const mapped = (row[mappedCol] || '').trim();
+                const stdCode = (row[stdCodeCol] || '').trim();
+                const stdDesc = (row[stdCol] || '').trim();
+                if (code && !display) {
+                    errs.push(`On tab "${sheet}" - Code ${code} does not have a display value`);
+                }
+                if (display && !code) {
+                    errs.push(`On tab "${sheet}" - Display value "${display}" does not have a code`);
+                }
+                if ((stdCode || stdDesc) && !mapped) {
+                    errs.push(`On tab "${sheet}" - ${code || 'Row ' + (idx + 2)} does not have a mapped standard description`);
+                }
+                if (code) {
+                    if (seenCodes[code]) {
+                        errs.push(`On tab "${sheet}" - Code ${code} is duplicated`);
+                    } else {
+                        seenCodes[code] = true;
+                    }
+                }
+            });
+            errorsPerSheet[sheet] = errs;
+            renderErrors();
+        }
         repoSelect?.addEventListener('change', async () => {
             const repo = repoSelect.value;
             workbookSelect.innerHTML = '<option value="">Select workbook</option>';
@@ -335,10 +391,9 @@
             saveBtn.id = 'export-workbook';
             saveBtn.className = 'btn btn-success ms-2';
             saveBtn.textContent = 'Export Workbook';
-            const instructionBox = document.getElementById('instruction-box');
-            const defaultInstructions = instructionBox.innerHTML;
             saveBtn.addEventListener('click', async () => {
                 syncCurrentSheet();
+                validateSheet(currentSheet);
                 const resp = await fetch('/export', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -432,22 +487,36 @@
 
         selector?.addEventListener('change', async () => {
             syncCurrentSheet();
+            validateSheet(currentSheet);
             currentSheet = selector.value;
             await ensureSheetLoaded(currentSheet);
             renderSheet(currentSheet);
+            validateSheet(currentSheet);
         });
 
         (async () => {
             if (initialSheet) {
                 await ensureSheetLoaded(initialSheet);
                 renderSheet(initialSheet);
+                validateSheet(initialSheet);
             }
         })();
 
+        document.addEventListener('input', ev => {
+            if (ev.target.closest('#table-wrapper')) {
+                syncCurrentSheet();
+                validateSheet(currentSheet);
+            }
+        });
+      
         document.addEventListener('change', ev => {
             const target = ev.target;
             if (target.classList.contains('mapped-select')) {
                 updateSubDefinition(target);
+            }
+            if (target.closest('#table-wrapper')) {
+                syncCurrentSheet();
+                validateSheet(currentSheet);
             }
         });
     });

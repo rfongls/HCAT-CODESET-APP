@@ -176,7 +176,6 @@ def _load_comparison_workbook_path(path: Path) -> None:
             comparison_data[sheet] = pd.DataFrame(cols)
     comparison_path = path
 
-
 def _combine_sheet(sheet: str) -> pd.DataFrame | None:
     """Return sheet data with comparison columns merged in."""
     df = workbook_data.get(sheet)
@@ -205,7 +204,6 @@ def _combine_sheet(sheet: str) -> pd.DataFrame | None:
             cmp["MAPPED_STD_DESCRIPTION_COMPARE"],
         )
     return combined
-
 
 def _combine_sheet(sheet: str) -> pd.DataFrame | None:
     """Return sheet data with comparison columns merged in."""
@@ -427,7 +425,6 @@ def export():
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-
 
 @app.route("/import", methods=["POST"])
 def import_workbook():
