@@ -130,3 +130,10 @@ The workbook is parsed once on upload and the web interface renders one sheet at
 
 ### 6. Workbook Export
 After mappings are applied, the application can write the updated values back to the uploaded workbook while preserving the original file name and Excel formatting.
+
+### 7. Codeset Field References
+The following table lists the HL7 field locations for each codeset tab along with a brief description, expected data type, and associated NBR table number.
+
+| Sheet Name | Fields | Field Description | Data Type | NBR |
+|------------|--------|------------------|-----------|-----|
+| CS_ABNORMAL_FLAG | OBX:8 | Abnormal Flags | ID | 0078 |
