@@ -9,11 +9,9 @@
 
 ## Project Summary
 
-Silhouette LLC will develop a modular, Excel-driven Codeset Automation App. The application allows healthcare clients to upload custom Excel mapping sheets, dynamically render UI based on tab structure, preserve formulas, support dropdown selection, and export modified files.
+Silhouette LLC will develop a modular, Excel-driven Codeset Management Platform. The application enables healthcare clients to upload and manage custom codesets, dynamically render tab-specific UI logic, preserve formulas, and export validated files. Built with Streamlit and Flask, the system is designed for long-term maintainability and integration with vendor workflows.
 
-The system is built on Python using Streamlit and Flask, with structured logic components and documentation to support Codex-driven automation.
-
-Additionally, Phase 2 of the project introduces Git integration, automated ticketing, and secure Single Sign-On (SSO) authentication for clients interacting with the hosted codeset repository.
+Phase 2 of the project includes shared Git repository integration via Azure DevOps (ADO), automatic ticket creation in Azure Boards, secure Single Sign-On (SSO) authentication, and full audit tracking. The proposal also includes structured client-side training to ensure smooth onboarding and adoption.
 
 ---
 
@@ -52,36 +50,50 @@ Additionally, Phase 2 of the project introduces Git integration, automated ticke
 
 ---
 
+### Phase 3: Client Training & Enablement
+
+| Task Category | Description | Estimated Hours |
+|---------------|-------------|-----------------|
+| Live Training Sessions | Host live 60–90 minute virtual training sessions for client users and admins. | 3–5 |
+| Training Materials | Develop quick-start guide, annotated screenshots, and workflows. | 4–6 |
+| Recording & Playback Support | Provide recorded walkthroughs or screen captures for internal reuse. | 2–3 |
+| Q&A / Follow-up Support | Address follow-up questions and issues post-rollout. | 2–3 |
+
+**Estimated Time (Phase 3):** 11–17 hours  
+**Estimated Cost (Phase 3):** $1,650 – $2,550
+
+---
+
 ## Combined Estimate
 
 | Scope | Hours | Cost |
 |-------|--------|------|
 | Phase 1: Core App | 56–81 hrs | $8,400 – $12,150 |
 | Phase 2: Git/SSO | 27–37 hrs | $4,050 – $5,550 |
-| **Total Estimate** | **83–118 hrs** | **$12,450 – $17,700** |
+| Phase 3: Training | 11–17 hrs | $1,650 – $2,550 |
+| **Total Estimate** | **94–135 hrs** | **$14,100 – $20,250** |
 
 ---
 
 ## Deliverables
 
-- Codeset Automation App with dynamic UI, Excel parsing, and formula-safe export
-- Codex integration documentation and task automation structure
-- Git repo integration with folder-level structure per submission
-- Automatic ticket creation in Azure Boards
-- SSO authentication and access control
-- Metadata logging of all submissions and Git commits
+- Codeset Management Platform with dynamic UI, Excel parsing, and export logic
+- Codex automation integration documentation and YAML runners
+- Git integration with Azure DevOps (vendor-hosted repo)
+- Automated work item creation in Azure Boards
+- SSO authentication and metadata tracking
+- Client onboarding training sessions and support materials
 
 ---
 
 ## Assumptions
 
-- Repo and Boards access will be coordinated with client IT/DevOps.
-- SSO integration will be based on Azure AD or OAuth2 unless otherwise specified.
-- Ticket creation rules are predefined (e.g., based on repo path, client name).
-- Phase 2 may be delivered after Phase 1 unless bundled into a unified milestone.
+- Client IT will coordinate on SSO and Azure DevOps access.
+- Training is virtual unless otherwise agreed upon.
+- Codex automation framework is already in place; this tool will conform to existing structure.
 
 ---
 
 ## Next Steps
 
-To move forward, please confirm approval of the scope and pricing range. Upon sign-off, Silhouette LLC will begin development, staging setup, and delivery milestones.
+To proceed, please confirm scope approval and pricing agreement. Upon sign-off, Silhouette LLC will initiate development and schedule client training sessions in parallel with final rollout.
