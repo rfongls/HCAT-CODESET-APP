@@ -52,7 +52,6 @@
             {% if sheet_names and compare_mode %}
             <form id="compare-form" method="post" class="row g-2 align-items-end mt-2">
                 <div class="col-12 col-md-4">
-                    <label for="compare-repo-select" class="form-label">Select repository to compare:</label>
                     <select id="compare-repo-select" name="compare_repo" class="form-select {% if comparison_active %}selected-compare{% endif %}">
                         <option value="">Select repository</option>
                         {% for repo in comparison_repositories %}
@@ -61,7 +60,6 @@
                     </select>
                 </div>
                 <div class="col-12 col-md-4">
-                    <label for="compare-workbook-select" class="form-label">Workbook</label>
                     <select id="compare-workbook-select" name="compare_workbook_name" class="form-select {% if comparison_active %}selected-compare{% endif %}" {% if not compare_repo_files %}disabled{% endif %}>
                         <option value="">Select workbook</option>
                         {% for wb in compare_repo_files %}
