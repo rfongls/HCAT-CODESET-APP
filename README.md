@@ -29,7 +29,8 @@ If a `Definition` column exists in the workbook it is preserved in the export bu
 
 If a repository workbook is already loaded, an **Import Workbook** button appears beside the export button. Choosing a file replaces the existing workbook on disk and reloads it in the interface so fresh EMR exports or offline edits can be pulled into the app without restarting. When exporting, the application writes to a temporary file and atomically replaces the original so edits overwrite the source workbook safely.
 
-Once a workbook is loaded, a comparison form becomes available to load a second repository workbook side by side. The current repository is excluded from the comparison list. When active, the form shows the selected repository and workbook and provides a **Clear Comparison** button to remove the extra columns and return to single-workbook editing. The comparison workbook's `CODE`, `DISPLAY VALUE`, and `MAPPED_STD_DESCRIPTION` columns are inserted next to the base sheet as read-only fields with yellow cells and teal headers.
+Once a workbook is loaded, a **Compare** button appears next to the **Load Workbook** control. Clicking it reveals a form for loading a second repository workbook side by side. The current repository is excluded from the comparison list. When a comparison is active, the form displays the chosen repository and workbook along with a **Clear Comparison** button to return to single-workbook editing. The comparison workbook's `CODE`, `DISPLAY VALUE`, and `MAPPED_STD_DESCRIPTION` columns are inserted next to the base sheet as read-only fields with yellow cells and teal headers.
+The selected repository and workbook fields—both primary and comparison—are highlighted in yellow so current choices are easy to spot.
 
 Dropdown lists are read from Excel data validations. The parser handles named ranges and cell ranges, ignoring broken references gracefully.
 

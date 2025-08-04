@@ -71,13 +71,9 @@ header {
     background-color: #f8d7da !important;
 }
 
-.selected-primary {
-    background-color: #fff9c4;
-    color: #000;
-}
-
+.selected-primary,
 .selected-compare {
-    background-color: #ffd4c4;
+    background-color: #fff9c4;
     color: #000;
 }
 

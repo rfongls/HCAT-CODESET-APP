@@ -43,8 +43,13 @@
                 <div class="col-12 col-md-2">
                     <button type="submit" class="btn btn-primary w-100">Load Workbook</button>
                 </div>
+                {% if sheet_names and not compare_mode %}
+                <div class="col-12 col-md-2">
+                    <button type="submit" name="start_compare" value="1" class="btn btn-outline-primary w-100">Compare</button>
+                </div>
+                {% endif %}
             </form>
-            {% if sheet_names %}
+            {% if sheet_names and compare_mode %}
             <form id="compare-form" method="post" class="row g-2 align-items-end mt-2">
                 <div class="col-12 col-md-4">
                     <select id="compare-repo-select" name="compare_repo" class="form-select {% if comparison_active %}selected-compare{% endif %}">

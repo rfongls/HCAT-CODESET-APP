@@ -32,9 +32,14 @@ def test_compare_form_visibility_and_repo_exclusion(tmp_path, monkeypatch):
 
     resp = client.get("/")
     html = resp.get_data(as_text=True)
-    assert 'id="compare-repo-select"' not in html
+    assert 'name="start_compare"' not in html
 
     resp = client.post("/", data={"repo": repo1, "workbook_name": wb1})
+    html = resp.get_data(as_text=True)
+    assert 'name="start_compare"' in html
+    assert 'id="compare-repo-select"' not in html
+
+    resp = client.post("/", data={"start_compare": "1"})
     html = resp.get_data(as_text=True)
     assert 'id="compare-repo-select"' in html
     match = re.search(r'<select id="compare-repo-select"[^>]*>(.*?)</select>', html, re.DOTALL)
@@ -49,6 +54,7 @@ def test_compare_selection_and_clear_button(tmp_path, monkeypatch):
     client = app_module.app.test_client()
 
     client.post("/", data={"repo": repo1, "workbook_name": wb1})
+    client.post("/", data={"start_compare": "1"})
     resp = client.post("/", data={"compare_repo": repo2, "compare_workbook_name": wb2})
     html = resp.get_data(as_text=True)
 
@@ -56,3 +62,7 @@ def test_compare_selection_and_clear_button(tmp_path, monkeypatch):
     assert f'<option value="{wb2}" selected>' in html
     assert 'Clear Comparison' in html
     assert 'name="end_compare"' in html
+    resp = client.post("/", data={"end_compare": "1"})
+    html = resp.get_data(as_text=True)
+    assert 'id="compare-repo-select"' not in html
+    assert 'name="start_compare"' in html

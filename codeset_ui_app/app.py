@@ -295,11 +295,15 @@ def index():
     repo_names = sorted(REPOSITORY_CACHE.keys())
     repo_files: list[str] = []
     compare_repo_files: list[str] = []
+    compare_mode = bool(comparison_data)
 
     if request.method == "POST":
         if request.form.get("end_compare"):
             comparison_data.clear()
             comparison_path = None
+            compare_mode = False
+        elif request.form.get("start_compare"):
+            compare_mode = True
         elif "workbook" in request.files and not request.form.get("compare_mode"):
             file = request.files["workbook"]
             if file.filename:
@@ -343,6 +347,7 @@ def index():
                 if not cmp_path.is_file():
                     raise FileNotFoundError("Workbook not found")
                 _load_comparison_workbook_path(cmp_path)
+                compare_mode = True
             except Exception as exc:
                 last_error = str(exc)
                 comparison_data.clear()
@@ -411,6 +416,7 @@ def index():
         selected_compare_workbook=selected_compare_workbook,
         compare_repo_files=compare_repo_files,
         comparison_active=bool(comparison_data),
+        compare_mode=compare_mode,
     )
 
 
