@@ -7,3 +7,7 @@ def test_comparison_highlighting_rules():
     assert re.search(r"\.codeset-table\s+th\.compare-header\s*{[^}]*background-color:\s*#42b0f5", css)
     # check cell style
     assert re.search(r"\.codeset-table\s+td\.compare-col[^{}]*{[^}]*background-color:\s*#fff9c4", css)
+    # check repo/workbook selection highlight
+    assert re.search(r"\.selected-primary\s*{[^}]*background-color:\s*#fff9c4", css)
+    # check comparison selection highlight
+    assert re.search(r"\.selected-compare\s*{[^}]*background-color:\s*#ffd4c4", css)

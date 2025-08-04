@@ -24,7 +24,7 @@
             <form id="repo-form" method="post" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
                     <label for="repo-select" class="form-label">Select the repository you want to edit a codeset for:</label>
-                    <select id="repo-select" name="repo" class="form-select {% if selected_repo %}bg-warning text-dark{% endif %}">
+                    <select id="repo-select" name="repo" class="form-select {% if selected_repo %}selected-primary{% endif %}">
                         <option value="">Select repository</option>
                         {% for repo in repositories %}
                         <option value="{{ repo }}" {% if repo == selected_repo %}selected{% endif %}>{{ repo }}</option>
@@ -33,7 +33,7 @@
                 </div>
                 <div class="col-12 col-md-4">
                     <label for="workbook-select" class="form-label">Workbook</label>
-                    <select id="workbook-select" name="workbook_name" class="form-select {% if selected_workbook %}bg-warning text-dark{% endif %}" {% if not repo_files %}disabled{% endif %}>
+                    <select id="workbook-select" name="workbook_name" class="form-select {% if selected_workbook %}selected-primary{% endif %}" {% if not repo_files %}disabled{% endif %}>
                         <option value="">Select workbook</option>
                         {% for wb in repo_files %}
                         <option value="{{ wb }}" {% if wb == selected_workbook %}selected{% endif %}>{{ wb }}</option>
@@ -48,7 +48,7 @@
             <form id="compare-form" method="post" class="row g-2 align-items-end mt-2">
                 <div class="col-12 col-md-4">
                     <label for="compare-repo-select" class="form-label">Select repository to compare:</label>
-                    <select id="compare-repo-select" name="compare_repo" class="form-select {% if comparison_active %}bg-danger text-white{% endif %}">
+                    <select id="compare-repo-select" name="compare_repo" class="form-select {% if comparison_active %}selected-compare{% endif %}">
                         <option value="">Select repository</option>
                         {% for repo in comparison_repositories %}
                         <option value="{{ repo }}">{{ repo }}</option>
@@ -57,7 +57,7 @@
                 </div>
                 <div class="col-12 col-md-4">
                     <label for="compare-workbook-select" class="form-label">Workbook</label>
-                    <select id="compare-workbook-select" name="compare_workbook_name" class="form-select {% if comparison_active %}bg-danger text-white{% endif %}" disabled>
+                    <select id="compare-workbook-select" name="compare_workbook_name" class="form-select {% if comparison_active %}selected-compare{% endif %}" disabled>
                         <option value="">Select workbook</option>
                     </select>
                 </div>
