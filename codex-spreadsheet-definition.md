@@ -24,7 +24,7 @@ Purpose: Define, normalize, and optionally map facility codes to national standa
 ### Mapping **is required** if:
 - `STANDARD_CODE` column exists **and contains data**
 - `STANDARD_DESCRIPTION` column exists **and contains data**
-- `MAPPED_STD_DESCRIPTION` column exists
+- `MAPPED_STD_DESCRIPTION` standard_code and standard_description is populated with anything except for NA.
 
 ### Mapping **is NOT required** if:
 - `STANDARD_CODE` or `STANDARD_DESCRIPTION` columns are entirely blank (even if headers exist)
