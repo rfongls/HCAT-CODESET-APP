@@ -43,15 +43,6 @@ header {
 }
 
 
-.compare-col {
-    background-color: #fff9c4;
-}
-
-.compare-header {
-    background-color: #008080;
-    color: #fff;
-}
-
 .codeset-table th {
     background-color: #4B0082;
     color: #fff;
@@ -59,6 +50,17 @@ header {
 
 .codeset-table tr:nth-child(even) {
     background-color: #f5f5f5;
+}
+
+.codeset-table td.compare-col,
+.codeset-table tr:nth-child(even) td.compare-col {
+    background-color: #fff9c4;
+}
+
+.codeset-table th.compare-header {
+    background-color: #008080;
+    color: #fff;
+
 }
 
 .add-row {
