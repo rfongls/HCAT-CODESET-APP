@@ -98,6 +98,10 @@
                     <div id="table-buttons" class="mt-2 d-flex gap-2"></div>
                 </div>
                 <div class="col-lg-3">
+                    <div id="fields-box" class="alert alert-secondary{% if not field_notes.get(initial_sheet) %} d-none{% endif %}">
+                        <h5 class="alert-heading">Fields</h5>
+                        <p id="fields-text" class="mb-0">{{ field_notes.get(initial_sheet, '') }}</p>
+                    </div>
                     <div id="requirements-box" class="alert alert-secondary">
                         <h5 class="alert-heading">Requirements</h5>
                         <ul class="mb-0">
@@ -125,6 +129,7 @@
     const dropdowns = {{ dropdowns|tojson }};
     const headers = {{ headers|tojson }}; // base headers
     const renderHeaders = {{ render_headers|tojson }};
+    const fieldNotes = {{ field_notes|tojson }};
     const sheetNames = {{ sheet_names|tojson }};
     const initialSheet = {{ initial_sheet|tojson }};
     const workbook = {};
@@ -141,6 +146,8 @@
         const compareWorkbookSelect = document.getElementById('compare-workbook-select');
         const errorsBox = document.getElementById('errors-box');
         const errorList = document.getElementById('error-list');
+        const fieldsBox = document.getElementById('fields-box');
+        const fieldsText = document.getElementById('fields-text');
         const errorsPerSheet = {};
 
         function renderErrors() {
@@ -152,6 +159,18 @@
             } else {
                 errorsBox.classList.add('d-none');
                 errorList.innerHTML = '';
+            }
+        }
+
+        function renderFieldNote(sheet) {
+            if (!fieldsBox || !fieldsText) return;
+            const note = fieldNotes[sheet] || '';
+            if (note) {
+                fieldsBox.classList.remove('d-none');
+                fieldsText.textContent = note;
+            } else {
+                fieldsBox.classList.add('d-none');
+                fieldsText.textContent = '';
             }
         }
 
@@ -516,6 +535,7 @@
             await ensureSheetLoaded(currentSheet);
             renderSheet(currentSheet);
             validateSheet(currentSheet);
+            renderFieldNote(currentSheet);
         });
 
         (async () => {
@@ -523,6 +543,7 @@
                 await ensureSheetLoaded(initialSheet);
                 renderSheet(initialSheet);
                 validateSheet(initialSheet);
+                renderFieldNote(initialSheet);
             }
         })();
 
