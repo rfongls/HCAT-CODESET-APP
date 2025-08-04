@@ -90,7 +90,7 @@ def refresh_repository_cache() -> None:
 
 def _load_workbook_path(path: Path, filename: str) -> None:
     """Load workbook at ``path`` and populate globals for UI rendering."""
-    global workbook_data, workbook_obj, dropdown_data, mapping_data, original_filename, last_error, comparison_data, comparison_path
+    global workbook_data, workbook_obj, dropdown_data, mapping_data, field_notes, original_filename, last_error, comparison_data, comparison_path
 
     with path.open("rb") as fh:
         workbook_data, wb = load_workbook(fh)
@@ -100,6 +100,7 @@ def _load_workbook_path(path: Path, filename: str) -> None:
     lookup_maps = extract_lookup_mappings(wb)
 
     mapping_data = {}
+    field_notes = {}
 
     for sheet, df in list(workbook_data.items()):
         mapped_col = None
@@ -177,6 +178,15 @@ def _load_workbook_path(path: Path, filename: str) -> None:
                 if sub_col:
                     df.loc[blank_mask, sub_col] = ""
         workbook_data[sheet] = df
+
+        note = ""
+        if code_col:
+            ws = wb[sheet]
+            for cell in ws[1]:
+                if (cell.value or "").strip() == code_col and cell.comment:
+                    note = cell.comment.text.strip()
+                    break
+        field_notes[sheet] = note
 
     comparison_data = {}
     comparison_path = None
