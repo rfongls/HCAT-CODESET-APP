@@ -75,7 +75,7 @@ def _load_workbook_path(path: Path, filename: str) -> None:
         code_col = None
         display_col = None
         for col in df.columns:
-            col_key = col.upper().replace(" ", "_")
+            col_key = col.strip().upper().replace(" ", "_")
             if col_key in ["MAPPED_STANDARD_DESCRIPTION", "MAPPED_STD_DESCRIPTION"]:
                 mapped_col = col
             if col_key in [
@@ -154,7 +154,7 @@ def _load_comparison_workbook_path(path: Path) -> None:
         display_col = None
         mapped_col = None
         for col in df.columns:
-            col_key = col.upper().replace(" ", "_")
+            col_key = col.strip().upper().replace(" ", "_")
             if col_key == "CODE":
                 code_col = col
             if col_key in ["DISPLAY_VALUE", "DISPLAY"]:
@@ -201,116 +201,6 @@ def _combine_sheet(sheet: str) -> pd.DataFrame | None:
             cmp["MAPPED_STD_DESCRIPTION_COMPARE"],
         )
     return combined
-
-# Directory containing sample repositories and workbooks
-SAMPLES_DIR = Path(__file__).resolve().parent.parent / "Samples"
-
-
-def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
-    """Return a mapping of repository folder to codeset workbooks."""
-    repo_map: Dict[str, list[str]] = {}
-    if base.exists():
-        for repo_dir in base.iterdir():
-            if repo_dir.is_dir():
-                files = [p.name for p in repo_dir.glob("*Codeset*.xlsx")]
-                if files:
-                    repo_map[repo_dir.name] = sorted(files)
-    return repo_map
-
-
-REPOSITORY_CACHE: Dict[str, list[str]] = discover_repository_workbooks(SAMPLES_DIR)
-
-
-def refresh_repository_cache() -> None:
-    """Refresh repository cache; used at startup or when Samples path changes."""
-    global REPOSITORY_CACHE
-    REPOSITORY_CACHE = discover_repository_workbooks(SAMPLES_DIR)
-
-
-def _load_workbook_path(path: Path, filename: str) -> None:
-    """Load workbook at ``path`` and populate globals for UI rendering."""
-    global workbook_data, workbook_obj, dropdown_data, mapping_data, original_filename, last_error
-
-    with path.open("rb") as fh:
-        workbook_data, wb = load_workbook(fh)
-    workbook_obj = wb
-    original_filename = filename
-    dropdown_data = extract_dropdown_options(wb)
-    lookup_maps = extract_lookup_mappings(wb)
-
-    mapping_data = {}
-
-    for sheet, df in list(workbook_data.items()):
-        mapped_col = None
-        sub_col = None
-        std_col = None
-        std_code_col = None
-        code_col = None
-        display_col = None
-        for col in df.columns:
-            col_key = col.upper().replace(" ", "_")
-            if col_key in ["MAPPED_STANDARD_DESCRIPTION", "MAPPED_STD_DESCRIPTION"]:
-                mapped_col = col
-            if col_key in [
-                "SUB_DEFINITION",
-                "SUB_DEFINITION_DESCRIPTION",
-                "SUBDEFINITION",
-                "SUB DEFINITION",
-            ]:
-                sub_col = col
-            if col_key in ["STANDARD_DESCRIPTION", "STD_DESCRIPTION", "STANDARD_DESC"]:
-                std_col = col
-            if col_key in ["STANDARD_CODE", "STD_CODE"]:
-                std_code_col = col
-            if col_key == "CODE":
-                code_col = col
-            if col_key in ["DISPLAY_VALUE", "DISPLAY"]:
-                display_col = col
-
-        if std_col and mapped_col:
-            options = sorted({str(v).strip() for v in df[std_col] if str(v).strip()})
-            if options:
-                dropdown_data.setdefault(sheet, {})[mapped_col] = options
-
-        sheet_map: Dict[str, str] = {}
-
-        if std_col and std_code_col:
-            std_series = df[std_col].astype(str).str.strip()
-            code_series = df[std_code_col].astype(str).str.strip()
-            mask = std_series != ""
-            sheet_map.update({desc: f"{code}^{desc}" for desc, code in zip(std_series[mask], code_series[mask])})
-
-        if mapped_col and not (std_col and std_code_col) and sub_col:
-            mapped_series = df[mapped_col].astype(str).str.strip()
-            sub_series = df[sub_col].astype(str)
-            mask = mapped_series != ""
-            sheet_map.update({k: v for k, v in zip(mapped_series[mask], sub_series[mask])})
-
-        lookup_sheet = lookup_maps.get(sheet, {})
-        if sub_col and sub_col in lookup_sheet:
-            sheet_map = {**lookup_sheet[sub_col], **sheet_map}
-
-        if sub_col and mapped_col:
-            df[sub_col] = df[mapped_col].map(sheet_map).fillna(df[sub_col])
-
-        mapping_data[sheet] = {
-            "map": sheet_map,
-            "sub_col": sub_col,
-            "mapped_col": mapped_col,
-        }
-
-        if code_col and display_col and mapped_col:
-            code_series = df[code_col].astype(str).str.strip()
-            display_series = df[display_col].astype(str).str.strip()
-            blank_mask = code_series.eq("") & display_series.eq("")
-            if blank_mask.any():
-                df.loc[blank_mask, mapped_col] = ""
-                if sub_col:
-                    df.loc[blank_mask, sub_col] = ""
-        workbook_data[sheet] = df
-
-    last_error = None
-
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -402,6 +292,7 @@ def index():
         if initial_sheet
         else []
     )
+    comparison_repos = [r for r in repo_names if r != selected_repo]
     return render_template(
         "index.html",
         sheet_names=sheet_names,
@@ -416,6 +307,7 @@ def index():
         error=last_error,
         filename=original_filename,
         repositories=repo_names,
+        comparison_repositories=comparison_repos,
         repo_files=repo_files,
         selected_repo=selected_repo,
         selected_workbook=selected_workbook,

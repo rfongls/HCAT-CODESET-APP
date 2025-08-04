@@ -42,8 +42,14 @@ header {
     padding: 6px 8px;
 }
 
+
 .compare-col {
-    background-color: #ffeeba;
+    background-color: #fff9c4;
+}
+
+.compare-header {
+    background-color: #008080;
+    color: #fff;
 }
 
 .codeset-table th {

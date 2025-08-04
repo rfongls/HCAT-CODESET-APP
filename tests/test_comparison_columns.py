@@ -38,6 +38,7 @@ def test_comparison_columns(tmp_path, monkeypatch):
     data = resp.get_json()
     assert "CODE_COMPARE" in data[0]
     assert data[0]["CODE_COMPARE"] == "B"
+    assert data[0]["DISPLAY_VALUE_COMPARE"] == "Beta"
     client.post("/", data={"end_compare": "1"})
     resp = client.get("/sheet/Sheet1")
     data = resp.get_json()
