@@ -62,6 +62,7 @@ def test_compare_selection_and_clear_button(tmp_path, monkeypatch):
     assert f'<option value="{wb2}" selected>' in html
     assert 'Clear Comparison' in html
     assert 'name="end_compare"' in html
+
     resp = client.post("/", data={"end_compare": "1"})
     html = resp.get_data(as_text=True)
     assert 'id="compare-repo-select"' not in html

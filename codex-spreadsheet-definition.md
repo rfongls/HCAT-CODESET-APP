@@ -131,7 +131,7 @@ The workbook is parsed once on upload and the web interface renders one sheet at
 ### 6. Workbook Export
 After mappings are applied, the application can write the updated values back to the uploaded workbook while preserving the original file name and Excel formatting.
 
-### 7. Codeset Descriptions
+### 7. Codeset Field References
 
 | Field | Description | Code Set Name | HL7 2.3+ Data Type | Code Set NBR |
 |-------|-------------|---------------|-------------------|--------------|

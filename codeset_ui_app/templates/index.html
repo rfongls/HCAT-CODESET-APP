@@ -101,9 +101,18 @@
                     <div id="table-buttons" class="mt-2 d-flex gap-2"></div>
                 </div>
                 <div class="col-lg-3">
-                    <div id="fields-box" class="alert{% if not field_notes.get(initial_sheet) %} d-none{% endif %}">
-                        <h5 class="alert-heading fw-bold">Fields</h5>
-                        <p id="fields-text" class="mb-0">{{ field_notes.get(initial_sheet, '') }}</p>
+                    <div id="fields-box" class="alert{% if not codeset_refs.get(initial_sheet) %} d-none{% endif %}">
+                        <h5 class="alert-heading fw-bold">Codeset References</h5>
+                        <dl id="fields-text" class="mb-0">
+                            <dt>Fields:</dt>
+                            <dd id="ref-fields">{{ codeset_refs.get(initial_sheet, {}).get('fields', '') }}</dd>
+                            <dt>Field Description:</dt>
+                            <dd id="ref-desc">{{ codeset_refs.get(initial_sheet, {}).get('description', '') }}</dd>
+                            <dt>Data Type:</dt>
+                            <dd id="ref-type">{{ codeset_refs.get(initial_sheet, {}).get('datatype', '') }}</dd>
+                            <dt>NBR:</dt>
+                            <dd id="ref-nbr">{{ codeset_refs.get(initial_sheet, {}).get('nbr', '') }}</dd>
+                        </dl>
                     </div>
                     <div id="requirements-box" class="alert">
                         <h5 class="alert-heading fw-bold">Requirements</h5>
@@ -133,7 +142,7 @@
     const dropdowns = {{ dropdowns|tojson }};
     const headers = {{ headers|tojson }}; // base headers
     const renderHeaders = {{ render_headers|tojson }};
-    const fieldNotes = {{ field_notes|tojson }};
+    const codesetRefs = {{ codeset_refs|tojson }};
     const sheetNames = {{ sheet_names|tojson }};
     const initialSheet = {{ initial_sheet|tojson }};
     const workbook = {};
@@ -151,7 +160,10 @@
         const errorsBox = document.getElementById('errors-box');
         const errorList = document.getElementById('error-list');
         const fieldsBox = document.getElementById('fields-box');
-        const fieldsText = document.getElementById('fields-text');
+        const refFields = document.getElementById('ref-fields');
+        const refDesc = document.getElementById('ref-desc');
+        const refType = document.getElementById('ref-type');
+        const refNbr = document.getElementById('ref-nbr');
         const errorsPerSheet = {};
 
         function renderErrors() {
@@ -166,15 +178,21 @@
             }
         }
 
-        function renderFieldNote(sheet) {
-            if (!fieldsBox || !fieldsText) return;
-            const note = fieldNotes[sheet] || '';
-            if (note) {
+        function renderFieldRef(sheet) {
+            if (!fieldsBox || !refFields) return;
+            const info = codesetRefs[sheet];
+            if (info) {
                 fieldsBox.classList.remove('d-none');
-                fieldsText.textContent = note;
+                refFields.textContent = info.fields || '';
+                refDesc.textContent = info.description || '';
+                refType.textContent = info.datatype || '';
+                refNbr.textContent = info.nbr || '';
             } else {
                 fieldsBox.classList.add('d-none');
-                fieldsText.textContent = '';
+                refFields.textContent = '';
+                refDesc.textContent = '';
+                refType.textContent = '';
+                refNbr.textContent = '';
             }
         }
 
@@ -547,7 +565,7 @@
             await ensureSheetLoaded(currentSheet);
             renderSheet(currentSheet);
             validateSheet(currentSheet);
-            renderFieldNote(currentSheet);
+            renderFieldRef(currentSheet);
         });
 
         (async () => {
@@ -555,7 +573,7 @@
                 await ensureSheetLoaded(initialSheet);
                 renderSheet(initialSheet);
                 validateSheet(initialSheet);
-                renderFieldNote(initialSheet);
+        renderFieldRef(initialSheet);
             }
         })();
 
