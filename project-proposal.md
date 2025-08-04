@@ -1,9 +1,9 @@
 # Project Proposal: Codeset Automation App Development
 
-**Client:** [Client Name]  
+**Client:** Health Catalyst  
 **Prepared by:** Silhouette LLC  
 **Date:** August 4, 2025  
-**Engineer Rate:** $170/hour
+**Engineer Rate:** $150/hour
 
 ---
 
@@ -33,7 +33,7 @@ Additionally, Phase 2 of the project introduces Git integration, automated ticke
 | Codex Documentation & Handoff | Update markdown handoff and YAML task runners. | 4–6 |
 
 **Estimated Time (Phase 1):** 56–81 hours  
-**Estimated Cost (Phase 1):** $9,520 – $13,770
+**Estimated Cost (Phase 1):** $8,400 – $12,150
 
 ---
 
@@ -48,7 +48,7 @@ Additionally, Phase 2 of the project introduces Git integration, automated ticke
 | Audit Logging | Track submitter identity, repo updates, and commit metadata. | 4–6 |
 
 **Estimated Time (Phase 2):** 27–37 hours  
-**Estimated Cost (Phase 2):** $4,590 – $6,290
+**Estimated Cost (Phase 2):** $4,050 – $5,550
 
 ---
 
@@ -56,9 +56,9 @@ Additionally, Phase 2 of the project introduces Git integration, automated ticke
 
 | Scope | Hours | Cost |
 |-------|--------|------|
-| Phase 1: Core App | 56–81 hrs | $9,520 – $13,770 |
-| Phase 2: Git/SSO | 27–37 hrs | $4,590 – $6,290 |
-| **Total Estimate** | **83–118 hrs** | **$14,110 – $20,060** |
+| Phase 1: Core App | 56–81 hrs | $8,400 – $12,150 |
+| Phase 2: Git/SSO | 27–37 hrs | $4,050 – $5,550 |
+| **Total Estimate** | **83–118 hrs** | **$12,450 – $17,700** |
 
 ---
 
@@ -85,4 +85,3 @@ Additionally, Phase 2 of the project introduces Git integration, automated ticke
 ## Next Steps
 
 To move forward, please confirm approval of the scope and pricing range. Upon sign-off, Silhouette LLC will begin development, staging setup, and delivery milestones.
-
