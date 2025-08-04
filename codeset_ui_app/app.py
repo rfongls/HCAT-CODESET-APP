@@ -246,7 +246,6 @@ def export():
     tmp_path = workbook_path.with_name(workbook_path.name + ".tmp")
     export_workbook(workbook_obj, workbook_data, tmp_path)
     tmp_path.replace(workbook_path)
-
     filename = original_filename or workbook_path.name
     return send_file(
         workbook_path,
