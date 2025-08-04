@@ -241,7 +241,11 @@ def export():
             df = df.where(pd.notna(df), "")
             workbook_data[sheet] = df
 
-    export_workbook(workbook_obj, workbook_data, workbook_path)
+    # Write to a temporary file and atomically replace the original so the
+    # on-disk workbook is always updated in place
+    tmp_path = workbook_path.with_name(workbook_path.name + ".tmp")
+    export_workbook(workbook_obj, workbook_data, tmp_path)
+    tmp_path.replace(workbook_path)
     filename = original_filename or workbook_path.name
     return send_file(
         workbook_path,

@@ -81,3 +81,23 @@ def test_import_updates_overwrites_file(tmp_path, monkeypatch):
     # ensure in-memory data updated
     resp = client.get("/sheet/Sheet1")
     assert resp.get_json()[0]["CODE"] == "A"
+
+
+def test_export_overwrites_original_file(tmp_path, monkeypatch):
+    app_module, repo, fname = setup_app(tmp_path, monkeypatch)
+    client = app_module.app.test_client()
+
+    # load workbook and then export with new row
+    resp = client.post("/", data={"repo": repo, "workbook_name": fname})
+    assert resp.status_code == 200
+
+    payload = {"Sheet1": [{"CODE": "B", "DISPLAY VALUE": "Beta"}]}
+    resp = client.post("/export", json=payload)
+    assert resp.status_code == 200
+
+    from openpyxl import load_workbook as xl_load
+
+    wb2 = xl_load(tmp_path / "Samples" / repo / fname)
+    ws2 = wb2["Sheet1"]
+    assert ws2.max_row == 2
+    assert ws2["A2"].value == "B"

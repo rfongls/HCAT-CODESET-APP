@@ -75,7 +75,7 @@ This is a persistent agent (or knowledge reference) for any logic or UI behavior
 * The application parses the workbook once and renders only the requested sheet, fetching other tabs on demand to avoid UI hangs on large files.
 * Tables stretch to their natural width and include a vertical scrollbar so long sheets remain readable without shrinking columns.
 * Empty columns are preserved during parsing so each sheet's expected headers remain available even when no data exists for a column.
-* A dedicated export routine overwrites the uploaded workbook on disk, retaining the original file name and formatting while also returning it for download if needed.
+* A dedicated export routine writes changes to a temporary file and atomically replaces the original workbook on disk, retaining the original name and formatting while also returning it for download if needed.
 * An import endpoint lets users replace the currently loaded workbook with a new file so EMR exports or offline edits can be pulled in without restarting the session.
 * The web UI scans the `Samples` directory for folders containing `Codeset*.xlsx` files and offers those parent folders as repositories so users can choose an existing workbook instead of uploading.
 * Repository and workbook listings are cached when the server starts, allowing users to immediately select a repository without waiting for a filesystem scan.
