@@ -24,7 +24,7 @@ Purpose: Define, normalize, and optionally map facility codes to national standa
 ### Mapping **is required** if:
 - `STANDARD_CODE` column exists **and contains data**
 - `STANDARD_DESCRIPTION` column exists **and contains data**
-- `MAPPED_STD_DESCRIPTION` column exists
+- `MAPPED_STD_DESCRIPTION` standard_code and standard_description is populated with anything except for NA.
 
 ### Mapping **is NOT required** if:
 - `STANDARD_CODE` or `STANDARD_DESCRIPTION` columns are entirely blank (even if headers exist)
@@ -113,6 +113,7 @@ Rows that lack values in both `CODE` and `DISPLAY VALUE` remain visible so users
 ### 2. Formula Replication
 Recreate the Excel logic within your backend/frontend to compute a `CODE^DESC` combo string when a mapped value is selected.
 When the user picks a value in `MAPPED_STD_DESCRIPTION`, the corresponding `SUB_DEFINITION` field should be set to `STANDARD_CODE^STANDARD_DESCRIPTION` for that row.
+
 The "sub definition" column may appear as either `SUB_DEFINITION` or `SUBDEFINITION` in the workbook headers.
 `SUB_DEFINITION` itself is not a dropdown. Options for `MAPPED_STD_DESCRIPTION` come from the `STANDARD_DESCRIPTION` column, and the selected value dynamically fills the `SUB_DEFINITION` cell with `STANDARD_CODE^STANDARD_DESCRIPTION`.
 

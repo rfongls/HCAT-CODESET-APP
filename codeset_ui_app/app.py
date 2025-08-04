@@ -210,6 +210,63 @@ def _combine_sheet(sheet: str) -> pd.DataFrame | None:
         )
     return combined
 
+def _combine_sheet(sheet: str) -> pd.DataFrame | None:
+    """Return sheet data with comparison columns merged in."""
+    df = workbook_data.get(sheet)
+    if df is None:
+        return None
+    cmp = comparison_data.get(sheet)
+    if cmp is None:
+        return df
+    combined = df.copy()
+    info = mapping_data.get(sheet, {})
+    code_col = info.get("code_col")
+    display_col = info.get("display_col")
+    mapped_col = info.get("mapped_col")
+    if code_col and "CODE_COMPARE" in cmp:
+        combined.insert(combined.columns.get_loc(code_col) + 1, "CODE_COMPARE", cmp["CODE_COMPARE"])
+    if display_col and "DISPLAY_VALUE_COMPARE" in cmp:
+        combined.insert(
+            combined.columns.get_loc(display_col) + 1,
+            "DISPLAY_VALUE_COMPARE",
+            cmp["DISPLAY_VALUE_COMPARE"],
+        )
+    if mapped_col and "MAPPED_STD_DESCRIPTION_COMPARE" in cmp:
+        combined.insert(
+            combined.columns.get_loc(mapped_col) + 1,
+            "MAPPED_STD_DESCRIPTION_COMPARE",
+            cmp["MAPPED_STD_DESCRIPTION_COMPARE"],
+        )
+    return combined
+
+def _combine_sheet(sheet: str) -> pd.DataFrame | None:
+    """Return sheet data with comparison columns merged in."""
+    df = workbook_data.get(sheet)
+    if df is None:
+        return None
+    cmp = comparison_data.get(sheet)
+    if cmp is None:
+        return df
+    combined = df.copy()
+    info = mapping_data.get(sheet, {})
+    code_col = info.get("code_col")
+    display_col = info.get("display_col")
+    mapped_col = info.get("mapped_col")
+    if code_col and "CODE_COMPARE" in cmp:
+        combined.insert(combined.columns.get_loc(code_col) + 1, "CODE_COMPARE", cmp["CODE_COMPARE"])
+    if display_col and "DISPLAY_VALUE_COMPARE" in cmp:
+        combined.insert(
+            combined.columns.get_loc(display_col) + 1,
+            "DISPLAY_VALUE_COMPARE",
+            cmp["DISPLAY_VALUE_COMPARE"],
+        )
+    if mapped_col and "MAPPED_STD_DESCRIPTION_COMPARE" in cmp:
+        combined.insert(
+            combined.columns.get_loc(mapped_col) + 1,
+            "MAPPED_STD_DESCRIPTION_COMPARE",
+            cmp["MAPPED_STD_DESCRIPTION_COMPARE"],
+        )
+    return combined
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -378,7 +435,6 @@ def export():
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-
 
 @app.route("/import", methods=["POST"])
 def import_workbook():
