@@ -11,11 +11,13 @@ try:  # allow running as a package or standalone script
     from components.dropdown_logic import extract_dropdown_options
     from components.formula_logic import extract_lookup_mappings
     from utils.export_excel import export_workbook
+    from validators import validate_workbook
 except ModuleNotFoundError:  # pragma: no cover - fallback for imports when packaged
     from .components.file_parser import load_workbook
     from .components.dropdown_logic import extract_dropdown_options
     from .components.formula_logic import extract_lookup_mappings
     from .utils.export_excel import export_workbook
+    from .validators import validate_workbook
 from openpyxl.workbook.workbook import Workbook
 
 app = Flask(__name__, static_folder="assets", template_folder="templates")
@@ -126,6 +128,8 @@ def _load_workbook_path(path: Path, filename: str) -> None:
             "mapped_col": mapped_col,
             "code_col": code_col,
             "display_col": display_col,
+            "std_col": std_col,
+            "std_code_col": std_code_col,
         }
 
         if code_col and display_col and mapped_col:
@@ -171,6 +175,37 @@ def _load_comparison_workbook_path(path: Path) -> None:
         if cols:
             comparison_data[sheet] = pd.DataFrame(cols)
     comparison_path = path
+
+
+def _combine_sheet(sheet: str) -> pd.DataFrame | None:
+    """Return sheet data with comparison columns merged in."""
+    df = workbook_data.get(sheet)
+    if df is None:
+        return None
+    cmp = comparison_data.get(sheet)
+    if cmp is None:
+        return df
+    combined = df.copy()
+    info = mapping_data.get(sheet, {})
+    code_col = info.get("code_col")
+    display_col = info.get("display_col")
+    mapped_col = info.get("mapped_col")
+    if code_col and "CODE_COMPARE" in cmp:
+        combined.insert(combined.columns.get_loc(code_col) + 1, "CODE_COMPARE", cmp["CODE_COMPARE"])
+    if display_col and "DISPLAY_VALUE_COMPARE" in cmp:
+        combined.insert(
+            combined.columns.get_loc(display_col) + 1,
+            "DISPLAY_VALUE_COMPARE",
+            cmp["DISPLAY_VALUE_COMPARE"],
+        )
+    if mapped_col and "MAPPED_STD_DESCRIPTION_COMPARE" in cmp:
+        combined.insert(
+            combined.columns.get_loc(mapped_col) + 1,
+            "MAPPED_STD_DESCRIPTION_COMPARE",
+            cmp["MAPPED_STD_DESCRIPTION_COMPARE"],
+        )
+    return combined
+
 
 def _combine_sheet(sheet: str) -> pd.DataFrame | None:
     """Return sheet data with comparison columns merged in."""
@@ -375,6 +410,10 @@ def export():
             df = df.where(pd.notna(df), "")
             workbook_data[sheet] = df
 
+    errors = validate_workbook(workbook_data, mapping_data)
+    if errors:
+        return jsonify({"errors": errors}), 400
+
     # Write to a temporary file and atomically replace the original so the
     # on-disk workbook is always updated in place
     tmp_path = workbook_path.with_name(workbook_path.name + ".tmp")
@@ -388,6 +427,7 @@ def export():
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
+
 
 @app.route("/import", methods=["POST"])
 def import_workbook():

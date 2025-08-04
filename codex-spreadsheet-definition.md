@@ -103,6 +103,13 @@ Formulas, when present, are generally embedded in column `D` and follow a struct
 Only enforce `MAPPED_STD_DESCRIPTION` selection **if mapping is required** for that tab.
 Rows that lack values in both `CODE` and `DISPLAY VALUE` remain visible so users can review all available `STANDARD_CODE` and `STANDARD_DESCRIPTION` values. Their `MAPPED_STD_DESCRIPTION` and `SUB_DEFINITION` fields start blank and only populate after a mapping is chosen.
 
+### 1.1 Validation Rules
+
+- `CODE` and `DISPLAY VALUE` operate as a pair. If one is populated the other is required.
+- When either `STANDARD_CODE` or `STANDARD_DESCRIPTION` has a value, `MAPPED_STD_DESCRIPTION` must be selected.
+- Codes within a single tab must be unique.
+- Validation errors are surfaced in the right‑hand sidebar with sheet and row references.
+
 ### 2. Formula Replication
 Recreate the Excel logic within your backend/frontend to compute a `CODE^DESC` combo string when a mapped value is selected.
 When the user picks a value in `MAPPED_STD_DESCRIPTION`, the corresponding `SUB_DEFINITION` field should be set to `STANDARD_CODE^STANDARD_DESCRIPTION` for that row.

@@ -80,7 +80,7 @@ This is a persistent agent (or knowledge reference) for any logic or UI behavior
 * The web UI scans the `Samples` directory for folders containing `Codeset*.xlsx` files and offers those parent folders as repositories so users can choose an existing workbook instead of uploading.
 * A comparison mode lets a second workbook be loaded from a repository. Its `CODE`, `DISPLAY VALUE`, and `MAPPED_STD_DESCRIPTION` columns appear read-only alongside the active workbook. Users can end the comparison to remove the extra columns.
 * Repository and workbook listings are cached when the server starts, allowing users to immediately select a repository without waiting for a filesystem scan.
-* The interface shows a sidebar with guidance (e.g., "If CODE is populated, Display Value must be populated") that will later surface validation results.
+* The interface shows a sidebar that lists validation errors, referencing the sheet and row for issues such as missing code/display pairs, required mappings, or duplicate codes. When no errors exist it displays guidance, e.g., "If CODE is populated, Display Value must be populated".
 
 ---
 

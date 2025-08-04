@@ -97,7 +97,11 @@
                 </div>
                 <div class="col-lg-3">
                     <div id="instruction-box" class="alert alert-secondary">
-                        If CODE is populated, Display Value must be populated.
+                        <ul class="mb-0">
+                            <li>If CODE is populated, DISPLAY VALUE must be populated and vice versa.</li>
+                            <li>If STANDARD_CODE/STANDARD_DESCRIPTION exist, a MAPPED_STD_DESCRIPTION must be selected.</li>
+                            <li>Codes must be unique within a tab.</li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -287,7 +291,7 @@
             const headRow = document.createElement('tr');
             renderHeaders[sheet].forEach(h => {
                 const th = document.createElement('th');
-                th.textContent = h;
+                th.textContent = h.replace(/_/g, ' ');
                 if (h.endsWith('_COMPARE')) th.classList.add('compare-col', 'compare-header');
                 headRow.appendChild(th);
             });
@@ -331,6 +335,8 @@
             saveBtn.id = 'export-workbook';
             saveBtn.className = 'btn btn-success ms-2';
             saveBtn.textContent = 'Export Workbook';
+            const instructionBox = document.getElementById('instruction-box');
+            const defaultInstructions = instructionBox.innerHTML;
             saveBtn.addEventListener('click', async () => {
                 syncCurrentSheet();
                 const resp = await fetch('/export', {
@@ -339,6 +345,9 @@
                     body: JSON.stringify(workbook)
                 });
                 if (resp.ok) {
+                    instructionBox.classList.remove('alert-danger');
+                    instructionBox.classList.add('alert-secondary');
+                    instructionBox.innerHTML = defaultInstructions;
                     const blob = await resp.blob();
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -354,6 +363,19 @@
                     a.click();
                     a.remove();
                     URL.revokeObjectURL(url);
+                } else {
+                    instructionBox.classList.remove('alert-secondary');
+                    instructionBox.classList.add('alert-danger');
+                    try {
+                        const data = await resp.json();
+                        if (data.errors) {
+                            instructionBox.innerHTML = '<ul class="mb-0">' + data.errors.map(e => `<li>${e}</li>`).join('') + '</ul>';
+                        } else {
+                            instructionBox.textContent = 'Export failed';
+                        }
+                    } catch {
+                        instructionBox.textContent = 'Export failed';
+                    }
                 }
             });
             container.appendChild(saveBtn);
