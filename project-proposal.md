@@ -1,4 +1,4 @@
-# Project Proposal: Codeset Automation App Development
+# Project Proposal: Codeset Management System Development
 
 **Client:** Health Catalyst  
 **Prepared by:** Silhouette LLC  
