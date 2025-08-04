@@ -279,8 +279,11 @@ def index():
     global workbook_path, comparison_path
     selected_repo: str | None = None
     selected_workbook: str | None = None
+    selected_compare_repo: str | None = None
+    selected_compare_workbook: str | None = None
     repo_names = sorted(REPOSITORY_CACHE.keys())
     repo_files: list[str] = []
+    compare_repo_files: list[str] = []
 
     if request.method == "POST":
         if request.form.get("end_compare"):
@@ -340,6 +343,15 @@ def index():
         except Exception:
             selected_repo = selected_workbook = None
 
+    if comparison_path:
+        try:
+            selected_compare_repo = comparison_path.parent.name
+            selected_compare_workbook = comparison_path.name
+            compare_repo_files = REPOSITORY_CACHE.get(selected_compare_repo, [])
+        except Exception:
+            selected_compare_repo = selected_compare_workbook = None
+            compare_repo_files = []
+
     if selected_repo:
         repo_files = REPOSITORY_CACHE.get(selected_repo, [])
 
@@ -383,6 +395,9 @@ def index():
         repo_files=repo_files,
         selected_repo=selected_repo,
         selected_workbook=selected_workbook,
+        selected_compare_repo=selected_compare_repo,
+        selected_compare_workbook=selected_compare_workbook,
+        compare_repo_files=compare_repo_files,
         comparison_active=bool(comparison_data),
     )
 
