@@ -25,6 +25,13 @@ def test_validation_rules():
             "STANDARD_DESCRIPTION": "Two",
             "MAPPED_STD_DESCRIPTION": "Two",
         },
+        {
+            "CODE": "",
+            "DISPLAY VALUE": "",
+            "STANDARD_CODE": "3",
+            "STANDARD_DESCRIPTION": "Three",
+            "MAPPED_STD_DESCRIPTION": "",
+        },
     ])
     sheets = {"Sheet1": df}
     mapping = {
@@ -39,5 +46,6 @@ def test_validation_rules():
     errors = validate_workbook(sheets, mapping)
     assert any("DISPLAY VALUE required" in e for e in errors)
     assert any("CODE required" in e for e in errors)
-    assert any("MAPPED_STD_DESCRIPTION required" in e for e in errors)
+    mapping_errors = [e for e in errors if "MAPPED_STD_DESCRIPTION required" in e]
+    assert len(mapping_errors) == 1
     assert any("duplicate CODE" in e for e in errors)

@@ -117,6 +117,9 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
     <script>
     const mappings = {{ mappings|tojson }};
     const dropdowns = {{ dropdowns|tojson }};
@@ -176,7 +179,7 @@
                 if (display && !code) {
                     errs.push(`On tab "${sheet}" - Display value "${display}" does not have a code`);
                 }
-                if ((stdCode || stdDesc) && !mapped) {
+                if ((code || display) && (stdCode || stdDesc) && !mapped) {
                     errs.push(`On tab "${sheet}" - ${code || 'Row ' + (idx + 2)} does not have a mapped standard description`);
                 }
                 if (code) {
@@ -508,7 +511,7 @@
                 validateSheet(currentSheet);
             }
         });
-      
+
         document.addEventListener('change', ev => {
             const target = ev.target;
             if (target.classList.contains('mapped-select')) {

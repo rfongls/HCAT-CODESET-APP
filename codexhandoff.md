@@ -36,7 +36,7 @@ This node performs sheet-level validation logic as defined in `codex-spreadsheet
 * For each sheet:
 
   * Confirm if `STANDARD_CODE` and `STANDARD_DESCRIPTION` columns exist and contain data.
-  * If both exist and contain values, ensure `MAPPED_STD_DESCRIPTION` is not null.
+  * If both exist and contain values and a row has a `CODE` or `DISPLAY VALUE`, ensure `MAPPED_STD_DESCRIPTION` is not null.
   * If formulas are present (column `D`), confirm the formula output matches the logic in the markdown spec (e.g., `UNK^UNKNOWN`, etc).
 
 #### Output:

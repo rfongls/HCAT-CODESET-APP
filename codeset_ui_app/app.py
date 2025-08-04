@@ -176,6 +176,7 @@ def _load_comparison_workbook_path(path: Path) -> None:
             comparison_data[sheet] = pd.DataFrame(cols)
     comparison_path = path
 
+
 def _combine_sheet(sheet: str) -> pd.DataFrame | None:
     """Return sheet data with comparison columns merged in."""
     df = workbook_data.get(sheet)

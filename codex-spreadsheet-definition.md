@@ -106,7 +106,7 @@ Rows that lack values in both `CODE` and `DISPLAY VALUE` remain visible so users
 ### 1.1 Validation Rules
 
 - `CODE` and `DISPLAY VALUE` operate as a pair. If one is populated the other is required.
-- When either `STANDARD_CODE` or `STANDARD_DESCRIPTION` has a value, `MAPPED_STD_DESCRIPTION` must be selected.
+- If `CODE` or `DISPLAY VALUE` is populated and the row has a `STANDARD_CODE` or `STANDARD_DESCRIPTION`, `MAPPED_STD_DESCRIPTION` must also be selected.
 - Codes within a single tab must be unique.
 - Validation errors are surfaced in the right‑hand sidebar with sheet and row references.
 
