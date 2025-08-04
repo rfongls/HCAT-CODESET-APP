@@ -42,6 +42,7 @@ def validate_workbook(sheets: Dict[str, pd.DataFrame], mapping: Dict[str, Dict[s
                 errors.append(f"{sheet} row {row_num}: DISPLAY VALUE required when CODE is provided")
             if display and not code:
                 errors.append(f"{sheet} row {row_num}: CODE required when DISPLAY VALUE is provided")
+
             if (code or display) and (std_code or std_desc) and not mapped:
                 errors.append(
                     f"{sheet} row {row_num}: MAPPED_STD_DESCRIPTION required when standard code/description present"
