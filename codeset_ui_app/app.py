@@ -24,7 +24,7 @@ app = Flask(__name__, static_folder="assets", template_folder="templates")
 workbook_data: Dict[str, "pd.DataFrame"] = {}
 dropdown_data: Dict[str, Dict[str, list]] = {}
 mapping_data: Dict[str, Dict[str, Any]] = {}
-codeset_refs: Dict[str, Dict[str, str]] = {}
+field_notes: Dict[str, str] = {}
 workbook_obj: Workbook | None = None
 original_filename: str | None = None
 workbook_path: Path | None = None
@@ -34,39 +34,6 @@ comparison_path: Path | None = None
 
 # Directory containing sample repositories and workbooks
 SAMPLES_DIR = Path(__file__).resolve().parent.parent / "Samples"
-
-
-def load_codeset_references() -> Dict[str, Dict[str, str]]:
-    """Parse the markdown definition file for codeset field references."""
-    ref_path = Path(__file__).resolve().parents[1] / "codex-spreadsheet-definition.md"
-    refs: Dict[str, Dict[str, str]] = {}
-    if not ref_path.exists():
-        return refs
-    capture = False
-    for line in ref_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line.lower().startswith("### 7"):
-            capture = True
-            continue
-        if capture:
-            if line.startswith("##") or (line.startswith("###") and not line.lower().startswith("### 7")):
-                break
-            if line.startswith("|"):
-                parts = [p.strip() for p in line.strip("|").split("|")]
-                if len(parts) == 5 and parts[0] != "Sheet Name":
-                    sheet, fields, desc, dtype, nbr = parts
-                    refs[sheet] = {
-                        "fields": fields,
-                        "description": desc,
-                        "datatype": dtype,
-                        "nbr": nbr,
-                    }
-    return refs
-
-
-codeset_refs = load_codeset_references()
-
-
 def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
     """Return a mapping of repository folder to codeset workbooks."""
     repo_map: Dict[str, list[str]] = {}
@@ -435,7 +402,7 @@ def index():
         render_headers=render_headers,
         dropdowns=dropdown_data,
         mappings=mapping_data,
-        codeset_refs=codeset_refs,
+        field_notes=field_notes,
         error=last_error,
         filename=original_filename,
         repositories=repo_names,
