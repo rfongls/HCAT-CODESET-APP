@@ -62,10 +62,6 @@ header {
     color: #fff;
 }
 
-.add-row {
-    margin-top: 0.5rem;
-}
-
 .error {
     color: red;
     margin-top: 1rem;
@@ -73,4 +69,28 @@ header {
 
 .error-cell {
     background-color: #f8d7da !important;
+}
+
+.selected-primary {
+    background-color: #fff9c4;
+    color: #000;
+}
+
+.selected-compare {
+    background-color: #ffd4c4;
+    color: #000;
+}
+
+#fields-box {
+    background-color: #fff9c4;
+}
+
+#requirements-box {
+    background-color: #42b0f5;
+    color: #fff;
+}
+
+#fields-box .alert-heading,
+#requirements-box .alert-heading {
+    font-weight: 700;
 }
