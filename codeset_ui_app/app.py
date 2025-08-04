@@ -43,7 +43,7 @@ def load_codeset_references() -> Dict[str, Dict[str, str]]:
     if not ref_path.exists():
         return refs
     capture = False
-    for line in ref_path.read_text().splitlines():
+    for line in ref_path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if line.lower().startswith("### 7"):
             capture = True
