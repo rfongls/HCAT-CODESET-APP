@@ -44,6 +44,8 @@ workbook until issues are resolved. The checks include:
 - `DISPLAY VALUE` is required whenever a `CODE` is provided and vice versa.
 - If either `STANDARD_CODE` or `STANDARD_DESCRIPTION` contains a value, the
   `MAPPED_STD_DESCRIPTION` column must also be filled in.
+- If `MAPPED_STD_DESCRIPTION` is populated, both `CODE` and `DISPLAY VALUE`
+  must also be provided.
 - Duplicate `CODE` values on a sheet are reported with the offending row
   numbers.
 

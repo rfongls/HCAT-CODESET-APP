@@ -77,6 +77,20 @@ header {
 }
 
 .selected-compare {
-    background-color: #fff9c4;
+    background-color: #ffd4c4;
     color: #000;
+}
+
+#fields-box {
+    background-color: #fff9c4;
+}
+
+#requirements-box {
+    background-color: #fff9c4;
+    color: #fff;
+}
+
+#fields-box .alert-heading,
+#requirements-box .alert-heading {
+    font-weight: 700;
 }

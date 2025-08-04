@@ -32,6 +32,13 @@ def test_validation_rules():
             "STANDARD_DESCRIPTION": "Three",
             "MAPPED_STD_DESCRIPTION": "",
         },
+        {
+            "CODE": "",
+            "DISPLAY VALUE": "",
+            "STANDARD_CODE": "",
+            "STANDARD_DESCRIPTION": "",
+            "MAPPED_STD_DESCRIPTION": "Mapped Only",
+        },
     ])
     sheets = {"Sheet1": df}
     mapping = {
@@ -48,4 +55,6 @@ def test_validation_rules():
     assert any("CODE required" in e for e in errors)
     mapping_errors = [e for e in errors if "MAPPED_STD_DESCRIPTION required" in e]
     assert len(mapping_errors) == 1
+    assert any("CODE required when MAPPED_STD_DESCRIPTION is provided" in e for e in errors)
+    assert any("DISPLAY VALUE required when MAPPED_STD_DESCRIPTION is provided" in e for e in errors)
     assert any("duplicate CODE" in e for e in errors)

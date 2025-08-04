@@ -96,15 +96,16 @@
                     <div id="table-buttons" class="mt-2 d-flex gap-2"></div>
                 </div>
                 <div class="col-lg-3">
-                    <div id="fields-box" class="alert alert-secondary{% if not field_notes.get(initial_sheet) %} d-none{% endif %}">
-                        <h5 class="alert-heading">Fields</h5>
+                    <div id="fields-box" class="alert{% if not field_notes.get(initial_sheet) %} d-none{% endif %}">
+                        <h5 class="alert-heading fw-bold">Fields</h5>
                         <p id="fields-text" class="mb-0">{{ field_notes.get(initial_sheet, '') }}</p>
                     </div>
-                    <div id="requirements-box" class="alert alert-secondary">
-                        <h5 class="alert-heading">Requirements</h5>
+                    <div id="requirements-box" class="alert">
+                        <h5 class="alert-heading fw-bold">Requirements</h5>
                         <ul class="mb-0">
                             <li>If CODE is populated, DISPLAY VALUE must be populated and vice versa.</li>
                             <li>If STANDARD_CODE/STANDARD_DESCRIPTION exist, a MAPPED_STD_DESCRIPTION must be selected.</li>
+                            <li>If MAPPED_STD_DESCRIPTION is populated, CODE and DISPLAY VALUE must be provided.</li>
                             <li>Codes must be unique within a tab.</li>
                         </ul>
                     </div>
@@ -204,6 +205,14 @@
                 if ((code || display) && !mapped) {
                     errs.push(`On tab "${sheet}" - ${code || 'Row ' + (idx + 2)} does not have a mapped standard description`);
                     if (tr && mappedIdx !== -1) tr.children[mappedIdx].classList.add('error-cell');
+                }
+                if (mapped && !code) {
+                    errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a code`);
+                    if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell');
+                }
+                if (mapped && !display) {
+                    errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a display value`);
+                    if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell');
                 }
                 if (code) {
                     if (seenCodes[code] !== undefined) {

@@ -30,4 +30,6 @@ def test_field_comment_display(tmp_path, monkeypatch):
     html = resp.get_data(as_text=True)
     assert "Fields" in html
     assert "OBX:8" in html
+    assert '<h5 class="alert-heading fw-bold">Fields</h5>' in html
+    assert '<h5 class="alert-heading fw-bold">Requirements</h5>' in html
 
