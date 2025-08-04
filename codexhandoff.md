@@ -82,7 +82,6 @@ This is a persistent agent (or knowledge reference) for any logic or UI behavior
 * Repository and workbook listings are cached when the server starts, allowing users to immediately select a repository without waiting for a filesystem scan.
 * The interface shows a sidebar that lists validation errors in real time, referencing the sheet and row for issues such as missing code/display pairs, required mappings, or duplicate codes. When no errors exist it displays guidance, e.g., "If CODE is populated, Display Value must be populated".
 
-
 ---
 
 ### 🧪 Optional Test Task

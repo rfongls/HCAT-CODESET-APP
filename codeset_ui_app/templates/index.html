@@ -96,12 +96,17 @@
                     <div id="table-wrapper" class="table-wrapper"></div>
                 </div>
                 <div class="col-lg-3">
-                    <div id="instruction-box" class="alert alert-secondary">
+                    <div id="requirements-box" class="alert alert-secondary">
+                        <h5 class="alert-heading">Requirements</h5>
                         <ul class="mb-0">
                             <li>If CODE is populated, DISPLAY VALUE must be populated and vice versa.</li>
                             <li>If STANDARD_CODE/STANDARD_DESCRIPTION exist, a MAPPED_STD_DESCRIPTION must be selected.</li>
                             <li>Codes must be unique within a tab.</li>
                         </ul>
+                    </div>
+                    <div id="errors-box" class="alert alert-danger mt-3 d-none">
+                        <h5 class="alert-heading">Errors</h5>
+                        <ul id="error-list" class="mb-0"></ul>
                     </div>
                 </div>
             </div>
@@ -111,16 +116,6 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
-
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
     <script>
@@ -142,21 +137,19 @@
         const workbookSelect = document.getElementById('workbook-select');
         const compareRepoSelect = document.getElementById('compare-repo-select');
         const compareWorkbookSelect = document.getElementById('compare-workbook-select');
-        const instructionBox = document.getElementById('instruction-box');
-        const defaultInstructions = instructionBox ? instructionBox.innerHTML : '';
+        const errorsBox = document.getElementById('errors-box');
+        const errorList = document.getElementById('error-list');
         const errorsPerSheet = {};
 
         function renderErrors() {
-            if (!instructionBox) return;
+            if (!errorsBox || !errorList) return;
             const allErrors = Object.values(errorsPerSheet).flat();
             if (allErrors.length) {
-                instructionBox.classList.remove('alert-secondary');
-                instructionBox.classList.add('alert-danger');
-                instructionBox.innerHTML = '<ul class="mb-0">' + allErrors.map(e => `<li>${e}</li>`).join('') + '</ul>';
+                errorsBox.classList.remove('d-none');
+                errorList.innerHTML = allErrors.map(e => `<li>${e}</li>`).join('');
             } else {
-                instructionBox.classList.remove('alert-danger');
-                instructionBox.classList.add('alert-secondary');
-                instructionBox.innerHTML = defaultInstructions;
+                errorsBox.classList.add('d-none');
+                errorList.innerHTML = '';
             }
         }
 
@@ -327,9 +320,13 @@
             const baseRows = [];
             const compRows = [];
             const allHeaders = renderHeaders[sheet];
-            table.querySelectorAll('tbody tr').forEach(tr => {
-                const baseObj = {};
-                const compObj = {};
+            const mapInfo = mappings[sheet] || {};
+            const hidden = mapInfo.hidden_cols || [];
+            table.querySelectorAll('tbody tr').forEach((tr, rowIdx) => {
+                const existingBase = (workbook[sheet] || [])[rowIdx] || {};
+                const existingComp = (comparisonData[sheet] || [])[rowIdx] || {};
+                const baseObj = { ...existingBase };
+                const compObj = { ...existingComp };
                 allHeaders.forEach((h, idx) => {
                     const cell = tr.children[idx];
                     const input = cell.querySelector('input, select');
@@ -339,6 +336,9 @@
                     } else {
                         baseObj[h] = val;
                     }
+                });
+                hidden.forEach(h => {
+                    if (baseObj[h] === undefined) baseObj[h] = '';
                 });
                 baseRows.push(baseObj);
                 compRows.push(compObj);
@@ -417,9 +417,7 @@
                     body: JSON.stringify(workbook)
                 });
                 if (resp.ok) {
-                    instructionBox.classList.remove('alert-danger');
-                    instructionBox.classList.add('alert-secondary');
-                    instructionBox.innerHTML = defaultInstructions;
+                    renderErrors();
                     const blob = await resp.blob();
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -436,17 +434,18 @@
                     a.remove();
                     URL.revokeObjectURL(url);
                 } else {
-                    instructionBox.classList.remove('alert-secondary');
-                    instructionBox.classList.add('alert-danger');
                     try {
                         const data = await resp.json();
                         if (data.errors) {
-                            instructionBox.innerHTML = '<ul class="mb-0">' + data.errors.map(e => `<li>${e}</li>`).join('') + '</ul>';
+                            errorsBox.classList.remove('d-none');
+                            errorList.innerHTML = data.errors.map(e => `<li>${e}</li>`).join('');
                         } else {
-                            instructionBox.textContent = 'Export failed';
+                            errorsBox.classList.remove('d-none');
+                            errorList.innerHTML = '<li>Export failed</li>';
                         }
                     } catch {
-                        instructionBox.textContent = 'Export failed';
+                        errorsBox.classList.remove('d-none');
+                        errorList.innerHTML = '<li>Export failed</li>';
                     }
                 }
             });
@@ -481,6 +480,7 @@
                 const rows = await resp.json();
                 const baseRows = [];
                 const compRows = [];
+                const hidden = (mappings[sheet] || {}).hidden_cols || [];
                 rows.forEach(r => {
                     const baseObj = {};
                     const compObj = {};
@@ -490,6 +490,9 @@
                         } else {
                             baseObj[h] = r[h] || '';
                         }
+                    });
+                    hidden.forEach(h => {
+                        baseObj[h] = r[h] || '';
                     });
                     baseRows.push(baseObj);
                     compRows.push(compObj);

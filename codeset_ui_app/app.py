@@ -76,6 +76,7 @@ def _load_workbook_path(path: Path, filename: str) -> None:
         std_code_col = None
         code_col = None
         display_col = None
+        hidden_cols: list[str] = []
         for col in df.columns:
             col_key = col.strip().upper().replace(" ", "_")
             if col_key in ["MAPPED_STANDARD_DESCRIPTION", "MAPPED_STD_DESCRIPTION"]:
@@ -95,6 +96,8 @@ def _load_workbook_path(path: Path, filename: str) -> None:
                 code_col = col
             if col_key in ["DISPLAY_VALUE", "DISPLAY"]:
                 display_col = col
+            if col_key == "DEFINITION":
+                hidden_cols.append(col)
 
         if std_col and mapped_col:
             options = sorted({str(v).strip() for v in df[std_col] if str(v).strip()})
@@ -130,6 +133,7 @@ def _load_workbook_path(path: Path, filename: str) -> None:
             "display_col": display_col,
             "std_col": std_col,
             "std_code_col": std_code_col,
+            "hidden_cols": hidden_cols,
         }
 
         if code_col and display_col and mapped_col:
@@ -341,7 +345,12 @@ def index():
 
     sheet_names = list(workbook_data.keys())
     base_headers: Dict[str, list] = {s: df.columns.tolist() for s, df in workbook_data.items()}
-    render_headers: Dict[str, list] = {s: _combine_sheet(s).columns.tolist() for s in sheet_names}
+    render_headers: Dict[str, list] = {}
+    for s in sheet_names:
+        cols = _combine_sheet(s).columns.tolist()
+        hidden = mapping_data.get(s, {}).get("hidden_cols", [])
+        cols = [c for c in cols if c not in hidden]
+        render_headers[s] = cols
     initial_sheet = sheet_names[0] if sheet_names else None
     initial_records = (
         _combine_sheet(initial_sheet).to_dict(orient="records") if initial_sheet else []
@@ -426,7 +435,6 @@ def export():
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-
 
 @app.route("/import", methods=["POST"])
 def import_workbook():
