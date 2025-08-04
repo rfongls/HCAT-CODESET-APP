@@ -23,18 +23,23 @@ def setup_app(tmp_path, monkeypatch):
     app_module = importlib.import_module("codeset_ui_app.app")
     monkeypatch.setattr(app_module, "SAMPLES_DIR", samples)
     app_module.refresh_repository_cache()
-    return app_module, repo1.name, wb1_path.name, repo2.name
+    return app_module, repo1.name, wb1_path.name, repo2.name, wb2_path.name
 
 
 def test_compare_form_visibility_and_repo_exclusion(tmp_path, monkeypatch):
-    app_module, repo1, wb1, repo2 = setup_app(tmp_path, monkeypatch)
+    app_module, repo1, wb1, repo2, _ = setup_app(tmp_path, monkeypatch)
     client = app_module.app.test_client()
 
     resp = client.get("/")
     html = resp.get_data(as_text=True)
-    assert 'id="compare-repo-select"' not in html
+    assert 'name="start_compare"' not in html
 
     resp = client.post("/", data={"repo": repo1, "workbook_name": wb1})
+    html = resp.get_data(as_text=True)
+    assert 'name="start_compare"' in html
+    assert 'id="compare-repo-select"' not in html
+
+    resp = client.post("/", data={"start_compare": "1"})
     html = resp.get_data(as_text=True)
     assert 'id="compare-repo-select"' in html
     match = re.search(r'<select id="compare-repo-select"[^>]*>(.*?)</select>', html, re.DOTALL)
@@ -42,3 +47,23 @@ def test_compare_form_visibility_and_repo_exclusion(tmp_path, monkeypatch):
     select_html = match.group(1)
     assert f'<option value="{repo1}"' not in select_html
     assert f'<option value="{repo2}"' in select_html
+
+
+def test_compare_selection_and_clear_button(tmp_path, monkeypatch):
+    app_module, repo1, wb1, repo2, wb2 = setup_app(tmp_path, monkeypatch)
+    client = app_module.app.test_client()
+
+    client.post("/", data={"repo": repo1, "workbook_name": wb1})
+    client.post("/", data={"start_compare": "1"})
+    resp = client.post("/", data={"compare_repo": repo2, "compare_workbook_name": wb2})
+    html = resp.get_data(as_text=True)
+
+    assert f'<option value="{repo2}" selected>' in html
+    assert f'<option value="{wb2}" selected>' in html
+    assert 'Clear Comparison' in html
+    assert 'name="end_compare"' in html
+
+    resp = client.post("/", data={"end_compare": "1"})
+    html = resp.get_data(as_text=True)
+    assert 'id="compare-repo-select"' not in html
+    assert 'name="start_compare"' in html

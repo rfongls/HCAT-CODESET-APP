@@ -24,7 +24,7 @@
             <form id="repo-form" method="post" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
                     <label for="repo-select" class="form-label">Select the repository you want to edit a codeset for:</label>
-                    <select id="repo-select" name="repo" class="form-select">
+                    <select id="repo-select" name="repo" class="form-select {% if selected_repo %}selected-primary{% endif %}">
                         <option value="">Select repository</option>
                         {% for repo in repositories %}
                         <option value="{{ repo }}" {% if repo == selected_repo %}selected{% endif %}>{{ repo }}</option>
@@ -33,7 +33,7 @@
                 </div>
                 <div class="col-12 col-md-4">
                     <label for="workbook-select" class="form-label">Workbook</label>
-                    <select id="workbook-select" name="workbook_name" class="form-select" {% if not repo_files %}disabled{% endif %}>
+                    <select id="workbook-select" name="workbook_name" class="form-select {% if selected_workbook %}selected-primary{% endif %}" {% if not repo_files %}disabled{% endif %}>
                         <option value="">Select workbook</option>
                         {% for wb in repo_files %}
                         <option value="{{ wb }}" {% if wb == selected_workbook %}selected{% endif %}>{{ wb }}</option>
@@ -43,7 +43,41 @@
                 <div class="col-12 col-md-2">
                     <button type="submit" class="btn btn-primary w-100">Load Workbook</button>
                 </div>
+                {% if sheet_names and not compare_mode %}
+                <div class="col-12 col-md-2">
+                    <button type="submit" name="start_compare" value="1" class="btn btn-outline-primary w-100">Compare</button>
+                </div>
+                {% endif %}
             </form>
+            {% if sheet_names and compare_mode %}
+            <form id="compare-form" method="post" class="row g-2 align-items-end mt-2">
+                <div class="col-12 col-md-4">
+                    <label for="compare-repo-select" class="form-label">Select repository to compare:</label>
+                    <select id="compare-repo-select" name="compare_repo" class="form-select {% if comparison_active %}selected-compare{% endif %}">
+                        <option value="">Select repository</option>
+                        {% for repo in comparison_repositories %}
+                        <option value="{{ repo }}" {% if repo == selected_compare_repo %}selected{% endif %}>{{ repo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label for="compare-workbook-select" class="form-label">Workbook</label>
+                    <select id="compare-workbook-select" name="compare_workbook_name" class="form-select {% if comparison_active %}selected-compare{% endif %}" {% if not compare_repo_files %}disabled{% endif %}>
+                        <option value="">Select workbook</option>
+                        {% for wb in compare_repo_files %}
+                        <option value="{{ wb }}" {% if wb == selected_compare_workbook %}selected{% endif %}>{{ wb }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    {% if comparison_active %}
+                    <button type="submit" name="end_compare" value="1" class="btn btn-outline-secondary w-100">Clear Comparison</button>
+                    {% else %}
+                    <button type="submit" class="btn btn-outline-primary w-100">Load Comparison</button>
+                    {% endif %}
+                </div>
+            </form>
+            {% endif %}
             <form id="upload-form" method="post" enctype="multipart/form-data" class="row g-2 align-items-end mt-2">
                 <div class="col-12 col-md-8">
                     <input type="file" name="workbook" accept=".xlsx" class="form-control" />
@@ -52,34 +86,6 @@
                     <button type="submit" class="btn btn-secondary w-100">Upload</button>
                 </div>
             </form>
-            {% if sheet_names %}
-            <form id="compare-form" method="post" class="row g-2 align-items-end mt-2">
-                <div class="col-12 col-md-4">
-                    <label for="compare-repo-select" class="form-label">Select repository to compare:</label>
-                    <select id="compare-repo-select" name="compare_repo" class="form-select">
-                        <option value="">Select repository</option>
-                        {% for repo in comparison_repositories %}
-                        <option value="{{ repo }}">{{ repo }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-12 col-md-4">
-                    <label for="compare-workbook-select" class="form-label">Workbook</label>
-                    <select id="compare-workbook-select" name="compare_workbook_name" class="form-select" disabled>
-                        <option value="">Select workbook</option>
-                    </select>
-                </div>
-                <div class="col-12 col-md-2">
-                    <button type="submit" class="btn btn-outline-primary w-100">Load Comparison</button>
-                </div>
-            </form>
-            {% if comparison_active %}
-            <form id="end-compare-form" method="post" class="mt-2">
-                <input type="hidden" name="end_compare" value="1" />
-                <button type="submit" class="btn btn-outline-secondary">End Comparison</button>
-            </form>
-            {% endif %}
-            {% endif %}
         </section>
 
         {% if sheet_names %}
@@ -94,18 +100,24 @@
             <div class="row">
                 <div class="col-lg-9">
                     <div id="table-wrapper" class="table-wrapper"></div>
+                    <div id="table-buttons" class="mt-2 d-flex gap-2"></div>
                 </div>
                 <div class="col-lg-3">
-                    <div id="requirements-box" class="alert alert-secondary">
-                        <h5 class="alert-heading">Requirements</h5>
+                    <div id="fields-box" class="alert{% if not field_notes.get(initial_sheet) %} d-none{% endif %}">
+                        <h5 class="alert-heading fw-bold">Fields</h5>
+                        <p id="fields-text" class="mb-0">{{ field_notes.get(initial_sheet, '') }}</p>
+                    </div>
+                    <div id="requirements-box" class="alert">
+                        <h5 class="alert-heading fw-bold">Requirements</h5>
                         <ul class="mb-0">
                             <li>If CODE is populated, DISPLAY VALUE must be populated and vice versa.</li>
                             <li>If STANDARD_CODE/STANDARD_DESCRIPTION exist, a MAPPED_STD_DESCRIPTION must be selected.</li>
+                            <li>If MAPPED_STD_DESCRIPTION is populated, CODE and DISPLAY VALUE must be provided.</li>
                             <li>Codes must be unique within a tab.</li>
                         </ul>
                     </div>
                     <div id="errors-box" class="alert alert-danger mt-3 d-none">
-                        <h5 class="alert-heading">Errors</h5>
+                        <h5 class="alert-heading fw-bold">Errors</h5>
                         <ul id="error-list" class="mb-0"></ul>
                     </div>
                 </div>
@@ -123,6 +135,7 @@
     const dropdowns = {{ dropdowns|tojson }};
     const headers = {{ headers|tojson }}; // base headers
     const renderHeaders = {{ render_headers|tojson }};
+    const fieldNotes = {{ field_notes|tojson }};
     const sheetNames = {{ sheet_names|tojson }};
     const initialSheet = {{ initial_sheet|tojson }};
     const workbook = {};
@@ -139,6 +152,8 @@
         const compareWorkbookSelect = document.getElementById('compare-workbook-select');
         const errorsBox = document.getElementById('errors-box');
         const errorList = document.getElementById('error-list');
+        const fieldsBox = document.getElementById('fields-box');
+        const fieldsText = document.getElementById('fields-text');
         const errorsPerSheet = {};
 
         function renderErrors() {
@@ -150,6 +165,18 @@
             } else {
                 errorsBox.classList.add('d-none');
                 errorList.innerHTML = '';
+            }
+        }
+
+        function renderFieldNote(sheet) {
+            if (!fieldsBox || !fieldsText) return;
+            const note = fieldNotes[sheet] || '';
+            if (note) {
+                fieldsBox.classList.remove('d-none');
+                fieldsText.textContent = note;
+            } else {
+                fieldsBox.classList.add('d-none');
+                fieldsText.textContent = '';
             }
         }
 
@@ -185,6 +212,14 @@
                 if ((code || display) && !mapped) {
                     errs.push(`On tab "${sheet}" - ${code || 'Row ' + (idx + 2)} does not have a mapped standard description`);
                     if (tr && mappedIdx !== -1) tr.children[mappedIdx].classList.add('error-cell');
+                }
+                if (mapped && !code) {
+                    errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a code`);
+                    if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell');
+                }
+                if (mapped && !display) {
+                    errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a display value`);
+                    if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell');
                 }
                 if (code) {
                     if (seenCodes[code] !== undefined) {
@@ -356,7 +391,9 @@
 
         function renderSheet(sheet) {
             const container = document.getElementById('table-wrapper');
+            const buttons = document.getElementById('table-buttons');
             container.innerHTML = '';
+            buttons.innerHTML = '';
             const table = document.createElement('table');
             table.className = 'table table-bordered table-sm codeset-table';
             table.id = 'table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_');
@@ -389,7 +426,7 @@
             container.appendChild(table);
 
             const addBtn = document.createElement('button');
-            addBtn.className = 'btn btn-primary add-row';
+            addBtn.className = 'btn btn-primary';
             addBtn.textContent = 'Add Row';
             addBtn.addEventListener('click', () => {
                 const tr = document.createElement('tr');
@@ -402,11 +439,11 @@
                 });
                 tbody.appendChild(tr);
             });
-            container.appendChild(addBtn);
+            buttons.appendChild(addBtn);
 
             const saveBtn = document.createElement('button');
             saveBtn.id = 'export-workbook';
-            saveBtn.className = 'btn btn-success ms-2';
+            saveBtn.className = 'btn btn-success';
             saveBtn.textContent = 'Export Workbook';
             saveBtn.addEventListener('click', async () => {
                 syncCurrentSheet();
@@ -449,7 +486,7 @@
                     }
                 }
             });
-            container.appendChild(saveBtn);
+            buttons.appendChild(saveBtn);
 
             const importInput = document.createElement('input');
             importInput.type = 'file';
@@ -457,7 +494,7 @@
             importInput.style.display = 'none';
             const importBtn = document.createElement('button');
             importBtn.type = 'button';
-            importBtn.className = 'btn btn-secondary ms-2';
+            importBtn.className = 'btn btn-secondary';
             importBtn.textContent = 'Import Workbook';
             importBtn.addEventListener('click', () => importInput.click());
             importInput.addEventListener('change', async () => {
@@ -469,8 +506,8 @@
                     location.reload();
                 }
             });
-            container.appendChild(importBtn);
-            container.appendChild(importInput);
+            buttons.appendChild(importBtn);
+            buttons.appendChild(importInput);
         }
 
         async function ensureSheetLoaded(sheet) {
@@ -512,6 +549,7 @@
             await ensureSheetLoaded(currentSheet);
             renderSheet(currentSheet);
             validateSheet(currentSheet);
+            renderFieldNote(currentSheet);
         });
 
         (async () => {
@@ -519,6 +557,7 @@
                 await ensureSheetLoaded(initialSheet);
                 renderSheet(initialSheet);
                 validateSheet(initialSheet);
+                renderFieldNote(initialSheet);
             }
         })();
 

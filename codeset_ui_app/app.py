@@ -24,6 +24,7 @@ app = Flask(__name__, static_folder="assets", template_folder="templates")
 workbook_data: Dict[str, "pd.DataFrame"] = {}
 dropdown_data: Dict[str, Dict[str, list]] = {}
 mapping_data: Dict[str, Dict[str, Any]] = {}
+field_notes: Dict[str, str] = {}
 workbook_obj: Workbook | None = None
 original_filename: str | None = None
 workbook_path: Path | None = None
@@ -58,7 +59,7 @@ def refresh_repository_cache() -> None:
 
 def _load_workbook_path(path: Path, filename: str) -> None:
     """Load workbook at ``path`` and populate globals for UI rendering."""
-    global workbook_data, workbook_obj, dropdown_data, mapping_data, original_filename, last_error, comparison_data, comparison_path
+    global workbook_data, workbook_obj, dropdown_data, mapping_data, field_notes, original_filename, last_error, comparison_data, comparison_path
 
     with path.open("rb") as fh:
         workbook_data, wb = load_workbook(fh)
@@ -68,6 +69,7 @@ def _load_workbook_path(path: Path, filename: str) -> None:
     lookup_maps = extract_lookup_mappings(wb)
 
     mapping_data = {}
+    field_notes = {}
 
     for sheet, df in list(workbook_data.items()):
         mapped_col = None
@@ -145,6 +147,15 @@ def _load_workbook_path(path: Path, filename: str) -> None:
                 if sub_col:
                     df.loc[blank_mask, sub_col] = ""
         workbook_data[sheet] = df
+
+        note = ""
+        if code_col:
+            ws = wb[sheet]
+            for cell in ws[1]:
+                if (cell.value or "").strip() == code_col and cell.comment:
+                    note = cell.comment.text.strip()
+                    break
+        field_notes[sheet] = note
 
     comparison_data = {}
     comparison_path = None
@@ -279,13 +290,20 @@ def index():
     global workbook_path, comparison_path
     selected_repo: str | None = None
     selected_workbook: str | None = None
+    selected_compare_repo: str | None = None
+    selected_compare_workbook: str | None = None
     repo_names = sorted(REPOSITORY_CACHE.keys())
     repo_files: list[str] = []
+    compare_repo_files: list[str] = []
+    compare_mode = bool(comparison_data)
 
     if request.method == "POST":
         if request.form.get("end_compare"):
             comparison_data.clear()
             comparison_path = None
+            compare_mode = False
+        elif request.form.get("start_compare"):
+            compare_mode = True
         elif "workbook" in request.files and not request.form.get("compare_mode"):
             file = request.files["workbook"]
             if file.filename:
@@ -329,6 +347,7 @@ def index():
                 if not cmp_path.is_file():
                     raise FileNotFoundError("Workbook not found")
                 _load_comparison_workbook_path(cmp_path)
+                compare_mode = True
             except Exception as exc:
                 last_error = str(exc)
                 comparison_data.clear()
@@ -339,6 +358,15 @@ def index():
             selected_workbook = workbook_path.name
         except Exception:
             selected_repo = selected_workbook = None
+
+    if comparison_path:
+        try:
+            selected_compare_repo = comparison_path.parent.name
+            selected_compare_workbook = comparison_path.name
+            compare_repo_files = REPOSITORY_CACHE.get(selected_compare_repo, [])
+        except Exception:
+            selected_compare_repo = selected_compare_workbook = None
+            compare_repo_files = []
 
     if selected_repo:
         repo_files = REPOSITORY_CACHE.get(selected_repo, [])
@@ -376,6 +404,7 @@ def index():
         render_headers=render_headers,
         dropdowns=dropdown_data,
         mappings=mapping_data,
+        field_notes=field_notes,
         error=last_error,
         filename=original_filename,
         repositories=repo_names,
@@ -383,7 +412,11 @@ def index():
         repo_files=repo_files,
         selected_repo=selected_repo,
         selected_workbook=selected_workbook,
+        selected_compare_repo=selected_compare_repo,
+        selected_compare_workbook=selected_compare_workbook,
+        compare_repo_files=compare_repo_files,
         comparison_active=bool(comparison_data),
+        compare_mode=compare_mode,
     )
 
 
