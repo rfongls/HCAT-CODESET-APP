@@ -102,10 +102,14 @@
         </div>
         {% endif %}
     </main>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
 
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
     <script>
     const mappings = {{ mappings|tojson }};
     const dropdowns = {{ dropdowns|tojson }};
@@ -119,7 +123,6 @@
     comparisonData[initialSheet] = {{ compare_records|tojson }};
     const originalFilename = {{ filename|tojson }};
     let currentSheet = initialSheet;
-
     document.addEventListener('DOMContentLoaded', () => {
         const selector = document.getElementById('sheet-select');
         const repoSelect = document.getElementById('repo-select');
@@ -148,7 +151,6 @@
                 workbookSelect.disabled = true;
             }
         });
-
         compareRepoSelect?.addEventListener('change', async () => {
             const repo = compareRepoSelect.value;
             compareWorkbookSelect.innerHTML = '<option value="">Select workbook</option>';
