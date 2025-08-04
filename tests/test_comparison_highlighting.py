@@ -13,4 +13,8 @@ def test_comparison_highlighting_rules():
     assert re.search(r"\.selected-compare\s*{[^}]*background-color:\s*#ffd4c4", css)
     # sidebar colors
     assert re.search(r"#fields-box\s*{[^}]*background-color:\s*#fff9c4", css)
+    assert re.search(r"#fields-box\s*{[^}]*color:\s*#000", css)
     assert re.search(r"#requirements-box\s*{[^}]*background-color:\s*#42b0f5", css)
+    assert re.search(r"#requirements-box\s*{[^}]*color:\s*#000", css)
+    assert re.search(r"#errors-box\s*{[^}]*color:\s*#000", css)
+    assert re.search(r"#fields-box\s*\.alert-heading,\s*#requirements-box\s*\.alert-heading,\s*#errors-box\s*\.alert-heading\s*{[^}]*font-weight:\s*700", css)
