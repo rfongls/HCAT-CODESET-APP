@@ -51,26 +51,27 @@
                     <select id="compare-repo-select" name="compare_repo" class="form-select {% if comparison_active %}selected-compare{% endif %}">
                         <option value="">Select repository</option>
                         {% for repo in comparison_repositories %}
-                        <option value="{{ repo }}">{{ repo }}</option>
+                        <option value="{{ repo }}" {% if repo == selected_compare_repo %}selected{% endif %}>{{ repo }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-12 col-md-4">
                     <label for="compare-workbook-select" class="form-label">Workbook</label>
-                    <select id="compare-workbook-select" name="compare_workbook_name" class="form-select {% if comparison_active %}selected-compare{% endif %}" disabled>
+                    <select id="compare-workbook-select" name="compare_workbook_name" class="form-select {% if comparison_active %}selected-compare{% endif %}" {% if not compare_repo_files %}disabled{% endif %}>
                         <option value="">Select workbook</option>
+                        {% for wb in compare_repo_files %}
+                        <option value="{{ wb }}" {% if wb == selected_compare_workbook %}selected{% endif %}>{{ wb }}</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div class="col-12 col-md-2">
+                    {% if comparison_active %}
+                    <button type="submit" name="end_compare" value="1" class="btn btn-outline-secondary w-100">Clear Comparison</button>
+                    {% else %}
                     <button type="submit" class="btn btn-outline-primary w-100">Load Comparison</button>
+                    {% endif %}
                 </div>
             </form>
-            {% if comparison_active %}
-            <form id="end-compare-form" method="post" class="mt-2">
-                <input type="hidden" name="end_compare" value="1" />
-                <button type="submit" class="btn btn-outline-secondary">End Comparison</button>
-            </form>
-            {% endif %}
             {% endif %}
             <form id="upload-form" method="post" enctype="multipart/form-data" class="row g-2 align-items-end mt-2">
                 <div class="col-12 col-md-8">
