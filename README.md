@@ -26,6 +26,8 @@ When a sheet includes both `Mapped Standard Description` and `Sub Definition` co
 
 If a repository workbook is already loaded, an **Import Workbook** button appears beside the export button. Choosing a file replaces the existing workbook on disk and reloads it in the interface so fresh EMR exports or offline edits can be pulled into the app without restarting. When exporting, the application writes to a temporary file and atomically replaces the original so edits overwrite the source workbook safely.
 
+A separate **Load Comparison** form lets you choose a second repository workbook to view side by side. Only its `CODE`, `DISPLAY VALUE`, and `MAPPED_STD_DESCRIPTION` columns are shown, highlighted and read-only next to the main workbook's columns. Use **End Comparison** to remove these extra columns and return to single-workbook editing.
+
 Dropdown lists are read from Excel data validations. The parser handles named ranges and cell ranges, ignoring broken references gracefully.
 
 To try the app with mock data, copy `codeset template.xlsx` into the
