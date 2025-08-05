@@ -2,9 +2,9 @@ Certainly. Here's a full Codex handoff instruction for referencing the workbook,
 
 ---
 
-## 🧩 Codex Integration Handoff: Codeset Template Validation & Agent Reference
+## Codex Integration Handoff: Codeset Template Validation & Agent Reference
 
-### 🔗 Source Files
+### Source Files
 
 * **Spreadsheet to Process:**
   `codeset_ui_app/samples/Codeset Template.xlsx`
@@ -20,7 +20,7 @@ This markdown file contains authoritative rules regarding:
 
 ---
 
-### ✅ Objective
+### Objective
 
 Create the following components in Codex:
 
@@ -84,7 +84,7 @@ This is a persistent agent (or knowledge reference) for any logic or UI behavior
 
 ---
 
-### 🧪 Optional Test Task
+### Optional Test Task
 
 Include a test routine in `tests/test_validation.py` that:
 
@@ -95,7 +95,7 @@ Include a test routine in `tests/test_validation.py` that:
 
 ---
 
-### 📂 Folder Integration
+### Folder Integration
 
 Suggested layout:
 
