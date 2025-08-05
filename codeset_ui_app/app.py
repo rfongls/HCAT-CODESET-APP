@@ -443,7 +443,12 @@ def export():
     if not isinstance(payload, dict):
         return "Invalid payload", 400
 
-    for sheet, rows in payload.items():
+    workbook_payload = payload.get("data") if "data" in payload else payload
+    locks = payload.get("locks", {})
+    if not isinstance(workbook_payload, dict) or not isinstance(locks, dict):
+        return "Invalid payload", 400
+
+    for sheet, rows in workbook_payload.items():
         if sheet in workbook_data:
             df = pd.DataFrame(rows, columns=workbook_data[sheet].columns)
             df = df.where(pd.notna(df), "")
@@ -456,7 +461,7 @@ def export():
     # Write to a temporary file and atomically replace the original so the
     # on-disk workbook is always updated in place
     tmp_path = workbook_path.with_name(workbook_path.name + ".tmp")
-    export_workbook(workbook_obj, workbook_data, tmp_path)
+    export_workbook(workbook_obj, workbook_data, tmp_path, locks)
     tmp_path.replace(workbook_path)
 
     filename = original_filename or workbook_path.name
