@@ -6,7 +6,7 @@ Purpose: Define, normalize, and optionally map facility codes to national standa
 
 ---
 
-## 🔍 Field Summary
+## Field Summary
 
 | Column Name                | Description |
 |---------------------------|-------------|
@@ -19,7 +19,7 @@ Purpose: Define, normalize, and optionally map facility codes to national standa
 
 ---
 
-## 🔁 Mapping Behavior Logic
+## Mapping Behavior Logic
 
 ### Mapping **is required** if:
 - `STANDARD_CODE` column exists **and contains data**
@@ -31,7 +31,7 @@ Purpose: Define, normalize, and optionally map facility codes to national standa
 
 ---
 
-## 🧮 Formula Logic (If Present)
+## Formula Logic (If Present)
 Formulas, when present, are generally embedded in column `D` and follow a structure like:
 
 ```excel
@@ -46,7 +46,7 @@ Formulas, when present, are generally embedded in column `D` and follow a struct
 
 ---
 
-## ✅ Sheet-Level Mapping & Formula Summary
+## Sheet-Level Mapping & Formula Summary
 
 | Sheet Name | Has `STANDARD_CODE` Data | Has `STANDARD_DESCRIPTION` Data | Requires Mapping Logic | Has Formula | Sample Formula |
 |------------|---------------------------|----------------------------------|--------------------------|--------------|----------------|
@@ -97,7 +97,7 @@ Formulas, when present, are generally embedded in column `D` and follow a struct
 
 ---
 
-## 🧩 Codex Development Guidelines
+## Codex Development Guidelines
 
 ### 1. Conditional UI Enforcement
 Only enforce `MAPPED_STD_DESCRIPTION` selection **if mapping is required** for that tab.
