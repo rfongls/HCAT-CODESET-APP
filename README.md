@@ -68,23 +68,29 @@ The Flask server exposes a small JSON API alongside the HTML interface:
 
 ## Project Structure
 
+The repository is organized into the following directories:
+
 ```
-codeset_ui_app/
-├── app.py                 # Flask entry point
-├── components/
-│   ├── dropdown_logic.py  # Extract dropdown validations from Excel
-│   ├── file_parser.py     # Workbook loading utilities
-│   └── formula_logic.py   # Parse example formulas
-├── utils/
-│   ├── export_excel.py    # (stub) workbook export helpers
-│   └── dependency_setup.py # Optional helper to install packages
-├── assets/
-│   └── styles.css         # White and purple theme
-├── templates/
-│   └── index.html         # Basic Flask template
-requirements.txt           # Package list
-Samples/
-    README.md              # Location for `codeset template.xlsx`
+HCAT-CODESET-APP/
+├── codeset_ui_app/               # Flask-based web interface for editing workbooks
+│   ├── app.py                    # Application entry point
+│   ├── assets/                   # Static CSS and other assets
+│   ├── components/               # Excel parsing and dropdown logic helpers
+│   ├── samples/                  # Example workbook used in demos
+│   ├── templates/                # HTML templates
+│   └── utils/                    # Export helpers and dependency scripts
+├── codex/                        # Reusable spreadsheet definitions and validators
+│   ├── agents/                   # Experimental agent utilities
+│   ├── spreadsheet_definitions/  # Markdown spec for codeset columns
+│   ├── validators/               # Workbook validation logic
+│   └── tests/                    # Unit tests for the codex package
+├── Samples/                      # Sample repositories of Codeset workbooks
+├── tests/                        # Pytest suite covering the Flask interface
+├── codex-spreadsheet-definition.md # Central codex reference document
+├── codexhandoff.md               # Notes for handing off the codex module
+├── enhancements.md               # Ideas and future enhancements
+├── project-proposal.md           # Original project planning document
+└── requirements.txt              # Python dependencies
 ```
 
 ## Codex Utilities
