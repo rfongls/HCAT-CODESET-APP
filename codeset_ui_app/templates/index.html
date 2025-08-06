@@ -141,6 +141,8 @@
     const comparisonData = {};
     comparisonData[initialSheet] = {{ compare_records|tojson }};
     const originalFilename = {{ filename|tojson }};
+    const sheetLocks = {};
+    sheetNames.forEach(s => sheetLocks[s] = false);
     let currentSheet = initialSheet;
     document.addEventListener('DOMContentLoaded', () => {
         const selector = document.getElementById('sheet-select');
@@ -392,6 +394,18 @@
             const buttons = document.getElementById('table-buttons');
             container.innerHTML = '';
             buttons.innerHTML = '';
+
+            const lockDiv = document.createElement('div');
+            lockDiv.className = 'mb-2';
+            const lockBtn = document.createElement('button');
+            lockBtn.type = 'button';
+            lockBtn.className = 'btn btn-sm';
+            const lockText = document.createElement('span');
+            lockText.className = 'ms-2';
+            lockDiv.appendChild(lockBtn);
+            lockDiv.appendChild(lockText);
+            container.appendChild(lockDiv);
+
             const table = document.createElement('table');
             table.className = 'table table-bordered table-sm codeset-table';
             table.id = 'table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_');
@@ -449,7 +463,7 @@
                 const resp = await fetch('/export', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(workbook)
+                    body: JSON.stringify({data: workbook, locks: sheetLocks})
                 });
                 if (resp.ok) {
                     renderErrors();
@@ -506,6 +520,24 @@
             });
             buttons.appendChild(importBtn);
             buttons.appendChild(importInput);
+
+            function applyLockState() {
+                const locked = sheetLocks[sheet];
+                lockBtn.textContent = locked ? '🔒' : '🔓';
+                lockBtn.className = `btn btn-sm ${locked ? 'btn-lock-protected' : 'btn-lock-unprotected'}`;
+                lockText.textContent = locked ? 'Sheet Protected' : 'Sheet Unprotected';
+                table.querySelectorAll('input, select').forEach(el => {
+                    el.disabled = locked;
+                });
+                addBtn.disabled = locked;
+            }
+
+            lockBtn.addEventListener('click', () => {
+                sheetLocks[sheet] = !sheetLocks[sheet];
+                applyLockState();
+            });
+
+            applyLockState();
         }
 
         async function ensureSheetLoaded(sheet) {

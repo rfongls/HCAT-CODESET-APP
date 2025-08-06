@@ -71,6 +71,7 @@ def _load_workbook_path(path: Path, filename: str) -> None:
 
     for sheet, df in list(workbook_data.items()):
         mapped_col = None
+        mapped_type: str | None = None  # "description" or "code"
         sub_col = None
         std_col = None
         std_code_col = None
@@ -81,6 +82,10 @@ def _load_workbook_path(path: Path, filename: str) -> None:
             col_key = col.strip().upper().replace(" ", "_")
             if col_key in ["MAPPED_STANDARD_DESCRIPTION", "MAPPED_STD_DESCRIPTION"]:
                 mapped_col = col
+                mapped_type = "description"
+            if col_key in ["MAPPED_STANDARD_CODE", "MAPPED_STD_CODE"]:
+                mapped_col = col
+                mapped_type = "code"
             if col_key in [
                 "SUB_DEFINITION",
                 "SUB_DEFINITION_DESCRIPTION",
@@ -99,10 +104,12 @@ def _load_workbook_path(path: Path, filename: str) -> None:
             if col_key == "DEFINITION":
                 hidden_cols.append(col)
 
-        if std_col and mapped_col:
-            options = sorted({str(v).strip() for v in df[std_col] if str(v).strip()})
-            if options:
-                dropdown_data.setdefault(sheet, {})[mapped_col] = options
+        if mapped_col:
+            source_col = std_col if mapped_type != "code" else std_code_col
+            if source_col:
+                options = sorted({str(v).strip() for v in df[source_col] if str(v).strip()})
+                if options:
+                    dropdown_data.setdefault(sheet, {})[mapped_col] = options
 
         sheet_map: Dict[str, str] = {}
 
@@ -110,7 +117,10 @@ def _load_workbook_path(path: Path, filename: str) -> None:
             std_series = df[std_col].astype(str).str.strip()
             code_series = df[std_code_col].astype(str).str.strip()
             mask = std_series != ""
-            sheet_map.update({desc: f"{code}^{desc}" for desc, code in zip(std_series[mask], code_series[mask])})
+            if mapped_type == "code":
+                sheet_map.update({code: f"{code}^{desc}" for code, desc in zip(code_series[mask], std_series[mask])})
+            else:
+                sheet_map.update({desc: f"{code}^{desc}" for desc, code in zip(std_series[mask], code_series[mask])})
 
         if mapped_col and not (std_col and std_code_col) and sub_col:
             mapped_series = df[mapped_col].astype(str).str.strip()
@@ -176,7 +186,12 @@ def _load_comparison_workbook_path(path: Path) -> None:
                 code_col = col
             if col_key in ["DISPLAY_VALUE", "DISPLAY"]:
                 display_col = col
-            if col_key in ["MAPPED_STD_DESCRIPTION", "MAPPED_STANDARD_DESCRIPTION"]:
+            if col_key in [
+                "MAPPED_STD_DESCRIPTION",
+                "MAPPED_STANDARD_DESCRIPTION",
+                "MAPPED_STD_CODE",
+                "MAPPED_STANDARD_CODE",
+            ]:
                 mapped_col = col
         cols: Dict[str, Any] = {}
         if code_col:
@@ -184,7 +199,7 @@ def _load_comparison_workbook_path(path: Path) -> None:
         if display_col:
             cols["DISPLAY_VALUE_COMPARE"] = df[display_col]
         if mapped_col:
-            cols["MAPPED_STD_DESCRIPTION_COMPARE"] = df[mapped_col]
+            cols[f"{mapped_col}_COMPARE"] = df[mapped_col]
         if cols:
             comparison_data[sheet] = pd.DataFrame(cols)
     comparison_path = path
@@ -211,12 +226,14 @@ def _combine_sheet(sheet: str) -> pd.DataFrame | None:
             "DISPLAY_VALUE_COMPARE",
             cmp["DISPLAY_VALUE_COMPARE"],
         )
-    if mapped_col and "MAPPED_STD_DESCRIPTION_COMPARE" in cmp:
-        combined.insert(
-            combined.columns.get_loc(mapped_col) + 1,
-            "MAPPED_STD_DESCRIPTION_COMPARE",
-            cmp["MAPPED_STD_DESCRIPTION_COMPARE"],
-        )
+    if mapped_col:
+        cmp_key = f"{mapped_col}_COMPARE"
+        if cmp_key in cmp:
+            combined.insert(
+                combined.columns.get_loc(mapped_col) + 1,
+                cmp_key,
+                cmp[cmp_key],
+            )
     return combined
 
 def _combine_sheet(sheet: str) -> pd.DataFrame | None:
@@ -240,12 +257,14 @@ def _combine_sheet(sheet: str) -> pd.DataFrame | None:
             "DISPLAY_VALUE_COMPARE",
             cmp["DISPLAY_VALUE_COMPARE"],
         )
-    if mapped_col and "MAPPED_STD_DESCRIPTION_COMPARE" in cmp:
-        combined.insert(
-            combined.columns.get_loc(mapped_col) + 1,
-            "MAPPED_STD_DESCRIPTION_COMPARE",
-            cmp["MAPPED_STD_DESCRIPTION_COMPARE"],
-        )
+    if mapped_col:
+        cmp_key = f"{mapped_col}_COMPARE"
+        if cmp_key in cmp:
+            combined.insert(
+                combined.columns.get_loc(mapped_col) + 1,
+                cmp_key,
+                cmp[cmp_key],
+            )
     return combined
 
 def _combine_sheet(sheet: str) -> pd.DataFrame | None:
@@ -269,12 +288,14 @@ def _combine_sheet(sheet: str) -> pd.DataFrame | None:
             "DISPLAY_VALUE_COMPARE",
             cmp["DISPLAY_VALUE_COMPARE"],
         )
-    if mapped_col and "MAPPED_STD_DESCRIPTION_COMPARE" in cmp:
-        combined.insert(
-            combined.columns.get_loc(mapped_col) + 1,
-            "MAPPED_STD_DESCRIPTION_COMPARE",
-            cmp["MAPPED_STD_DESCRIPTION_COMPARE"],
-        )
+    if mapped_col:
+        cmp_key = f"{mapped_col}_COMPARE"
+        if cmp_key in cmp:
+            combined.insert(
+                combined.columns.get_loc(mapped_col) + 1,
+                cmp_key,
+                cmp[cmp_key],
+            )
     return combined
 
 @app.route("/", methods=["GET", "POST"])
@@ -443,7 +464,12 @@ def export():
     if not isinstance(payload, dict):
         return "Invalid payload", 400
 
-    for sheet, rows in payload.items():
+    workbook_payload = payload.get("data") if "data" in payload else payload
+    locks = payload.get("locks", {})
+    if not isinstance(workbook_payload, dict) or not isinstance(locks, dict):
+        return "Invalid payload", 400
+
+    for sheet, rows in workbook_payload.items():
         if sheet in workbook_data:
             df = pd.DataFrame(rows, columns=workbook_data[sheet].columns)
             df = df.where(pd.notna(df), "")
@@ -456,7 +482,7 @@ def export():
     # Write to a temporary file and atomically replace the original so the
     # on-disk workbook is always updated in place
     tmp_path = workbook_path.with_name(workbook_path.name + ".tmp")
-    export_workbook(workbook_obj, workbook_data, tmp_path)
+    export_workbook(workbook_obj, workbook_data, tmp_path, locks)
     tmp_path.replace(workbook_path)
 
     filename = original_filename or workbook_path.name
