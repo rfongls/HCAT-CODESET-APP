@@ -524,7 +524,7 @@
             function applyLockState() {
                 const locked = sheetLocks[sheet];
                 lockBtn.textContent = locked ? '🔒' : '🔓';
-                lockBtn.className = `btn btn-sm ${locked ? 'btn-danger' : 'btn-success'}`;
+                lockBtn.className = `btn btn-sm ${locked ? 'btn-lock-protected' : 'btn-lock-unprotected'}`;
                 lockText.textContent = locked ? 'Sheet Protected' : 'Sheet Unprotected';
                 table.querySelectorAll('input, select').forEach(el => {
                     el.disabled = locked;
