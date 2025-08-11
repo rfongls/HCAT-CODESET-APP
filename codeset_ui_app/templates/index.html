@@ -117,6 +117,7 @@
                     <div id="errors-box" class="alert alert-danger mt-3 d-none">
                         <h5 class="alert-heading fw-bold">Errors</h5>
                         <ul id="error-list" class="mb-0"></ul>
+                        <button id="export-errors" class="btn btn-outline-danger btn-sm mt-2 d-none">Download Error Report</button>
                     </div>
                 </div>
             </div>
@@ -141,6 +142,8 @@
     const comparisonData = {};
     comparisonData[initialSheet] = {{ compare_records|tojson }};
     const originalFilename = {{ filename|tojson }};
+    const sheetLocks = {};
+    sheetNames.forEach(s => sheetLocks[s] = false);
     let currentSheet = initialSheet;
     document.addEventListener('DOMContentLoaded', () => {
         const selector = document.getElementById('sheet-select');
@@ -150,6 +153,7 @@
         const compareWorkbookSelect = document.getElementById('compare-workbook-select');
         const errorsBox = document.getElementById('errors-box');
         const errorList = document.getElementById('error-list');
+        const exportErrorsBtn = document.getElementById('export-errors');
         const fieldsBox = document.getElementById('fields-box');
         const fieldsText = document.getElementById('fields-text');
         const errorsPerSheet = {};
@@ -160,9 +164,11 @@
             if (allErrors.length) {
                 errorsBox.classList.remove('d-none');
                 errorList.innerHTML = allErrors.map(e => `<li>${e}</li>`).join('');
+                exportErrorsBtn?.classList.remove('d-none');
             } else {
                 errorsBox.classList.add('d-none');
                 errorList.innerHTML = '';
+                exportErrorsBtn?.classList.add('d-none');
             }
         }
 
@@ -392,6 +398,18 @@
             const buttons = document.getElementById('table-buttons');
             container.innerHTML = '';
             buttons.innerHTML = '';
+
+            const lockDiv = document.createElement('div');
+            lockDiv.className = 'mb-2';
+            const lockBtn = document.createElement('button');
+            lockBtn.type = 'button';
+            lockBtn.className = 'btn btn-sm';
+            const lockText = document.createElement('span');
+            lockText.className = 'ms-2';
+            lockDiv.appendChild(lockBtn);
+            lockDiv.appendChild(lockText);
+            container.appendChild(lockDiv);
+
             const table = document.createElement('table');
             table.className = 'table table-bordered table-sm codeset-table';
             table.id = 'table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_');
@@ -449,25 +467,12 @@
                 const resp = await fetch('/export', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(workbook)
+                    body: JSON.stringify({data: workbook, locks: sheetLocks})
                 });
                 if (resp.ok) {
+                    await resp.json().catch(() => {});
                     renderErrors();
-                    const blob = await resp.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    const disposition = resp.headers.get('Content-Disposition');
-                    let fname = originalFilename || 'updated_workbook.xlsx';
-                    if (disposition) {
-                        const match = disposition.match(/filename="?([^";]+)"?/);
-                        if (match) fname = match[1];
-                    }
-                    a.download = fname;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    URL.revokeObjectURL(url);
+                    alert('Workbook saved to repository');
                 } else {
                     try {
                         const data = await resp.json();
@@ -506,6 +511,24 @@
             });
             buttons.appendChild(importBtn);
             buttons.appendChild(importInput);
+
+            function applyLockState() {
+                const locked = sheetLocks[sheet];
+                lockBtn.textContent = locked ? '🔒' : '🔓';
+                lockBtn.className = `btn btn-sm ${locked ? 'btn-lock-protected' : 'btn-lock-unprotected'}`;
+                lockText.textContent = locked ? 'Sheet Protected' : 'Sheet Unprotected';
+                table.querySelectorAll('input, select').forEach(el => {
+                    el.disabled = locked;
+                });
+                addBtn.disabled = locked;
+            }
+
+            lockBtn.addEventListener('click', () => {
+                sheetLocks[sheet] = !sheetLocks[sheet];
+                applyLockState();
+            });
+
+            applyLockState();
         }
 
         async function ensureSheetLoaded(sheet) {
@@ -574,6 +597,27 @@
             if (target.closest('#table-wrapper')) {
                 syncCurrentSheet();
                 validateSheet(currentSheet);
+            }
+        });
+
+        exportErrorsBtn?.addEventListener('click', async () => {
+            syncCurrentSheet();
+            validateSheet(currentSheet);
+            const resp = await fetch('/export_errors', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({data: workbook})
+            });
+            if (resp.ok) {
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'error_report.csv';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
             }
         });
     });
