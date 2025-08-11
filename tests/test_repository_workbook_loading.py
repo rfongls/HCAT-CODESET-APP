@@ -94,6 +94,8 @@ def test_export_overwrites_original_file(tmp_path, monkeypatch):
     payload = {"Sheet1": [{"CODE": "B", "DISPLAY VALUE": "Beta"}]}
     resp = client.post("/export", json=payload)
     assert resp.status_code == 200
+    assert resp.get_json()["status"] == "ok"
+    assert resp.headers.get("Content-Disposition") is None
 
     from openpyxl import load_workbook as xl_load
 

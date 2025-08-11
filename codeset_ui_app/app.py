@@ -487,11 +487,43 @@ def export():
     tmp_path.replace(workbook_path)
 
     filename = original_filename or workbook_path.name
+    return jsonify({"status": "ok", "filename": filename})
+
+
+@app.route("/export_errors", methods=["POST"])
+def export_errors():
+    """Return a CSV file listing validation errors for the current data."""
+    global workbook_data, workbook_obj, workbook_path
+    if workbook_obj is None or workbook_path is None:
+        return "No workbook loaded", 400
+
+    payload = request.get_json() or {}
+    if not isinstance(payload, dict):
+        return "Invalid payload", 400
+
+    workbook_payload = payload.get("data") if "data" in payload else payload
+    if not isinstance(workbook_payload, dict):
+        return "Invalid payload", 400
+
+    for sheet, rows in workbook_payload.items():
+        if sheet in workbook_data:
+            df = pd.DataFrame(rows, columns=workbook_data[sheet].columns)
+            df = df.where(pd.notna(df), "")
+            workbook_data[sheet] = df
+
+    errors = validate_workbook(workbook_data, mapping_data)
+    if not errors:
+        return jsonify({"errors": []})
+
+    buf = io.StringIO()
+    pd.DataFrame({"Error": errors}).to_csv(buf, index=False)
+    mem = io.BytesIO(buf.getvalue().encode("utf-8"))
+    mem.seek(0)
     return send_file(
-        workbook_path,
+        mem,
         as_attachment=True,
-        download_name=filename,
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        download_name="error_report.csv",
+        mimetype="text/csv",
     )
 
 

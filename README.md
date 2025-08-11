@@ -20,6 +20,8 @@ access is available.
 
 Upload a codeset workbook (`.xlsx`). After uploading, choose a sheet from the dropdown at the top of the page. Only the selected sheet's table is shown along with an **Add Row** button. A sidebar on the right shows a **Codeset References** panel that lists the HL7 field location, a description, expected data type, and NBR table number for the current tab (sourced from the `codex-spreadsheet-definition.md` reference file). This is followed by a **Requirements** panel summarizing validation rules and an **Errors** panel that lists issues as you edit (e.g., “On tab *CS_RACE* - Code X does not have a display value”). You can download these messages as a CSV via the **Download Error Report** button beneath the panel. The table spans the available width and scrolls vertically so long lists remain readable.
 
+Click **Export Workbook** to persist your edits back to the original file in its repository without triggering a download prompt.
+
 At startup the application scans the `Samples` directory for folders containing `Codeset*.xlsx` workbooks and caches the results. These parent folders appear in a repository dropdown so you can open an existing workbook without uploading it and subsequent visits do not rescan the filesystem.
 
 When a sheet includes both `Mapped Standard Description` and `Sub Definition` columns, the mapped description column is rendered as a dropdown. Its options come from the sheet's `Standard Description` values and any Excel validations. Selecting a value automatically fills the corresponding `Sub Definition` cell as `code^description` when `Standard Code` and `Standard Description` columns are present.
@@ -27,7 +29,7 @@ When a sheet includes both `Mapped Standard Description` and `Sub Definition` co
 If a `Definition` column exists in the workbook it is preserved in the export but hidden from the web interface.
 
 
-If a repository workbook is already loaded, an **Import Workbook** button appears beside the export button. Choosing a file replaces the existing workbook on disk and reloads it in the interface so fresh EMR exports or offline edits can be pulled into the app without restarting. When exporting, the application writes to a temporary file and atomically replaces the original so edits overwrite the source workbook safely.
+If a repository workbook is already loaded, an **Import Workbook** button appears beside the export button. Choosing a file replaces the existing workbook on disk and reloads it in the interface so fresh EMR exports or offline edits can be pulled into the app without restarting. When exporting, the application writes to a temporary file and atomically replaces the original so edits overwrite the source workbook safely without prompting a download; the updated file is stored in the same repository directory.
 
 Once a workbook is loaded, a **Compare** button appears next to the **Load Workbook** control. Clicking it reveals a form for loading a second repository workbook side by side. The current repository is excluded from the comparison list. When a comparison is active, the form displays the chosen repository and workbook along with a **Clear Comparison** button to return to single-workbook editing. The comparison workbook's `CODE`, `DISPLAY VALUE`, and `MAPPED_STD_DESCRIPTION` columns are inserted next to the base sheet as read-only fields with yellow cells and teal headers.
 The selected repository and workbook fields—both primary and comparison—are highlighted in yellow so current choices are easy to spot.
@@ -61,8 +63,8 @@ The Flask server exposes a small JSON API alongside the HTML interface:
   repository directory.
 - `GET /sheet/<sheet>` – return the current sheet's rows, including comparison
   columns when a comparison workbook is loaded.
-- `POST /export` – validate and write the in-memory workbook back to disk,
-  returning the updated file or validation errors.
+- `POST /export` – validate and overwrite the in-memory workbook on disk,
+  returning a JSON status or validation errors.
 - `POST /export_errors` – run validation and return a CSV file listing all
   detected errors for the provided workbook data.
 - `POST /import` – replace the loaded workbook on disk with an uploaded file

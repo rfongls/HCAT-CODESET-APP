@@ -470,22 +470,9 @@
                     body: JSON.stringify({data: workbook, locks: sheetLocks})
                 });
                 if (resp.ok) {
+                    await resp.json().catch(() => {});
                     renderErrors();
-                    const blob = await resp.blob();
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    const disposition = resp.headers.get('Content-Disposition');
-                    let fname = originalFilename || 'updated_workbook.xlsx';
-                    if (disposition) {
-                        const match = disposition.match(/filename="?([^";]+)"?/);
-                        if (match) fname = match[1];
-                    }
-                    a.download = fname;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    URL.revokeObjectURL(url);
+                    alert('Workbook saved to repository');
                 } else {
                     try {
                         const data = await resp.json();
