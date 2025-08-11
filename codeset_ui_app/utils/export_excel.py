@@ -14,7 +14,12 @@ import pandas as pd
 from openpyxl.workbook.workbook import Workbook
 
 
-def export_workbook(wb: Workbook, data: Dict[str, pd.DataFrame], stream: str | BufferedIOBase) -> None:
+def export_workbook(
+    wb: Workbook,
+    data: Dict[str, pd.DataFrame],
+    stream: str | BufferedIOBase,
+    protected: Dict[str, bool] | None = None,
+) -> None:
     """Write ``data`` back into ``wb`` and save it to ``stream``.
 
     Parameters
@@ -28,6 +33,9 @@ def export_workbook(wb: Workbook, data: Dict[str, pd.DataFrame], stream: str | B
         workbook and rows are written starting at row 2.
     stream:
         File path or binary file-like object to save the workbook to.
+    protected:
+        Optional mapping of sheet name to a boolean indicating whether the
+        sheet should be protected in the exported workbook.
     """
 
     for sheet, df in data.items():
@@ -58,6 +66,9 @@ def export_workbook(wb: Workbook, data: Dict[str, pd.DataFrame], stream: str | B
         for r in range(len(records) + 2, ws.max_row + 1):
             for c_idx in col_map.values():
                 ws.cell(row=r, column=c_idx, value=None)
+
+        if protected is not None:
+            ws.protection.sheet = bool(protected.get(sheet, False))
 
     wb.save(stream)
 
