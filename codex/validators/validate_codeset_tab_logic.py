@@ -53,7 +53,12 @@ def validate_codeset_tab_logic(workbook_path: str | Path,
                 std_code_col = col
             if key == "STANDARD_DESCRIPTION":
                 std_desc_col = col
-            if key in ["MAPPED_STD_DESCRIPTION", "MAPPED_STANDARD_DESCRIPTION"]:
+            if key in [
+                "MAPPED_STD_DESCRIPTION",
+                "MAPPED_STANDARD_DESCRIPTION",
+                "MAPPED_STD_CODE",
+                "MAPPED_STANDARD_CODE",
+            ]:
                 mapped_col = col
             if key == "CODE":
                 code_col = col

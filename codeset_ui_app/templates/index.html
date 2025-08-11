@@ -117,6 +117,7 @@
                     <div id="errors-box" class="alert alert-danger mt-3 d-none">
                         <h5 class="alert-heading fw-bold">Errors</h5>
                         <ul id="error-list" class="mb-0"></ul>
+                        <button id="export-errors" class="btn btn-outline-danger btn-sm mt-2 d-none">Download Error Report</button>
                     </div>
                 </div>
             </div>
@@ -152,6 +153,7 @@
         const compareWorkbookSelect = document.getElementById('compare-workbook-select');
         const errorsBox = document.getElementById('errors-box');
         const errorList = document.getElementById('error-list');
+        const exportErrorsBtn = document.getElementById('export-errors');
         const fieldsBox = document.getElementById('fields-box');
         const fieldsText = document.getElementById('fields-text');
         const errorsPerSheet = {};
@@ -162,9 +164,11 @@
             if (allErrors.length) {
                 errorsBox.classList.remove('d-none');
                 errorList.innerHTML = allErrors.map(e => `<li>${e}</li>`).join('');
+                exportErrorsBtn?.classList.remove('d-none');
             } else {
                 errorsBox.classList.add('d-none');
                 errorList.innerHTML = '';
+                exportErrorsBtn?.classList.add('d-none');
             }
         }
 
@@ -606,6 +610,27 @@
             if (target.closest('#table-wrapper')) {
                 syncCurrentSheet();
                 validateSheet(currentSheet);
+            }
+        });
+
+        exportErrorsBtn?.addEventListener('click', async () => {
+            syncCurrentSheet();
+            validateSheet(currentSheet);
+            const resp = await fetch('/export_errors', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({data: workbook})
+            });
+            if (resp.ok) {
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'error_report.csv';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
             }
         });
     });

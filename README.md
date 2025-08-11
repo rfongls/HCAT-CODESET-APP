@@ -18,7 +18,7 @@ initial connection reset when loading workbooks. You can also run
 `utils/dependency_setup.py` to install the packages individually when network
 access is available.
 
-Upload a codeset workbook (`.xlsx`). After uploading, choose a sheet from the dropdown at the top of the page. Only the selected sheet's table is shown along with an **Add Row** button. A sidebar on the right shows a **Codeset References** panel that lists the HL7 field location, a description, expected data type, and NBR table number for the current tab (sourced from the `codex-spreadsheet-definition.md` reference file). This is followed by a **Requirements** panel summarizing validation rules and an **Errors** panel that lists issues as you edit (e.g., “On tab *CS_RACE* - Code X does not have a display value”). The table spans the available width and scrolls vertically so long lists remain readable.
+Upload a codeset workbook (`.xlsx`). After uploading, choose a sheet from the dropdown at the top of the page. Only the selected sheet's table is shown along with an **Add Row** button. A sidebar on the right shows a **Codeset References** panel that lists the HL7 field location, a description, expected data type, and NBR table number for the current tab (sourced from the `codex-spreadsheet-definition.md` reference file). This is followed by a **Requirements** panel summarizing validation rules and an **Errors** panel that lists issues as you edit (e.g., “On tab *CS_RACE* - Code X does not have a display value”). You can download these messages as a CSV via the **Download Error Report** button beneath the panel. The table spans the available width and scrolls vertically so long lists remain readable.
 
 At startup the application scans the `Samples` directory for folders containing `Codeset*.xlsx` workbooks and caches the results. These parent folders appear in a repository dropdown so you can open an existing workbook without uploading it and subsequent visits do not rescan the filesystem.
 
@@ -63,6 +63,8 @@ The Flask server exposes a small JSON API alongside the HTML interface:
   columns when a comparison workbook is loaded.
 - `POST /export` – validate and write the in-memory workbook back to disk,
   returning the updated file or validation errors.
+- `POST /export_errors` – run validation and return a CSV file listing all
+  detected errors for the provided workbook data.
 - `POST /import` – replace the loaded workbook on disk with an uploaded file
   and reload it into the interface.
 
