@@ -194,6 +194,11 @@
                     basePath = f.path.replace(f.webkitRelativePath, '');
                 } else if (f.path) {
                     basePath = f.path.replace(f.name, '');
+                } else if (f.webkitRelativePath) {
+                    const parts = f.webkitRelativePath.split('/');
+                    parts.pop();
+                    basePath = parts.join('/');
+                    if (basePath) basePath = basePath + '/';
                 }
             }
             repoBase.value = basePath;
