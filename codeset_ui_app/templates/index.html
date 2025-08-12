@@ -37,7 +37,7 @@
                     <button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>Load</button>
                 </div>
             </form>
-            <input type="file" id="repo-base-picker" style="display:none" webkitdirectory directory multiple />
+            <input type="file" id="repo-base-picker" style="display:none" webkitdirectory />
             {% if repositories %}
             <form id="repo-form" method="post" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
@@ -192,13 +192,9 @@
                 const f = repoPicker.files[0];
                 const rel = f.webkitRelativePath || f.name;
                 const pickerVal = repoPicker.value || '';
-                const sep = pickerVal.includes('\\') ? '\\' : '/';
+                const sep = (f.path || pickerVal).includes('\\') ? '\\' : '/';
 
-                if (pickerVal) {
-                    // When the input value includes a file path, derive the
-                    // directory by trimming the relative portion returned for
-                    // the first file. This works on modern browsers where the
-                    // full path is exposed for directory selections.
+                if (pickerVal && !pickerVal.includes('fakepath')) {
                     const absParts = pickerVal.split(/[\\/]/);
                     const relParts = rel.split(/[\\/]/);
                     if (absParts.length > relParts.length) {
@@ -209,8 +205,7 @@
                 }
 
                 if (!basePath && f.path) {
-                    // Fallback for environments (e.g. Electron) exposing a
-                    // non-standard ``path`` property on File objects.
+
                     let relFixed = rel.replace(/[\\/]/g, sep);
                     const full = f.path.replace(/[\\/]/g, sep);
                     if (full.endsWith(relFixed)) {
@@ -218,6 +213,11 @@
                     } else {
                         basePath = full.slice(0, full.length - f.name.length);
                     }
+                }
+
+                if (!basePath) {
+                    const manual = prompt('Enter repository folder path');
+                    if (manual) basePath = manual.trim();
                 }
 
                 if (basePath && !basePath.endsWith(sep)) {
