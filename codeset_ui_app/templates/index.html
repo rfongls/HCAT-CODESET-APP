@@ -182,7 +182,10 @@
         const fieldsText = document.getElementById('fields-text');
         const errorsPerSheet = {};
 
-        repoBrowse?.addEventListener('click', () => repoPicker?.click());
+        repoBrowse?.addEventListener('click', () => {
+            if (repoPicker) repoPicker.value = '';
+            repoPicker?.click();
+        });
         repoPicker?.addEventListener('change', () => {
             let basePath = '';
             if (repoPicker.files.length) {
@@ -199,8 +202,6 @@
             }
             if (repoLoad) repoLoad.disabled = !basePath;
             if (repoSave) repoSave.disabled = !basePath;
-            // Clear file selection to prevent upload prompts during form submission
-            repoPicker.value = '';
         });
 
         function renderErrors() {
