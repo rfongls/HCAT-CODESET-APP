@@ -25,7 +25,7 @@
                 <div class="col-12 col-md-8">
                     <label for="repo-base-picker" class="form-label">Select repository folder</label>
                     <div class="input-group">
-                        <button type="button" id="repo-browse" class="btn btn-outline-secondary">Browse…</button>
+                        <button type="button" id="repo-browse" class="btn btn-outline-secondary">Select</button>
                         <span id="repo-base-label" class="form-control">{{ repo_base or 'No folder selected' }}</span>
                     </div>
                     <input type="hidden" id="repo-base" name="repo_base" />
@@ -199,6 +199,8 @@
             }
             if (repoLoad) repoLoad.disabled = !basePath;
             if (repoSave) repoSave.disabled = !basePath;
+            // Clear file selection to prevent upload prompts during form submission
+            repoPicker.value = '';
         });
 
         function renderErrors() {

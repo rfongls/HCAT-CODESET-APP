@@ -50,7 +50,6 @@ def load_repository_base() -> None:
         SAMPLES_DIR = Path(__file__).resolve().parent.parent / "Samples"
     refresh_repository_cache()
 
-    
 def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
     """Return a mapping of repository folder to codeset workbooks."""
     repo_map: Dict[str, list[str]] = {}
