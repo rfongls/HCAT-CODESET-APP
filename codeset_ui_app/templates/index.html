@@ -182,15 +182,27 @@
         const fieldsText = document.getElementById('fields-text');
         const errorsPerSheet = {};
 
-        repoBrowse?.addEventListener('click', () => repoPicker?.click());
+        repoBrowse?.addEventListener('click', () => {
+            if (repoPicker) repoPicker.value = '';
+            repoPicker?.click();
+        });
         repoPicker?.addEventListener('change', () => {
             let basePath = '';
             if (repoPicker.files.length) {
                 const f = repoPicker.files[0];
-                if (f.path && f.webkitRelativePath) {
-                    basePath = f.path.replace(f.webkitRelativePath, '');
-                } else if (f.path) {
-                    basePath = f.path.replace(f.name, '');
+                if (f.path) {
+                    let rel = f.webkitRelativePath || f.name;
+                    const sep = f.path.includes('\\') ? '\\' : '/';
+                    rel = rel.replace(/[\\/]/g, sep);
+                    if (f.path.endsWith(rel)) {
+                        basePath = f.path.slice(0, f.path.length - rel.length);
+                    } else {
+                        basePath = f.path.slice(0, f.path.length - f.name.length);
+                    }
+                    if (basePath && !basePath.endsWith(sep)) basePath += sep;
+                } else if (f.webkitRelativePath) {
+                    const parts = f.webkitRelativePath.split('/');
+                    basePath = parts[0] ? `/${parts[0]}/` : '';
                 }
             }
             repoBase.value = basePath;
@@ -199,8 +211,6 @@
             }
             if (repoLoad) repoLoad.disabled = !basePath;
             if (repoSave) repoSave.disabled = !basePath;
-            // Clear file selection to prevent upload prompts during form submission
-            repoPicker.value = '';
         });
 
         function renderErrors() {
