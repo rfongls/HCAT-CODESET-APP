@@ -89,7 +89,11 @@
             <form id="path-form" method="post" class="row g-2 align-items-end">
                 <div class="col-12 col-md-8">
                     <label for="repo-base-picker" class="form-label">Select repository folder</label>
-                    <input type="file" id="repo-base-picker" class="form-control" webkitdirectory directory />
+                    <div class="input-group">
+                        <button type="button" id="repo-browse" class="btn btn-outline-secondary">Browse…</button>
+                        <span id="repo-base-label" class="form-control">No folder selected</span>
+                    </div>
+                    <input type="file" id="repo-base-picker" style="display:none" webkitdirectory directory />
                     <input type="hidden" id="repo-base" name="repo_base" />
                 </div>
                 <div class="col-12 col-md-2">
@@ -172,8 +176,10 @@
         const compareRepoSelect = document.getElementById('compare-repo-select');
         const compareWorkbookSelect = document.getElementById('compare-workbook-select');
         const repoPicker = document.getElementById('repo-base-picker');
+        const repoBrowse = document.getElementById('repo-browse');
         const repoBase = document.getElementById('repo-base');
         const repoLoad = document.getElementById('repo-load');
+        const repoBaseLabel = document.getElementById('repo-base-label');
         const errorsBox = document.getElementById('errors-box');
         const errorList = document.getElementById('error-list');
         const exportErrorsBtn = document.getElementById('export-errors');
@@ -181,6 +187,7 @@
         const fieldsText = document.getElementById('fields-text');
         const errorsPerSheet = {};
 
+        repoBrowse?.addEventListener('click', () => repoPicker?.click());
         repoPicker?.addEventListener('change', () => {
             let basePath = '';
             if (repoPicker.files.length) {
@@ -192,6 +199,9 @@
                 }
             }
             repoBase.value = basePath;
+            if (repoBaseLabel) {
+                repoBaseLabel.textContent = basePath || 'No folder selected';
+            }
             if (repoLoad) repoLoad.disabled = !basePath;
         });
 
