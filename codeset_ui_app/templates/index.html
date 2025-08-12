@@ -21,6 +21,24 @@
         <div class="alert alert-danger" role="alert">{{ error }}</div>
         {% endif %}
         <section class="controls mb-3">
+            <form id="path-form" method="post" class="row g-2 align-items-end mb-3">
+                <div class="col-12 col-md-8">
+                    <label for="repo-base-picker" class="form-label">Select repository folder</label>
+                    <div class="input-group">
+                        <button type="button" id="repo-browse" class="btn btn-outline-secondary">Select</button>
+                        <span id="repo-base-label" class="form-control">{{ repo_base or 'No folder selected' }}</span>
+                    </div>
+                    <input type="hidden" id="repo-base" name="repo_base" />
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" id="repo-save" name="save_repo_base" value="1" class="btn btn-outline-secondary w-100" disabled>Save</button>
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>Load</button>
+                </div>
+            </form>
+            <input type="file" id="repo-base-picker" style="display:none" webkitdirectory directory />
+            {% if repositories %}
             <form id="repo-form" method="post" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
                     <label for="repo-select" class="form-label">Select the repository you want to edit a codeset for:</label>
@@ -84,6 +102,7 @@
                     <button type="submit" class="btn btn-secondary w-100">Upload</button>
                 </div>
             </form>
+            {% endif %}
         </section>
 
         {% if sheet_names %}
@@ -142,8 +161,7 @@
     const comparisonData = {};
     comparisonData[initialSheet] = {{ compare_records|tojson }};
     const originalFilename = {{ filename|tojson }};
-    const sheetLocks = {};
-    sheetNames.forEach(s => sheetLocks[s] = false);
+    let sheetLock = false;
     let currentSheet = initialSheet;
     document.addEventListener('DOMContentLoaded', () => {
         const selector = document.getElementById('sheet-select');
@@ -151,12 +169,39 @@
         const workbookSelect = document.getElementById('workbook-select');
         const compareRepoSelect = document.getElementById('compare-repo-select');
         const compareWorkbookSelect = document.getElementById('compare-workbook-select');
+        const repoPicker = document.getElementById('repo-base-picker');
+        const repoBrowse = document.getElementById('repo-browse');
+        const repoBase = document.getElementById('repo-base');
+        const repoLoad = document.getElementById('repo-load');
+        const repoSave = document.getElementById('repo-save');
+        const repoBaseLabel = document.getElementById('repo-base-label');
         const errorsBox = document.getElementById('errors-box');
         const errorList = document.getElementById('error-list');
         const exportErrorsBtn = document.getElementById('export-errors');
         const fieldsBox = document.getElementById('fields-box');
         const fieldsText = document.getElementById('fields-text');
         const errorsPerSheet = {};
+
+        repoBrowse?.addEventListener('click', () => repoPicker?.click());
+        repoPicker?.addEventListener('change', () => {
+            let basePath = '';
+            if (repoPicker.files.length) {
+                const f = repoPicker.files[0];
+                if (f.path && f.webkitRelativePath) {
+                    basePath = f.path.replace(f.webkitRelativePath, '');
+                } else if (f.path) {
+                    basePath = f.path.replace(f.name, '');
+                }
+            }
+            repoBase.value = basePath;
+            if (repoBaseLabel) {
+                repoBaseLabel.textContent = basePath || 'No folder selected';
+            }
+            if (repoLoad) repoLoad.disabled = !basePath;
+            if (repoSave) repoSave.disabled = !basePath;
+            // Clear file selection to prevent upload prompts during form submission
+            repoPicker.value = '';
+        });
 
         function renderErrors() {
             if (!errorsBox || !errorList) return;
@@ -467,7 +512,7 @@
                 const resp = await fetch('/export', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({data: workbook, locks: sheetLocks})
+                    body: JSON.stringify({data: workbook, locks: sheetLock})
                 });
                 if (resp.ok) {
                     await resp.json().catch(() => {});
@@ -513,7 +558,7 @@
             buttons.appendChild(importInput);
 
             function applyLockState() {
-                const locked = sheetLocks[sheet];
+                const locked = sheetLock;
                 lockBtn.textContent = locked ? '🔒' : '🔓';
                 lockBtn.className = `btn btn-sm ${locked ? 'btn-lock-protected' : 'btn-lock-unprotected'}`;
                 lockText.textContent = locked ? 'Sheet Protected' : 'Sheet Unprotected';
@@ -524,7 +569,7 @@
             }
 
             lockBtn.addEventListener('click', () => {
-                sheetLocks[sheet] = !sheetLocks[sheet];
+                sheetLock = !sheetLock;
                 applyLockState();
             });
 
