@@ -466,8 +466,8 @@ def export():
         return "Invalid payload", 400
 
     workbook_payload = payload.get("data") if "data" in payload else payload
-    locks = payload.get("locks", {})
-    if not isinstance(workbook_payload, dict) or not isinstance(locks, (dict, bool)):
+    locks = payload.get("locks", False)
+    if not isinstance(workbook_payload, dict) or not isinstance(locks, bool):
         return "Invalid payload", 400
 
     for sheet, rows in workbook_payload.items():
