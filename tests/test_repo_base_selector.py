@@ -30,6 +30,9 @@ def test_repository_folder_selection(tmp_path, monkeypatch):
     assert "id=\"repo-save\"" in text
     assert "No folder selected" in text
     assert '<button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>' in text
+    start = text.index('form id="path-form"')
+    end = text.index('</form>', start)
+    assert 'id="repo-base-picker"' not in text[start:end]
     assert f"<option value=\"{repo.name}\"" not in text
 
     resp = client.post("/", data={"repo_base": str(samples)})

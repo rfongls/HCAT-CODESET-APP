@@ -96,6 +96,26 @@ def test_export_workbook_protects_all_sheets(tmp_path):
     out = tmp_path / "out.xlsx"
 
     export_workbook(wb, data, out, True)
+
+    saved = load_workbook(out)
+    assert saved["Sheet1"].protection.sheet is False
+
+
+def test_export_workbook_protects_all_sheets(tmp_path):
+    wb = Workbook()
+    ws1 = wb.active
+    ws1.title = "Sheet1"
+    ws1.append(["CODE"])
+    ws2 = wb.create_sheet("Sheet2")
+    ws2.append(["CODE"])
+
+    data = {
+        "Sheet1": pd.DataFrame([{"CODE": "A"}]),
+        "Sheet2": pd.DataFrame([{"CODE": "B"}]),
+    }
+    out = tmp_path / "out.xlsx"
+
+    export_workbook(wb, data, out, True)
     saved = load_workbook(out)
     assert saved["Sheet1"].protection.sheet is True
     assert saved["Sheet2"].protection.sheet is True
