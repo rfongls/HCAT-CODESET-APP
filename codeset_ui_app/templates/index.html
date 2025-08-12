@@ -37,7 +37,7 @@
                     <button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>Load</button>
                 </div>
             </form>
-            <input type="file" id="repo-base-picker" style="display:none" webkitdirectory directory />
+            <input type="file" id="repo-base-picker" style="display:none" webkitdirectory />
             {% if repositories %}
             <form id="repo-form" method="post" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
@@ -190,21 +190,40 @@
             let basePath = '';
             if (repoPicker.files.length) {
                 const f = repoPicker.files[0];
-                if (f.path) {
-                    let rel = f.webkitRelativePath || f.name;
-                    const sep = f.path.includes('\\') ? '\\' : '/';
-                    rel = rel.replace(/[\\/]/g, sep);
-                    if (f.path.endsWith(rel)) {
-                        basePath = f.path.slice(0, f.path.length - rel.length);
-                    } else {
-                        basePath = f.path.slice(0, f.path.length - f.name.length);
+                const rel = f.webkitRelativePath || f.name;
+                const pickerVal = repoPicker.value || '';
+                const sep = (f.path || pickerVal).includes('\\') ? '\\' : '/';
+
+                if (pickerVal && !pickerVal.includes('fakepath')) {
+                    const absParts = pickerVal.split(/[\\/]/);
+                    const relParts = rel.split(/[\\/]/);
+                    if (absParts.length > relParts.length) {
+                        basePath = absParts
+                            .slice(0, absParts.length - relParts.length)
+                            .join(sep);
                     }
-                    if (basePath && !basePath.endsWith(sep)) basePath += sep;
-                } else if (f.webkitRelativePath) {
-                    const parts = f.webkitRelativePath.split('/');
-                    basePath = parts[0] ? `/${parts[0]}/` : '';
+                }
+
+                if (!basePath && f.path) {
+                    let relFixed = rel.replace(/[\\/]/g, sep);
+                    const full = f.path.replace(/[\\/]/g, sep);
+                    if (full.endsWith(relFixed)) {
+                        basePath = full.slice(0, full.length - relFixed.length);
+                    } else {
+                        basePath = full.slice(0, full.length - f.name.length);
+                    }
+                }
+
+                if (!basePath) {
+                    const manual = prompt('Enter repository folder path');
+                    if (manual) basePath = manual.trim();
+                }
+
+                if (basePath && !basePath.endsWith(sep)) {
+                    basePath += sep;
                 }
             }
+
             repoBase.value = basePath;
             if (repoBaseLabel) {
                 repoBaseLabel.textContent = basePath || 'No folder selected';
