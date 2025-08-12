@@ -23,12 +23,11 @@
         <section class="controls mb-3">
             <form id="path-form" method="post" class="row g-2 align-items-end mb-3">
                 <div class="col-12 col-md-8">
-                    <label for="repo-base-picker" class="form-label">Select repository folder</label>
+                    <label for="repo-base" class="form-label">Select repository folder</label>
                     <div class="input-group">
                         <button type="button" id="repo-browse" class="btn btn-outline-secondary">Select</button>
-                        <span id="repo-base-label" class="form-control">{{ repo_base or 'No folder selected' }}</span>
+                        <input type="text" id="repo-base" name="repo_base" class="form-control" value="{{ repo_base or '' }}" placeholder="Enter folder path" />
                     </div>
-                    <input type="hidden" id="repo-base" name="repo_base" />
                 </div>
                 <div class="col-12 col-md-2">
                     <button type="submit" id="repo-save" name="save_repo_base" value="1" class="btn btn-outline-secondary w-100" disabled>Save</button>
@@ -37,7 +36,7 @@
                     <button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>Load</button>
                 </div>
             </form>
-            <input type="file" id="repo-base-picker" style="display:none" webkitdirectory directory />
+            <input type="file" id="repo-base-picker" style="display:none" webkitdirectory />
             {% if repositories %}
             <form id="repo-form" method="post" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
@@ -174,13 +173,18 @@
         const repoBase = document.getElementById('repo-base');
         const repoLoad = document.getElementById('repo-load');
         const repoSave = document.getElementById('repo-save');
-        const repoBaseLabel = document.getElementById('repo-base-label');
         const errorsBox = document.getElementById('errors-box');
         const errorList = document.getElementById('error-list');
         const exportErrorsBtn = document.getElementById('export-errors');
         const fieldsBox = document.getElementById('fields-box');
         const fieldsText = document.getElementById('fields-text');
         const errorsPerSheet = {};
+
+        const enableRepoButtons = () => {
+            const hasVal = repoBase?.value.trim();
+            if (repoLoad) repoLoad.disabled = !hasVal;
+            if (repoSave) repoSave.disabled = !hasVal;
+        };
 
         repoBrowse?.addEventListener('click', () => {
             if (repoPicker) repoPicker.value = '';
@@ -190,28 +194,22 @@
             let basePath = '';
             if (repoPicker.files.length) {
                 const f = repoPicker.files[0];
-                if (f.path) {
-                    let rel = f.webkitRelativePath || f.name;
-                    const sep = f.path.includes('\\') ? '\\' : '/';
-                    rel = rel.replace(/[\\/]/g, sep);
-                    if (f.path.endsWith(rel)) {
-                        basePath = f.path.slice(0, f.path.length - rel.length);
-                    } else {
-                        basePath = f.path.slice(0, f.path.length - f.name.length);
-                    }
+                let full = f.path || repoPicker.value || '';
+                if (full) {
+                    const sep = full.includes('\\') ? '\\' : '/';
+                    full = full.replace(/[\\/]/g, sep);
+                    basePath = full.slice(0, full.length - f.name.length);
+                    if (basePath.includes('fakepath')) basePath = '';
                     if (basePath && !basePath.endsWith(sep)) basePath += sep;
-                } else if (f.webkitRelativePath) {
-                    const parts = f.webkitRelativePath.split('/');
-                    basePath = parts[0] ? `/${parts[0]}/` : '';
                 }
             }
+
             repoBase.value = basePath;
-            if (repoBaseLabel) {
-                repoBaseLabel.textContent = basePath || 'No folder selected';
-            }
-            if (repoLoad) repoLoad.disabled = !basePath;
-            if (repoSave) repoSave.disabled = !basePath;
+            enableRepoButtons();
         });
+
+        repoBase?.addEventListener('input', enableRepoButtons);
+        enableRepoButtons();
 
         function renderErrors() {
             if (!errorsBox || !errorList) return;
