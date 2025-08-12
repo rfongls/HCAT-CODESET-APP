@@ -36,7 +36,6 @@ def test_export_workbook_protects_all_sheets(tmp_path):
     out = tmp_path / "out.xlsx"
 
     export_workbook(wb, data, out, True)
-
     saved = load_workbook(out)
     assert saved["Sheet1"].protection.sheet is True
     assert saved["Sheet2"].protection.sheet is True
