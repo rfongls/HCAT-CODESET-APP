@@ -33,8 +33,11 @@ last_error: str | None = None
 comparison_data: Dict[str, "pd.DataFrame"] = {}
 comparison_path: Path | None = None
 
-# Directory containing sample repositories and workbooks
-SAMPLES_DIR = Path(__file__).resolve().parent.parent / "Samples"
+# Directory containing sample repositories and workbooks. It is set by the
+# user via the UI so defaults to ``None`` until selected.
+SAMPLES_DIR: Path | None = None
+
+
 def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
     """Return a mapping of repository folder to codeset workbooks."""
     repo_map: Dict[str, list[str]] = {}
@@ -47,13 +50,18 @@ def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
     return repo_map
 
 
-REPOSITORY_CACHE: Dict[str, list[str]] = discover_repository_workbooks(SAMPLES_DIR)
+# Cached mapping of repositories to workbooks for the currently selected base
+REPOSITORY_CACHE: Dict[str, list[str]] = {}
 
 
 def refresh_repository_cache() -> None:
     """Refresh repository cache; used at startup or when Samples path changes."""
     global REPOSITORY_CACHE
-    REPOSITORY_CACHE = discover_repository_workbooks(SAMPLES_DIR)
+    REPOSITORY_CACHE = (
+        discover_repository_workbooks(SAMPLES_DIR)
+        if SAMPLES_DIR is not None
+        else {}
+    )
 
 
 def _load_workbook_path(path: Path, filename: str) -> None:
@@ -308,6 +316,7 @@ def index():
     global workbook_obj
     global original_filename
     global workbook_path, comparison_path
+    global SAMPLES_DIR
     selected_repo: str | None = None
     selected_workbook: str | None = None
     selected_compare_repo: str | None = None
@@ -318,7 +327,16 @@ def index():
     compare_mode = bool(comparison_data)
 
     if request.method == "POST":
-        if request.form.get("end_compare"):
+        if request.form.get("repo_base"):
+            # user provided a parent directory to scan for repositories
+            base_path = Path(request.form.get("repo_base", "")).expanduser()
+            if base_path.is_dir():
+                SAMPLES_DIR = base_path
+                refresh_repository_cache()
+                repo_names = sorted(REPOSITORY_CACHE.keys())
+            else:
+                last_error = "Repository folder not found"
+        elif request.form.get("end_compare"):
             comparison_data.clear()
             comparison_path = None
             compare_mode = False
@@ -342,6 +360,8 @@ def index():
             selected_repo = request.form.get("repo")
             selected_workbook = request.form.get("workbook_name")
             try:
+                if SAMPLES_DIR is None:
+                    raise FileNotFoundError("Repository folder not selected")
                 base = SAMPLES_DIR.resolve()
                 repo_path = (SAMPLES_DIR / selected_repo).resolve()
                 if not repo_path.is_dir() or not repo_path.is_relative_to(base):
@@ -359,6 +379,8 @@ def index():
             try:
                 repo = request.form.get("compare_repo")
                 wb_name = request.form.get("compare_workbook_name")
+                if SAMPLES_DIR is None:
+                    raise FileNotFoundError("Repository folder not selected")
                 base = SAMPLES_DIR.resolve()
                 repo_path = (SAMPLES_DIR / repo).resolve()
                 if not repo_path.is_dir() or not repo_path.is_relative_to(base):
