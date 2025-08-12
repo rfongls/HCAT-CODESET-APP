@@ -88,11 +88,12 @@
             {% else %}
             <form id="path-form" method="post" class="row g-2 align-items-end">
                 <div class="col-12 col-md-8">
-                    <label for="repo-base" class="form-label">Select repository folder</label>
-                    <input type="text" id="repo-base" name="repo_base" class="form-control" />
+                    <label for="repo-base-picker" class="form-label">Select repository folder</label>
+                    <input type="file" id="repo-base-picker" class="form-control" webkitdirectory directory />
+                    <input type="hidden" id="repo-base" name="repo_base" />
                 </div>
                 <div class="col-12 col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">Load</button>
+                    <button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>Load</button>
                 </div>
             </form>
             <form id="upload-form" method="post" enctype="multipart/form-data" class="row g-2 align-items-end mt-2">
@@ -170,12 +171,29 @@
         const workbookSelect = document.getElementById('workbook-select');
         const compareRepoSelect = document.getElementById('compare-repo-select');
         const compareWorkbookSelect = document.getElementById('compare-workbook-select');
+        const repoPicker = document.getElementById('repo-base-picker');
+        const repoBase = document.getElementById('repo-base');
+        const repoLoad = document.getElementById('repo-load');
         const errorsBox = document.getElementById('errors-box');
         const errorList = document.getElementById('error-list');
         const exportErrorsBtn = document.getElementById('export-errors');
         const fieldsBox = document.getElementById('fields-box');
         const fieldsText = document.getElementById('fields-text');
         const errorsPerSheet = {};
+
+        repoPicker?.addEventListener('change', () => {
+            let basePath = '';
+            if (repoPicker.files.length) {
+                const f = repoPicker.files[0];
+                if (f.path && f.webkitRelativePath) {
+                    basePath = f.path.replace(f.webkitRelativePath, '');
+                } else if (f.path) {
+                    basePath = f.path.replace(f.name, '');
+                }
+            }
+            repoBase.value = basePath;
+            if (repoLoad) repoLoad.disabled = !basePath;
+        });
 
         function renderErrors() {
             if (!errorsBox || !errorList) return;
