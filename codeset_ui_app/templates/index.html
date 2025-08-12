@@ -21,6 +21,7 @@
         <div class="alert alert-danger" role="alert">{{ error }}</div>
         {% endif %}
         <section class="controls mb-3">
+            {% if repositories %}
             <form id="repo-form" method="post" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
                     <label for="repo-select" class="form-label">Select the repository you want to edit a codeset for:</label>
@@ -84,6 +85,25 @@
                     <button type="submit" class="btn btn-secondary w-100">Upload</button>
                 </div>
             </form>
+            {% else %}
+            <form id="path-form" method="post" class="row g-2 align-items-end">
+                <div class="col-12 col-md-8">
+                    <label for="repo-base" class="form-label">Select repository folder</label>
+                    <input type="text" id="repo-base" name="repo_base" class="form-control" />
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Load</button>
+                </div>
+            </form>
+            <form id="upload-form" method="post" enctype="multipart/form-data" class="row g-2 align-items-end mt-2">
+                <div class="col-12 col-md-8">
+                    <input type="file" name="workbook" accept=".xlsx" class="form-control" />
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-secondary w-100">Upload</button>
+                </div>
+            </form>
+            {% endif %}
         </section>
 
         {% if sheet_names %}
@@ -142,8 +162,7 @@
     const comparisonData = {};
     comparisonData[initialSheet] = {{ compare_records|tojson }};
     const originalFilename = {{ filename|tojson }};
-    const sheetLocks = {};
-    sheetNames.forEach(s => sheetLocks[s] = false);
+    let sheetLock = false;
     let currentSheet = initialSheet;
     document.addEventListener('DOMContentLoaded', () => {
         const selector = document.getElementById('sheet-select');
@@ -467,7 +486,7 @@
                 const resp = await fetch('/export', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({data: workbook, locks: sheetLocks})
+                    body: JSON.stringify({data: workbook, locks: sheetLock})
                 });
                 if (resp.ok) {
                     await resp.json().catch(() => {});
@@ -513,7 +532,7 @@
             buttons.appendChild(importInput);
 
             function applyLockState() {
-                const locked = sheetLocks[sheet];
+                const locked = sheetLock;
                 lockBtn.textContent = locked ? '🔒' : '🔓';
                 lockBtn.className = `btn btn-sm ${locked ? 'btn-lock-protected' : 'btn-lock-unprotected'}`;
                 lockText.textContent = locked ? 'Sheet Protected' : 'Sheet Unprotected';
@@ -524,7 +543,7 @@
             }
 
             lockBtn.addEventListener('click', () => {
-                sheetLocks[sheet] = !sheetLocks[sheet];
+                sheetLock = !sheetLock;
                 applyLockState();
             });
 
