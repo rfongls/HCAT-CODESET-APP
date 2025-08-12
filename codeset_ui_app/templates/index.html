@@ -23,12 +23,11 @@
         <section class="controls mb-3">
             <form id="path-form" method="post" class="row g-2 align-items-end mb-3">
                 <div class="col-12 col-md-8">
-                    <label for="repo-base-picker" class="form-label">Select repository folder</label>
+                    <label for="repo-base" class="form-label">Select repository folder</label>
                     <div class="input-group">
                         <button type="button" id="repo-browse" class="btn btn-outline-secondary">Select</button>
-                        <span id="repo-base-label" class="form-control">{{ repo_base or 'No folder selected' }}</span>
+                        <input type="text" id="repo-base" name="repo_base" class="form-control" value="{{ repo_base or '' }}" placeholder="Enter folder path" />
                     </div>
-                    <input type="hidden" id="repo-base" name="repo_base" />
                 </div>
                 <div class="col-12 col-md-2">
                     <button type="submit" id="repo-save" name="save_repo_base" value="1" class="btn btn-outline-secondary w-100" disabled>Save</button>
@@ -174,13 +173,18 @@
         const repoBase = document.getElementById('repo-base');
         const repoLoad = document.getElementById('repo-load');
         const repoSave = document.getElementById('repo-save');
-        const repoBaseLabel = document.getElementById('repo-base-label');
         const errorsBox = document.getElementById('errors-box');
         const errorList = document.getElementById('error-list');
         const exportErrorsBtn = document.getElementById('export-errors');
         const fieldsBox = document.getElementById('fields-box');
         const fieldsText = document.getElementById('fields-text');
         const errorsPerSheet = {};
+
+        const enableRepoButtons = () => {
+            const hasVal = repoBase?.value.trim();
+            if (repoLoad) repoLoad.disabled = !hasVal;
+            if (repoSave) repoSave.disabled = !hasVal;
+        };
 
         repoBrowse?.addEventListener('click', () => {
             if (repoPicker) repoPicker.value = '';
@@ -205,7 +209,6 @@
                 }
 
                 if (!basePath && f.path) {
-
                     let relFixed = rel.replace(/[\\/]/g, sep);
                     const full = f.path.replace(/[\\/]/g, sep);
                     if (full.endsWith(relFixed)) {
@@ -215,23 +218,17 @@
                     }
                 }
 
-                if (!basePath) {
-                    const manual = prompt('Enter repository folder path');
-                    if (manual) basePath = manual.trim();
-                }
-
                 if (basePath && !basePath.endsWith(sep)) {
                     basePath += sep;
                 }
             }
 
             repoBase.value = basePath;
-            if (repoBaseLabel) {
-                repoBaseLabel.textContent = basePath || 'No folder selected';
-            }
-            if (repoLoad) repoLoad.disabled = !basePath;
-            if (repoSave) repoSave.disabled = !basePath;
+            enableRepoButtons();
         });
+
+        repoBase?.addEventListener('input', enableRepoButtons);
+        enableRepoButtons();
 
         function renderErrors() {
             if (!errorsBox || !errorList) return;
