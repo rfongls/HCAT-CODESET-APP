@@ -21,6 +21,23 @@
         <div class="alert alert-danger" role="alert">{{ error }}</div>
         {% endif %}
         <section class="controls mb-3">
+            <form id="path-form" method="post" class="row g-2 align-items-end mb-3">
+                <div class="col-12 col-md-8">
+                    <label for="repo-base-picker" class="form-label">Select repository folder</label>
+                    <div class="input-group">
+                        <button type="button" id="repo-browse" class="btn btn-outline-secondary">Browse…</button>
+                        <span id="repo-base-label" class="form-control">{{ repo_base or 'No folder selected' }}</span>
+                    </div>
+                    <input type="file" id="repo-base-picker" style="display:none" webkitdirectory directory />
+                    <input type="hidden" id="repo-base" name="repo_base" />
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" id="repo-save" name="save_repo_base" value="1" class="btn btn-outline-secondary w-100" disabled>Save</button>
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>Load</button>
+                </div>
+            </form>
             {% if repositories %}
             <form id="repo-form" method="post" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
@@ -77,29 +94,6 @@
                 </div>
             </form>
             {% endif %}
-            <form id="upload-form" method="post" enctype="multipart/form-data" class="row g-2 align-items-end mt-2">
-                <div class="col-12 col-md-8">
-                    <input type="file" name="workbook" accept=".xlsx" class="form-control" />
-                </div>
-                <div class="col-12 col-md-2">
-                    <button type="submit" class="btn btn-secondary w-100">Upload</button>
-                </div>
-            </form>
-            {% else %}
-            <form id="path-form" method="post" class="row g-2 align-items-end">
-                <div class="col-12 col-md-8">
-                    <label for="repo-base-picker" class="form-label">Select repository folder</label>
-                    <div class="input-group">
-                        <button type="button" id="repo-browse" class="btn btn-outline-secondary">Browse…</button>
-                        <span id="repo-base-label" class="form-control">No folder selected</span>
-                    </div>
-                    <input type="file" id="repo-base-picker" style="display:none" webkitdirectory directory />
-                    <input type="hidden" id="repo-base" name="repo_base" />
-                </div>
-                <div class="col-12 col-md-2">
-                    <button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>Load</button>
-                </div>
-            </form>
             <form id="upload-form" method="post" enctype="multipart/form-data" class="row g-2 align-items-end mt-2">
                 <div class="col-12 col-md-8">
                     <input type="file" name="workbook" accept=".xlsx" class="form-control" />
@@ -179,6 +173,7 @@
         const repoBrowse = document.getElementById('repo-browse');
         const repoBase = document.getElementById('repo-base');
         const repoLoad = document.getElementById('repo-load');
+        const repoSave = document.getElementById('repo-save');
         const repoBaseLabel = document.getElementById('repo-base-label');
         const errorsBox = document.getElementById('errors-box');
         const errorList = document.getElementById('error-list');
@@ -203,6 +198,7 @@
                 repoBaseLabel.textContent = basePath || 'No folder selected';
             }
             if (repoLoad) repoLoad.disabled = !basePath;
+            if (repoSave) repoSave.disabled = !basePath;
         });
 
         function renderErrors() {

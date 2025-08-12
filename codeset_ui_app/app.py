@@ -33,11 +33,24 @@ last_error: str | None = None
 comparison_data: Dict[str, "pd.DataFrame"] = {}
 comparison_path: Path | None = None
 
-# Directory containing sample repositories and workbooks. It is set by the
-# user via the UI so defaults to ``None`` until selected.
+# File storing the user's preferred repository base path
+CONFIG_FILE = Path(__file__).resolve().parent / "repo_base.txt"
+
+# Directory containing sample repositories and workbooks. Defaults to the
+# saved base path if available, otherwise the bundled Samples directory.
 SAMPLES_DIR: Path | None = None
 
 
+def load_repository_base() -> None:
+    """Load repository base from config and refresh cache."""
+    global SAMPLES_DIR
+    if CONFIG_FILE.exists():
+        SAMPLES_DIR = Path(CONFIG_FILE.read_text().strip())
+    else:
+        SAMPLES_DIR = Path(__file__).resolve().parent.parent / "Samples"
+    refresh_repository_cache()
+
+    
 def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
     """Return a mapping of repository folder to codeset workbooks."""
     repo_map: Dict[str, list[str]] = {}
@@ -62,6 +75,8 @@ def refresh_repository_cache() -> None:
         if SAMPLES_DIR is not None
         else {}
     )
+
+load_repository_base()
 
 
 def _load_workbook_path(path: Path, filename: str) -> None:
@@ -332,6 +347,8 @@ def index():
             base_path = Path(request.form.get("repo_base", "")).expanduser()
             if base_path.is_dir():
                 SAMPLES_DIR = base_path
+                if request.form.get("save_repo_base"):
+                    CONFIG_FILE.write_text(str(base_path))
                 refresh_repository_cache()
                 repo_names = sorted(REPOSITORY_CACHE.keys())
             else:
@@ -450,6 +467,7 @@ def index():
         error=last_error,
         filename=original_filename,
         repositories=repo_names,
+        repo_base=SAMPLES_DIR,
         comparison_repositories=comparison_repos,
         repo_files=repo_files,
         selected_repo=selected_repo,

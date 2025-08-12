@@ -17,6 +17,7 @@ def test_repository_folder_selection(tmp_path, monkeypatch):
 
     sys.path.append(str(Path(__file__).resolve().parents[1]))
     app_module = importlib.import_module("codeset_ui_app.app")
+    monkeypatch.setattr(app_module, "CONFIG_FILE", tmp_path / "repo_base.txt")
     monkeypatch.setattr(app_module, "SAMPLES_DIR", None)
     app_module.refresh_repository_cache()
 
@@ -26,6 +27,7 @@ def test_repository_folder_selection(tmp_path, monkeypatch):
     assert "Select repository folder" in text
     assert "id=\"repo-base-picker\"" in text
     assert "id=\"repo-browse\"" in text
+    assert "id=\"repo-save\"" in text
     assert "No folder selected" in text
     assert '<button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>' in text
     assert f"<option value=\"{repo.name}\"" not in text
