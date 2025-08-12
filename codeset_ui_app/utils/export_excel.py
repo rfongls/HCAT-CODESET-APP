@@ -18,7 +18,7 @@ def export_workbook(
     wb: Workbook,
     data: Dict[str, pd.DataFrame],
     stream: str | BufferedIOBase,
-    protected: Dict[str, bool] | None = None,
+    protected: Dict[str, bool] | bool | None = None,
 ) -> None:
     """Write ``data`` back into ``wb`` and save it to ``stream``.
 
@@ -34,8 +34,9 @@ def export_workbook(
     stream:
         File path or binary file-like object to save the workbook to.
     protected:
-        Optional mapping of sheet name to a boolean indicating whether the
-        sheet should be protected in the exported workbook.
+        Either a mapping of sheet name to a boolean indicating whether the
+        sheet should be protected in the exported workbook or a single
+        boolean to apply the same protection state to all sheets.
     """
 
     for sheet, df in data.items():
@@ -67,8 +68,13 @@ def export_workbook(
             for c_idx in col_map.values():
                 ws.cell(row=r, column=c_idx, value=None)
 
-        if protected is not None:
-            ws.protection.sheet = bool(protected.get(sheet, False))
+    if isinstance(protected, bool):
+        for ws in wb.worksheets:
+            ws.protection.sheet = protected
+    elif isinstance(protected, dict):
+        for sheet, value in protected.items():
+            if sheet in wb.sheetnames:
+                wb[sheet].protection.sheet = bool(value)
 
     wb.save(stream)
 
