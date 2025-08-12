@@ -142,8 +142,7 @@
     const comparisonData = {};
     comparisonData[initialSheet] = {{ compare_records|tojson }};
     const originalFilename = {{ filename|tojson }};
-    const sheetLocks = {};
-    sheetNames.forEach(s => sheetLocks[s] = false);
+    let sheetLock = false;
     let currentSheet = initialSheet;
     document.addEventListener('DOMContentLoaded', () => {
         const selector = document.getElementById('sheet-select');
@@ -467,7 +466,7 @@
                 const resp = await fetch('/export', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({data: workbook, locks: sheetLocks})
+                    body: JSON.stringify({data: workbook, locks: sheetLock})
                 });
                 if (resp.ok) {
                     await resp.json().catch(() => {});
@@ -513,7 +512,7 @@
             buttons.appendChild(importInput);
 
             function applyLockState() {
-                const locked = sheetLocks[sheet];
+                const locked = sheetLock;
                 lockBtn.textContent = locked ? '🔒' : '🔓';
                 lockBtn.className = `btn btn-sm ${locked ? 'btn-lock-protected' : 'btn-lock-unprotected'}`;
                 lockText.textContent = locked ? 'Sheet Protected' : 'Sheet Unprotected';
@@ -524,7 +523,7 @@
             }
 
             lockBtn.addEventListener('click', () => {
-                sheetLocks[sheet] = !sheetLocks[sheet];
+                sheetLock = !sheetLock;
                 applyLockState();
             });
 
