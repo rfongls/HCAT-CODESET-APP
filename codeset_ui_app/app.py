@@ -341,7 +341,7 @@ def index():
     compare_mode = bool(comparison_data)
 
     if request.method == "POST":
-        if request.form.get("repo_base"):
+        if "repo_base" in request.form:
             # user provided a parent directory to scan for repositories
             base_path = Path(request.form.get("repo_base", "")).expanduser()
             if base_path.is_dir():
