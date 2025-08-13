@@ -194,16 +194,13 @@
             let basePath = '';
             if (repoPicker.files.length) {
                 const f = repoPicker.files[0];
+                let full = f.path || repoPicker.value || '';
+                if (full.includes('fakepath')) full = f.path || '';
                 const isAbsolute = p => p && (p.startsWith('/') || /^[a-zA-Z]:\\/.test(p));
-                let full = repoPicker.value;
-                if (!isAbsolute(full)) full = f.path;
-                if (!isAbsolute(full)) full = '';
-                if (full) {
+                if (isAbsolute(full)) {
                     const sep = full.includes('\\') ? '\\' : '/';
                     full = full.replace(/[\\/]/g, sep);
-                    basePath = full.slice(0, full.length - f.name.length);
-                    if (basePath.includes('fakepath')) basePath = '';
-                    if (basePath && !basePath.endsWith(sep)) basePath += sep;
+                    basePath = full.slice(0, full.lastIndexOf(sep) + 1);
                 }
             }
             if (!basePath) {
