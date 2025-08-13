@@ -36,7 +36,6 @@
                     <button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>Load</button>
                 </div>
             </form>
-            <input type="file" id="repo-base-picker" style="display:none" webkitdirectory directory multiple />
             {% if repositories %}
             <form id="repo-form" method="post" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
@@ -168,7 +167,6 @@
         const workbookSelect = document.getElementById('workbook-select');
         const compareRepoSelect = document.getElementById('compare-repo-select');
         const compareWorkbookSelect = document.getElementById('compare-workbook-select');
-        const repoPicker = document.getElementById('repo-base-picker');
         const repoBrowse = document.getElementById('repo-browse');
         const repoBase = document.getElementById('repo-base');
         const repoLoad = document.getElementById('repo-load');
@@ -186,33 +184,40 @@
             if (repoSave) repoSave.disabled = !hasVal;
         };
 
+
         repoBrowse?.addEventListener('click', () => {
-            if (repoPicker) repoPicker.value = '';
-            repoPicker?.click();
-        });
-        repoPicker?.addEventListener('change', () => {
-            let basePath = '';
-            if (repoPicker.files.length) {
-                const f = repoPicker.files[0];
-                let full = f.path || '';
-                const driveMatch = (repoBase.value || repoPicker.value || '').match(/^[a-zA-Z]:/);
-                const drive = driveMatch ? driveMatch[0] : '';
-                if (!full && repoPicker.value) full = repoPicker.value;
-                if (full.startsWith('\\') && drive) full = drive + full;
-                if (!full && f.webkitRelativePath && drive) full = drive + '\\' + f.webkitRelativePath;
-                if (full.includes('fakepath')) full = '';
-                const isAbsolute = p => p && (p.startsWith('/') || /^[a-zA-Z]:\\/.test(p));
-                if (isAbsolute(full)) {
-                    const sep = full.includes('\\') ? '\\' : '/';
-                    full = full.replace(/[\\/]/g, sep);
-                    basePath = full.slice(0, full.lastIndexOf(sep) + 1);
+            const picker = document.createElement('input');
+            picker.type = 'file';
+            picker.style.display = 'none';
+            picker.setAttribute('webkitdirectory', '');
+            picker.setAttribute('directory', '');
+            picker.addEventListener('change', () => {
+                let basePath = '';
+                if (picker.files.length) {
+                    const f = picker.files[0];
+                    let full = f.path || '';
+                    const driveMatch = (repoBase.value || picker.value || '').match(/^[a-zA-Z]:/);
+                    const drive = driveMatch ? driveMatch[0] : '';
+                    if (!full && picker.value) full = picker.value;
+                    if (full.startsWith('\\') && drive) full = drive + full;
+                    if (!full && f.webkitRelativePath && drive) full = drive + '\\' + f.webkitRelativePath;
+                    if (full.includes('fakepath')) full = '';
+                    const isAbsolute = p => p && (p.startsWith('/') || /^[a-zA-Z]:\\/.test(p));
+                    if (isAbsolute(full)) {
+                        const sep = full.includes('\\') ? '\\' : '/';
+                        full = full.replace(/[\\/]/g, sep);
+                        basePath = full.slice(0, full.lastIndexOf(sep) + 1);
+                    }
                 }
-            }
-            if (!basePath) {
-                alert('Browser could not determine full folder path. Please paste it manually.');
-            }
-            repoBase.value = basePath;
-            enableRepoButtons();
+                if (!basePath) {
+                    alert('Browser could not determine full folder path. Please paste it manually.');
+                }
+                repoBase.value = basePath;
+                enableRepoButtons();
+                picker.remove();
+            });
+            document.body.appendChild(picker);
+            picker.click();
         });
 
         repoBase?.addEventListener('input', enableRepoButtons);
