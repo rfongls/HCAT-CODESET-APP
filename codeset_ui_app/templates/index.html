@@ -221,6 +221,16 @@
             }
             try {
                 const dirHandle = await window.showDirectoryPicker({ id: 'codeset-repo' });
+
+                // Some environments expose the absolute path directly
+                const fullPath = (dirHandle && 'path' in dirHandle) ? dirHandle.path : '';
+                if (fullPath && isAbsolutePath(fullPath)) {
+                    repoBase.value = ensureTrailing(fullPath);
+                    cacheRootsIfAbsolute();
+                    enableRepoButtons();
+                    return;
+                }
+
                 const selectedName = dirHandle?.name || '';
                 if (!selectedName) return;
 
@@ -228,7 +238,7 @@
                 const current = (repoBase.value || '').trim();
                 // If the field already holds an absolute path, use it as the base
                 if (isAbsolutePath(current)) {
-                    base = ensureTrailing(current); // e.g., "C\IntegrationServices\"
+                    base = ensureTrailing(parentDir(current) || current); // e.g., "C\\IntegrationServices\\"
                 }
 
                 // Fallback to a cached absolute path from any previous valid selection
@@ -242,7 +252,7 @@
                 // Final fallback: try a cached drive root
                 if (!base) {
                     const cachedDrive = localStorage.getItem('repoBaseDrive') || '';
-                    if (isAbsolutePath(cachedDrive) || /^[a-zA-Z]:[\/]/.test(cachedDrive) || cachedDrive === '/') {
+                    if (isAbsolutePath(cachedDrive) || /^[a-zA-Z]:[\\/]/.test(cachedDrive) || cachedDrive === '/') {
                         base = ensureTrailing(cachedDrive);
                     }
                 }
@@ -255,7 +265,7 @@
                     // No known base path yet — set to folder name and guide user once
                     repoBase.value = selectedName;
                     enableRepoButtons();
-                    alert('Full absolute path unavailable in browser. Paste an absolute path once (e.g., "C\IntegrationServices\") then use Select again.');
+                    alert('Full absolute path unavailable in browser. Paste an absolute path once (e.g., "C\\IntegrationServices\\") then use Select again.');
                 }
             } catch (_) {
                 // user canceled or denied; ignore
