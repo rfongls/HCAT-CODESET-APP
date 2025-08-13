@@ -194,8 +194,13 @@
             let basePath = '';
             if (repoPicker.files.length) {
                 const f = repoPicker.files[0];
-                let full = f.path || repoPicker.value || '';
-                if (full.includes('fakepath')) full = f.path || '';
+                let full = f.path || '';
+                const driveMatch = (repoBase.value || repoPicker.value || '').match(/^[a-zA-Z]:/);
+                const drive = driveMatch ? driveMatch[0] : '';
+                if (!full && repoPicker.value) full = repoPicker.value;
+                if (full.startsWith('\\') && drive) full = drive + full;
+                if (!full && f.webkitRelativePath && drive) full = drive + '\\' + f.webkitRelativePath;
+                if (full.includes('fakepath')) full = '';
                 const isAbsolute = p => p && (p.startsWith('/') || /^[a-zA-Z]:\\/.test(p));
                 if (isAbsolute(full)) {
                     const sep = full.includes('\\') ? '\\' : '/';

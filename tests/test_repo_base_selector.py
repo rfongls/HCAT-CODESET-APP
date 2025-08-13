@@ -27,7 +27,7 @@ def test_repository_folder_selection(tmp_path, monkeypatch):
     assert "Select repository folder" in text
     assert "id=\"repo-base-picker\"" in text
     assert "webkitdirectory" in text
-    assert "multiple" in text
+    assert "multiple" not in text
     assert "id=\"repo-browse\"" in text
     assert "id=\"repo-save\"" in text
     assert 'id="repo-base"' in text
