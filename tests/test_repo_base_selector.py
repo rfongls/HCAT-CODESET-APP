@@ -26,9 +26,12 @@ def test_repository_folder_selection(tmp_path, monkeypatch):
     text = resp.get_data(as_text=True)
     assert "Select repository folder" in text
     assert "id=\"repo-base-picker\"" in text
+    assert "webkitdirectory" in text
+    assert "multiple" not in text
     assert "id=\"repo-browse\"" in text
     assert "id=\"repo-save\"" in text
-    assert "No folder selected" in text
+    assert 'id="repo-base"' in text
+    assert 'placeholder="Enter folder path"' in text
     assert '<button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>' in text
     start = text.index('form id="path-form"')
     end = text.index('</form>', start)
