@@ -144,8 +144,7 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
+
     <script>
     const mappings = {{ mappings|tojson }};
     const dropdowns = {{ dropdowns|tojson }};
@@ -161,6 +160,7 @@
     const originalFilename = {{ filename|tojson }};
     let sheetLock = false;
     let currentSheet = initialSheet;
+
     document.addEventListener('DOMContentLoaded', () => {
         const selector = document.getElementById('sheet-select');
         const repoSelect = document.getElementById('repo-select');
@@ -178,50 +178,92 @@
         const fieldsText = document.getElementById('fields-text');
         const errorsPerSheet = {};
 
+        // ---------- helpers ----------
+        const isAbsolutePath = (p) => !!p && (p.startsWith('/') || /^[a-zA-Z]:\\/.test(p));
+        const getSep = (p) => (p && p.includes('\\') && !p.includes('/')) ? '\\' : '/';
+        const ensureTrailing = (p) => { const s = getSep(p); return p.endsWith(s) ? p : p + s; };
+        const parentDir = (p) => {
+            if (!isAbsolutePath(p)) return '';
+            const s = getSep(p);
+            let q = p.endsWith(s) ? p.slice(0, -1) : p;
+            const cut = q.lastIndexOf(s);
+            return cut >= 0 ? q.slice(0, cut + 1) : '';
+        };
+        const driveRoot = (p) => {
+            if (!isAbsolutePath(p)) return '';
+            const s = getSep(p);
+            const m = p.match(/^[a-zA-Z]:[\\/]/);
+            return m ? m[0].replace(/[\\/]/, s) : s; // Windows "C:\" or POSIX "/"
+        };
         const enableRepoButtons = () => {
-            const hasVal = repoBase?.value.trim();
-            if (repoLoad) repoLoad.disabled = !hasVal;
-            if (repoSave) repoSave.disabled = !hasVal;
+            const val = (repoBase.value || '').trim();
+            const ok = isAbsolutePath(val);
+            if (repoLoad) repoLoad.disabled = !ok;
+            if (repoSave) repoSave.disabled = !ok;
+        };
+        const cacheRootsIfAbsolute = () => {
+            const v = (repoBase.value || '').trim();
+            if (isAbsolutePath(v)) {
+                localStorage.setItem('repoBaseParent', parentDir(v) || v);
+                localStorage.setItem('repoBaseDrive', driveRoot(v) || '');
+            }
         };
 
+        // seed from default if absolute
+        (function seedFromDefault(){ cacheRootsIfAbsolute(); })();
 
-        repoBrowse?.addEventListener('click', () => {
-            const picker = document.createElement('input');
-            picker.type = 'file';
-            picker.style.display = 'none';
-            picker.setAttribute('webkitdirectory', '');
-            picker.setAttribute('directory', '');
-            picker.addEventListener('change', () => {
-                let basePath = '';
-                if (picker.files.length) {
-                    const f = picker.files[0];
-                    let full = f.path || '';
-                    const driveMatch = (repoBase.value || picker.value || '').match(/^[a-zA-Z]:/);
-                    const drive = driveMatch ? driveMatch[0] : '';
-                    if (!full && picker.value) full = picker.value;
-                    if (full.startsWith('\\') && drive) full = drive + full;
-                    if (!full && f.webkitRelativePath && drive) full = drive + '\\' + f.webkitRelativePath;
-                    if (full.includes('fakepath')) full = '';
-                    const isAbsolute = p => p && (p.startsWith('/') || /^[a-zA-Z]:\\/.test(p));
-                    if (isAbsolute(full)) {
-                        const sep = full.includes('\\') ? '\\' : '/';
-                        full = full.replace(/[\\/]/g, sep);
-                        basePath = full.slice(0, full.lastIndexOf(sep) + 1);
+        // ---------- Select Folder (File System Access API): FULL REPLACE ----------
+        // Always replace the field with a new absolute path built from a known drive root
+        // + the newly selected folder name. We do NOT nest under the old default path.
+        repoBrowse?.addEventListener('click', async () => {
+            if (!window.showDirectoryPicker) {
+                alert('Your browser does not support Select Folder. Please paste an absolute path.');
+                return;
+            }
+            try {
+                const dirHandle = await window.showDirectoryPicker({ id: 'codeset-repo' });
+                const selectedName = dirHandle?.name || '';
+                if (!selectedName) return;
+
+                let base = '';
+                const current = (repoBase.value || '').trim();
+
+                // Prefer a drive root from the current field if absolute
+                if (isAbsolutePath(current)) {
+                    base = driveRoot(current); // e.g., "C:\"
+                }
+
+                // Fallback to cached drive root from any previous valid absolute path
+                if (!base) {
+                    const cachedDrive = localStorage.getItem('repoBaseDrive') || '';
+                    if (isAbsolutePath(cachedDrive) || /^[a-zA-Z]:[\\/]/.test(cachedDrive) || cachedDrive === '/') {
+                        base = cachedDrive;
                     }
                 }
-                if (!basePath) {
-                    alert('Browser could not determine full folder path. Please paste it manually.');
+
+                if (base) {
+                    const sep = getSep(base);
+                    // Full replace: <driveRoot>/<selectedName>/
+                    repoBase.value = ensureTrailing(base + (base.endsWith(sep) ? '' : sep) + selectedName);
+                    cacheRootsIfAbsolute();
+                    enableRepoButtons();
+                } else {
+                    // No known drive root yet — set to folder name and guide user once
+                    repoBase.value = selectedName;
+                    enableRepoButtons();
+                    alert('Full absolute path unavailable in browser. Paste an absolute path once (e.g., "C:\\IntegrationServices\\") then use Select again.');
                 }
-                repoBase.value = basePath;
-                enableRepoButtons();
-                picker.remove();
-            });
-            document.body.appendChild(picker);
-            picker.click();
+            } catch (_) {
+                // user canceled or denied; ignore
+            }
         });
 
-        repoBase?.addEventListener('input', enableRepoButtons);
+        repoBase?.addEventListener('input', () => {
+            enableRepoButtons();
+            cacheRootsIfAbsolute();
+        });
         enableRepoButtons();
+        // --------------------------------------------
 
         function renderErrors() {
             if (!errorsBox || !errorList) return;
@@ -262,9 +304,8 @@
             const codeIdx = headerList.indexOf(codeCol);
             const displayIdx = headerList.indexOf(displayCol);
             const mappedIdx = headerList.indexOf(mappedCol);
-            if (table) {
-                table.querySelectorAll('td').forEach(td => td.classList.remove('error-cell'));
-            }
+            if (table) table.querySelectorAll('td').forEach(td => td.classList.remove('error-cell'));
+
             rows.forEach((row, idx) => {
                 const code = (row[codeCol] || '').trim();
                 const display = (row[displayCol] || '').trim();
@@ -304,6 +345,7 @@
             errorsPerSheet[sheet] = errs;
             renderErrors();
         }
+
         repoSelect?.addEventListener('change', async () => {
             const repo = repoSelect.value;
             workbookSelect.innerHTML = '<option value="">Select workbook</option>';
@@ -643,7 +685,7 @@
                 await ensureSheetLoaded(initialSheet);
                 renderSheet(initialSheet);
                 validateSheet(initialSheet);
-        renderFieldNote(initialSheet);
+                renderFieldNote(initialSheet);
             }
         })();
 
@@ -678,7 +720,8 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'error_report.csv';
+                const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+                a.download = `error_report_${ts}.csv`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
