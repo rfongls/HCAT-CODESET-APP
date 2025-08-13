@@ -36,7 +36,7 @@
                     <button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>Load</button>
                 </div>
             </form>
-            <input type="file" id="repo-base-picker" style="display:none" webkitdirectory />
+            <input type="file" id="repo-base-picker" style="display:none" webkitdirectory directory multiple />
             {% if repositories %}
             <form id="repo-form" method="post" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
@@ -194,7 +194,10 @@
             let basePath = '';
             if (repoPicker.files.length) {
                 const f = repoPicker.files[0];
-                let full = f.path || repoPicker.value || '';
+                const isAbsolute = p => p && (p.startsWith('/') || /^[a-zA-Z]:\\/.test(p));
+                let full = repoPicker.value;
+                if (!isAbsolute(full)) full = f.path;
+                if (!isAbsolute(full)) full = '';
                 if (full) {
                     const sep = full.includes('\\') ? '\\' : '/';
                     full = full.replace(/[\\/]/g, sep);
@@ -203,7 +206,9 @@
                     if (basePath && !basePath.endsWith(sep)) basePath += sep;
                 }
             }
-
+            if (!basePath) {
+                alert('Browser could not determine full folder path. Please paste it manually.');
+            }
             repoBase.value = basePath;
             enableRepoButtons();
         });
