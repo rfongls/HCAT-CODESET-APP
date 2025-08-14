@@ -179,7 +179,7 @@
         const errorsPerSheet = {};
 
         // ---------- helpers ----------
-        const isAbsolutePath = (p) => !!p && (p.startsWith('/') || /^[a-zA-Z]:\\/.test(p));
+        const isAbsolutePath = (p) => !!p && (p.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(p));
         const getSep = (p) => (p && p.includes('\\') && !p.includes('/')) ? '\\' : '/';
         const ensureTrailing = (p) => { const s = getSep(p); return p.endsWith(s) ? p : p + s; };
         const parentDir = (p) => {
