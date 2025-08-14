@@ -195,6 +195,20 @@
             const m = p.match(/^[a-zA-Z]:[\\/]/);
             return m ? m[0].replace(/[\\/]/, s) : s; // Windows "C:\" or POSIX "/"
         };
+        const handlePath = (h) => {
+            if (!h || !('path' in h)) return '';
+            let p = String(h.path || '');
+            if (p.startsWith('file://')) {
+                try { p = new URL(p).pathname; } catch (_) { p = p.slice(7); }
+            }
+            if (p.startsWith('/') && /^[a-zA-Z]:/.test(p.slice(1))) {
+                p = p.slice(1);
+            }
+            if (/^[a-zA-Z]:/.test(p)) {
+                p = p.replace(/\//g, '\\');
+            }
+            return p;
+        };
         const enableRepoButtons = () => {
             const val = (repoBase.value || '').trim();
             const ok = isAbsolutePath(val);
@@ -223,7 +237,7 @@
                 const dirHandle = await window.showDirectoryPicker({ id: 'codeset-repo' });
 
                 // Some environments expose the absolute path directly
-                const fullPath = (dirHandle && 'path' in dirHandle) ? dirHandle.path : '';
+                const fullPath = handlePath(dirHandle);
                 if (fullPath && isAbsolutePath(fullPath)) {
                     repoBase.value = ensureTrailing(fullPath);
                     cacheRootsIfAbsolute();
