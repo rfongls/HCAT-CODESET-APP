@@ -179,7 +179,7 @@
         const errorsPerSheet = {};
 
         // ---------- helpers ----------
-        const isAbsolutePath = (p) => !!p && (p.startsWith('/') || /^[a-zA-Z]:\\/.test(p));
+        const isAbsolutePath = (p) => !!p && (p.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(p));
         const getSep = (p) => (p && p.includes('\\') && !p.includes('/')) ? '\\' : '/';
         const ensureTrailing = (p) => { const s = getSep(p); return p.endsWith(s) ? p : p + s; };
         const parentDir = (p) => {
@@ -194,6 +194,20 @@
             const s = getSep(p);
             const m = p.match(/^[a-zA-Z]:[\\/]/);
             return m ? m[0].replace(/[\\/]/, s) : s; // Windows "C:\" or POSIX "/"
+        };
+        const handlePath = (h) => {
+            if (!h || !('path' in h)) return '';
+            let p = String(h.path || '');
+            if (p.startsWith('file://')) {
+                try { p = new URL(p).pathname; } catch (_) { p = p.slice(7); }
+            }
+            if (p.startsWith('/') && /^[a-zA-Z]:/.test(p.slice(1))) {
+                p = p.slice(1);
+            }
+            if (/^[a-zA-Z]:/.test(p)) {
+                p = p.replace(/\//g, '\\');
+            }
+            return p;
         };
         const enableRepoButtons = () => {
             const val = (repoBase.value || '').trim();
@@ -212,9 +226,8 @@
         // seed from default if absolute
         (function seedFromDefault(){ cacheRootsIfAbsolute(); })();
 
-        // ---------- Select Folder (File System Access API): FULL REPLACE ----------
-        // Always replace the field with a new absolute path built from a known drive root
-        // + the newly selected folder name. We do NOT nest under the old default path.
+        // ---------- Select Folder (File System Access API) ----------
+        // Replace the field with the absolute path to the selected folder when possible.
         repoBrowse?.addEventListener('click', async () => {
             if (!window.showDirectoryPicker) {
                 alert('Your browser does not support Select Folder. Please paste an absolute path.');
@@ -222,36 +235,51 @@
             }
             try {
                 const dirHandle = await window.showDirectoryPicker({ id: 'codeset-repo' });
+
+                // Some environments expose the absolute path directly
+                const fullPath = handlePath(dirHandle);
+                if (fullPath && isAbsolutePath(fullPath)) {
+                    repoBase.value = ensureTrailing(fullPath);
+                    cacheRootsIfAbsolute();
+                    enableRepoButtons();
+                    return;
+                }
+
                 const selectedName = dirHandle?.name || '';
                 if (!selectedName) return;
 
                 let base = '';
                 const current = (repoBase.value || '').trim();
-
-                // Prefer a drive root from the current field if absolute
+                // If the field already holds an absolute path, use it as the base
                 if (isAbsolutePath(current)) {
-                    base = driveRoot(current); // e.g., "C:\"
+                    base = ensureTrailing(parentDir(current) || current); // e.g., "C\\IntegrationServices\\"
                 }
 
-                // Fallback to cached drive root from any previous valid absolute path
+                // Fallback to a cached absolute path from any previous valid selection
+                if (!base) {
+                    const cachedParent = localStorage.getItem('repoBaseParent') || '';
+                    if (isAbsolutePath(cachedParent)) {
+                        base = ensureTrailing(cachedParent);
+                    }
+                }
+
+                // Final fallback: try a cached drive root
                 if (!base) {
                     const cachedDrive = localStorage.getItem('repoBaseDrive') || '';
                     if (isAbsolutePath(cachedDrive) || /^[a-zA-Z]:[\\/]/.test(cachedDrive) || cachedDrive === '/') {
-                        base = cachedDrive;
+                        base = ensureTrailing(cachedDrive);
                     }
                 }
 
                 if (base) {
-                    const sep = getSep(base);
-                    // Full replace: <driveRoot>/<selectedName>/
-                    repoBase.value = ensureTrailing(base + (base.endsWith(sep) ? '' : sep) + selectedName);
+                    repoBase.value = ensureTrailing(base + selectedName);
                     cacheRootsIfAbsolute();
                     enableRepoButtons();
                 } else {
-                    // No known drive root yet — set to folder name and guide user once
+                    // No known base path yet — set to folder name and guide user once
                     repoBase.value = selectedName;
                     enableRepoButtons();
-                    alert('Full absolute path unavailable in browser. Paste an absolute path once (e.g., "C:\\IntegrationServices\\") then use Select again.');
+                    alert('Full absolute path unavailable in browser. Paste an absolute path once (e.g., "C\\IntegrationServices\\") then use Select again.');
                 }
             } catch (_) {
                 // user canceled or denied; ignore
