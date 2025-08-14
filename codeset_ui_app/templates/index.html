@@ -197,6 +197,7 @@
         };
         const handlePath = async (h) => {
             if (!h) return '';
+
             let p = '';
             if ('path' in h && h.path) {
                 p = String(h.path);
@@ -237,6 +238,7 @@
                 } catch (_) {}
             }
             if (!p) return '';
+
             if (p.startsWith('file://')) {
                 try { p = new URL(p).pathname; } catch (_) { p = p.slice(7); }
             }
@@ -277,6 +279,7 @@
 
                 // Some environments expose the absolute path directly
                 const fullPath = await handlePath(dirHandle);
+
                 if (fullPath && isAbsolutePath(fullPath)) {
                     repoBase.value = ensureTrailing(fullPath);
                     cacheRootsIfAbsolute();
