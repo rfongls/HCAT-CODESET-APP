@@ -195,9 +195,9 @@
             const m = p.match(/^[a-zA-Z]:[\\/]/);
             return m ? m[0].replace(/[\\/]/, s) : s; // Windows "C:\" or POSIX "/"
         };
-        const handlePath = (h) => {
+        const handlePath = async (h) => {
             if (!h) return '';
-            // Try various non-standard properties exposed by different browsers
+
             let p = '';
             if ('path' in h && h.path) {
                 p = String(h.path);
@@ -207,6 +207,35 @@
                 p = String(h.nativePath);
             } else if ('fsPath' in h && h.fsPath) {
                 p = String(h.fsPath);
+            }
+            // Fall back to inspecting a file within the directory to infer its absolute path
+            if (!p) {
+                try {
+                    for await (const [, entry] of h.entries()) {
+                        if (entry.kind === 'file') {
+                            const f = await entry.getFile();
+                            if (f && 'path' in f && f.path) {
+                                const fp = String(f.path);
+                                const sep = fp.includes('\\') ? '\\' : '/';
+                                p = fp.slice(0, fp.lastIndexOf(sep));
+                                break;
+                            }
+                        }
+                    }
+                } catch (_) {}
+            }
+            // As a last resort, create a temporary file to read its path
+            if (!p) {
+                try {
+                    const tmp = await h.getFileHandle('.codeset_tmp', { create: true });
+                    const f = await tmp.getFile();
+                    if (f && 'path' in f && f.path) {
+                        const fp = String(f.path);
+                        const sep = fp.includes('\\') ? '\\' : '/';
+                        p = fp.slice(0, fp.lastIndexOf(sep));
+                    }
+                    await h.removeEntry('.codeset_tmp');
+                } catch (_) {}
             }
             if (!p) return '';
 
@@ -249,7 +278,8 @@
                 const dirHandle = await window.showDirectoryPicker({ id: 'codeset-repo' });
 
                 // Some environments expose the absolute path directly
-                const fullPath = handlePath(dirHandle);
+                const fullPath = await handlePath(dirHandle);
+
                 if (fullPath && isAbsolutePath(fullPath)) {
                     repoBase.value = ensureTrailing(fullPath);
                     cacheRootsIfAbsolute();
