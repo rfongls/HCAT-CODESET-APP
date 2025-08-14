@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Codeset Management System</title> 
+    <title>Codeset Management System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- Bootstrap CSS -->
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
@@ -23,10 +24,11 @@
         <section class="controls mb-3">
             <form id="path-form" method="post" class="row g-2 align-items-end mb-3">
                 <div class="col-12 col-md-8">
-                    <label for="repo-base" class="form-label">Select repository folder</label>
+                    <label for="repo-base" class="form-label"><b>Select repository folder</b></label>
                     <div class="input-group">
-                        <button type="button" id="repo-browse" class="btn btn-outline-secondary">Select</button>
                         <input type="text" id="repo-base" name="repo_base" class="form-control" value="{{ repo_base or '' }}" placeholder="Enter folder path" />
+                        <!-- Browse button to match JS handler -->
+                        <button type="button" id="repo-browse" class="btn btn-outline-secondary">Browse…</button>
                     </div>
                 </div>
                 <div class="col-12 col-md-2">
@@ -39,7 +41,7 @@
             {% if repositories %}
             <form id="repo-form" method="post" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
-                    <label for="repo-select" class="form-label">Select the repository you want to edit a codeset for:</label>
+                    <label for="repo-select" class="form-label"><b>Select the repository you want to edit a codeset for:</b></label>
                     <select id="repo-select" name="repo" class="form-select {% if selected_repo %}selected-primary{% endif %}">
                         <option value="">Select repository</option>
                         {% for repo in repositories %}
@@ -48,7 +50,7 @@
                     </select>
                 </div>
                 <div class="col-12 col-md-4">
-                    <label for="workbook-select" class="form-label">Workbook</label>
+                    <label for="workbook-select" class="form-label"><b>Workbook</b></label>
                     <select id="workbook-select" name="workbook_name" class="form-select {% if selected_workbook %}selected-primary{% endif %}" {% if not repo_files %}disabled{% endif %}>
                         <option value="">Select workbook</option>
                         {% for wb in repo_files %}
@@ -105,13 +107,21 @@
 
         {% if sheet_names %}
         <div class="tabs">
-            <div class="sheet-selector mb-3">
-                <select id="sheet-select" class="form-select">
-                {% for sheet in sheet_names %}
-                    <option value="{{ sheet }}" {% if sheet == initial_sheet %}selected{% endif %}>{{ sheet }}</option>
-                {% endfor %}
-                </select>
+
+            <!-- Option B: align Active Sheet with the 8+2+2 layout (same as repository folder row) -->
+            <div class="row g-2 align-items-end mb-3">
+                <div class="col-12 col-md-8">
+                    <label for="sheet-select" class="form-label mb-0"><b>Active Sheet</b></label>
+                    <select id="sheet-select" class="form-select">
+                    {% for sheet in sheet_names %}
+                        <option value="{{ sheet }}" {% if sheet == initial_sheet %}selected{% endif %}>{{ sheet }}</option>
+                    {% endfor %}
+                    </select>
+                </div>
+                <div class="d-none d-md-block col-md-2"></div>
+                <div class="d-none d-md-block col-md-2"></div>
             </div>
+
             <div class="row">
                 <div class="col-lg-9">
                     <div id="table-wrapper" class="table-wrapper"></div>
@@ -122,7 +132,7 @@
                         <h5 class="alert-heading fw-bold">Fields</h5>
                         <p id="fields-text" class="mb-0">{{ field_notes.get(initial_sheet, '') }}</p>
                     </div>
-                    <div id="requirements-box" class="alert">
+                    <div id="requirements-box" class="alert alert-info">
                         <h5 class="alert-heading fw-bold">Requirements</h5>
                         <ul class="mb-0">
                             <li>If CODE is populated, DISPLAY VALUE must be populated and vice versa.</li>
@@ -131,7 +141,7 @@
                             <li>Codes must be unique within a tab.</li>
                         </ul>
                     </div>
-                    <div id="errors-box" class="alert alert-danger mt-3 d-none">
+                    <div id="errors-box" class="alert alert-danger mt-3 d-none" aria-live="polite" aria-atomic="true">
                         <h5 class="alert-heading fw-bold">Errors</h5>
                         <ul id="error-list" class="mb-0"></ul>
                         <button id="export-errors" class="btn btn-outline-danger btn-sm mt-2 d-none">Download Error Report</button>
@@ -340,11 +350,18 @@
             const allErrors = Object.values(errorsPerSheet).flat();
             if (allErrors.length) {
                 errorsBox.classList.remove('d-none');
-                errorList.innerHTML = allErrors.map(e => `<li>${e}</li>`).join('');
+                // Safe render
+                errorList.replaceChildren(
+                    ...allErrors.map(txt => {
+                        const li = document.createElement('li');
+                        li.textContent = txt;
+                        return li;
+                    })
+                );
                 exportErrorsBtn?.classList.remove('d-none');
             } else {
                 errorsBox.classList.add('d-none');
-                errorList.innerHTML = '';
+                errorList.replaceChildren();
                 exportErrorsBtn?.classList.add('d-none');
             }
         }
@@ -377,9 +394,9 @@
             if (table) table.querySelectorAll('td').forEach(td => td.classList.remove('error-cell'));
 
             rows.forEach((row, idx) => {
-                const code = (row[codeCol] || '').trim();
-                const display = (row[displayCol] || '').trim();
-                const mapped = (row[mappedCol] || '').trim();
+                const code    = String(row[codeCol] ?? '').trim();
+                const display = String(row[displayCol] ?? '').trim();
+                const mapped  = String(row[mappedCol] ?? '').trim();
                 const tr = table ? table.tBodies[0].rows[idx] : null;
                 if (code && !display) {
                     errs.push(`On tab "${sheet}" - Code "${code}" does not have a display value`);
@@ -466,7 +483,7 @@
                 span.textContent = value || '';
                 return span;
             }
-            const key = header.toUpperCase().replace(' ', '_');
+            const key = header.toUpperCase().replace(/\s+/g, '_');
             const mapInfo = mappings[sheet] || {};
             const opts = dropdowns[sheet] && dropdowns[sheet][header];
             if (mapInfo.mapped_col && header === mapInfo.mapped_col && opts) {
@@ -655,14 +672,24 @@
                         const data = await resp.json();
                         if (data.errors) {
                             errorsBox.classList.remove('d-none');
-                            errorList.innerHTML = data.errors.map(e => `<li>${e}</li>`).join('');
+                            errorList.replaceChildren(
+                                ...data.errors.map(e => {
+                                    const li = document.createElement('li');
+                                    li.textContent = e;
+                                    return li;
+                                })
+                            );
                         } else {
                             errorsBox.classList.remove('d-none');
-                            errorList.innerHTML = '<li>Export failed</li>';
+                            errorList.replaceChildren(
+                                (() => { const li = document.createElement('li'); li.textContent = 'Export failed'; return li; })()
+                            );
                         }
                     } catch {
                         errorsBox.classList.remove('d-none');
-                        errorList.innerHTML = '<li>Export failed</li>';
+                        errorList.replaceChildren(
+                            (() => { const li = document.createElement('li'); li.textContent = 'Export failed'; return li; })()
+                        );
                     }
                 }
             });
@@ -693,6 +720,7 @@
                 const locked = sheetLock;
                 lockBtn.textContent = locked ? '🔒' : '🔓';
                 lockBtn.className = `btn btn-sm ${locked ? 'btn-lock-protected' : 'btn-lock-unprotected'}`;
+                lockBtn.setAttribute('aria-pressed', String(locked));
                 lockText.textContent = locked ? 'Sheet Protected' : 'Sheet Unprotected';
                 table.querySelectorAll('input, select').forEach(el => {
                     el.disabled = locked;
