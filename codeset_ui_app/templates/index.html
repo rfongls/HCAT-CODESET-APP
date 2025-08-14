@@ -209,6 +209,7 @@
                 p = String(h.fsPath);
             }
             if (!p) return '';
+
             if (p.startsWith('file://')) {
                 try { p = new URL(p).pathname; } catch (_) { p = p.slice(7); }
             }
