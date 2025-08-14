@@ -196,8 +196,20 @@
             return m ? m[0].replace(/[\\/]/, s) : s; // Windows "C:\" or POSIX "/"
         };
         const handlePath = (h) => {
-            if (!h || !('path' in h)) return '';
-            let p = String(h.path || '');
+            if (!h) return '';
+            // Try various non-standard properties exposed by different browsers
+            let p = '';
+            if ('path' in h && h.path) {
+                p = String(h.path);
+            } else if ('fullPath' in h && h.fullPath) {
+                p = String(h.fullPath);
+            } else if ('nativePath' in h && h.nativePath) {
+                p = String(h.nativePath);
+            } else if ('fsPath' in h && h.fsPath) {
+                p = String(h.fsPath);
+            }
+            if (!p) return '';
+
             if (p.startsWith('file://')) {
                 try { p = new URL(p).pathname; } catch (_) { p = p.slice(7); }
             }
