@@ -14,17 +14,32 @@ header {
     margin-bottom: 20px;
 }
 
+/* --- Bootstrap palette tweaks for consistency --- */
+.bg-primary {
+    background-color: #4B0082 !important;
+}
 
 .btn-primary {
     background-color: #4B0082;
     border-color: #4B0082;
 }
-
 .btn-primary:hover {
     background-color: #36005f;
     border-color: #36005f;
 }
 
+.btn-outline-primary {
+    color: #4B0082;
+    border-color: #4B0082;
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+    color: #fff;
+    background-color: #4B0082;
+    border-color: #4B0082;
+}
+
+/* --- Tables / grid --- */
 .table-wrapper {
     overflow: auto;
     max-height: 70vh;
@@ -41,7 +56,6 @@ header {
     border: 1px solid #ddd;
     padding: 6px 8px;
 }
-
 
 .codeset-table th {
     background-color: #4B0082;
@@ -62,6 +76,7 @@ header {
     color: #fff;
 }
 
+/* --- Validation / states --- */
 .error {
     color: red;
     margin-top: 1rem;
@@ -71,12 +86,35 @@ header {
     background-color: #f8d7da !important;
 }
 
+/* Base highlight tokens (kept for non-form controls) */
 .selected-primary,
 .selected-compare {
     background-color: #fff9c4;
     color: #000;
 }
 
+/* Stronger highlight on selects/inputs inside Bootstrap cards */
+.form-select.selected-primary,
+.form-control.selected-primary {
+    background-color: #fff9c4 !important;
+    color: #000 !important;
+    border-color: #e6d77a !important;
+}
+.form-select.selected-compare,
+.form-control.selected-compare {
+    background-color: #fff9c4 !important;
+    color: #000 !important;
+    border-color: #a7d8ff !important;
+}
+/* Optional focus ring */
+.form-select.selected-primary:focus,
+.form-control.selected-primary:focus,
+.form-select.selected-compare:focus,
+.form-control.selected-compare:focus {
+    box-shadow: 0 0 0 .2rem rgba(255, 235, 130, .35) !important;
+}
+
+/* --- Side info boxes --- */
 #fields-box {
     background-color: #fff9c4;
     color: #000;
@@ -97,6 +135,7 @@ header {
     font-weight: 700;
 }
 
+/* --- Sheet lock buttons --- */
 .btn-lock-unprotected,
 .btn-lock-unprotected:hover,
 .btn-lock-unprotected:focus {
@@ -111,4 +150,55 @@ header {
     background-color: #42b0f5;
     border: 1px solid #42b0f5;
     color: #000;
+}
+
+/* =========================
+   Cards & Dividers
+   ========================= */
+.section-card {
+    background: #fff;
+    border: 1px solid #e6e6f0;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(75, 0, 130, 0.06); /* faint indigo tint */
+}
+
+.section-title {
+    font-weight: 700;
+    color: #4B0082;
+    margin: 0 0 .5rem 0;
+    font-size: 1rem;
+}
+
+.section-divider {
+    border: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #4B0082 45%, transparent);
+    opacity: .5;
+    margin: 1rem 0;
+}
+
+/* =========================
+   Collapsible Taskbar
+   ========================= */
+.control-taskbar {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .5rem .75rem;
+    border-radius: .5rem;
+    box-shadow: 0 6px 24px rgba(0,0,0,.18);
+    color: #fff; /* used with .bg-primary */
+}
+.control-taskbar .chev {
+    font-size: 1rem;
+    line-height: 1;
+    transition: transform .18s ease-in-out;
+}
+.control-taskbar[aria-expanded="true"] .chev {
+    transform: rotate(180deg);
 }

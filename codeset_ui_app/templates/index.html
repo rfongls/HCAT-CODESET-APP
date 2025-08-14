@@ -1,164 +1,210 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Codeset Management System</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Bootstrap CSS -->
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
-        crossorigin="anonymous"
-    />
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  <meta charset="UTF-8" />
+  <title>Codeset Management System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Bootstrap CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+    crossorigin="anonymous"
+  />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+
+  <!-- Taskbar styling -->
+  <style>
+    .control-taskbar {
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .5rem .75rem;
+      border-radius: .375rem;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+    .control-taskbar .label { font-weight: 600; letter-spacing: .2px; }
+    .control-taskbar .chev { font-size: 1rem; line-height: 1; transition: transform .18s ease-in-out; }
+    .control-taskbar[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  </style>
 </head>
 <body>
-    <header>
-        <h1>Codeset Automation App</h1>
-    </header>
-    <main class="container-fluid my-4">
-        {% if error %}
-        <div class="alert alert-danger" role="alert">{{ error }}</div>
+  <header>
+    <h1>Codeset Automation App</h1>
+  </header>
+
+  <main class="container-fluid my-4">
+    {% if error %}
+    <div class="alert alert-danger" role="alert">{{ error }}</div>
+    {% endif %}
+
+    <!-- CONTROLS: Taskbar + Body -->
+    <section class="controls mb-3">
+
+      <!-- Taskbar (only shown once a workbook is/has been loaded) -->
+      <div
+        id="controls-taskbar"
+        class="control-taskbar bg-primary text-white mb-2 {% if not selected_workbook %}d-none{% endif %}"
+        role="button"
+        tabindex="0"
+        aria-controls="controls-body"
+        aria-expanded="false"
+      >
+        <span class="label">Controls</span>
+        <span class="chev">▾</span>
+      </div>
+
+      <!-- Controls body wrapped in a card (no title) -->
+      <div id="controls-body" class="section-card {% if selected_workbook %}d-none{% endif %}">
+        <form id="path-form" method="post" class="row g-2 align-items-end mb-3">
+          <div class="col-12 col-md-8">
+            <label for="repo-base" class="form-label"><b>Select repository folder</b></label>
+            <div class="input-group">
+              <input type="text" id="repo-base" name="repo_base" class="form-control" value="{{ repo_base or '' }}" placeholder="Enter folder path" />
+              <button type="button" id="repo-browse" class="btn btn-outline-secondary">Browse…</button>
+            </div>
+          </div>
+          <div class="col-12 col-md-2">
+            <button type="submit" id="repo-save" name="save_repo_base" value="1" class="btn btn-outline-secondary w-100" disabled>Save</button>
+          </div>
+          <div class="col-12 col-md-2">
+            <button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>Load</button>
+          </div>
+        </form>
+
+        {% if repositories %}
+        <form id="repo-form" method="post" class="row g-2 align-items-end">
+          <div class="col-12 col-md-4">
+            <label for="repo-select" class="form-label"><b>Select the repository you want to edit a codeset for:</b></label>
+            <select id="repo-select" name="repo" class="form-select {% if selected_repo %}selected-primary{% endif %}">
+              <option value="">Select repository</option>
+              {% for repo in repositories %}
+              <option value="{{ repo }}" {% if repo == selected_repo %}selected{% endif %}>{{ repo }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-md-4">
+            <label for="workbook-select" class="form-label"><b>Workbook</b></label>
+            <select id="workbook-select" name="workbook_name" class="form-select {% if selected_workbook %}selected-primary{% endif %}" {% if not repo_files %}disabled{% endif %}>
+              <option value="">Select workbook</option>
+              {% for wb in repo_files %}
+              <option value="{{ wb }}" {% if wb == selected_workbook %}selected{% endif %}>{{ wb }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-md-2">
+            <button id="load-workbook-btn" type="submit" class="btn btn-primary w-100" disabled>Load Workbook</button>
+          </div>
+          {% if sheet_names and not compare_mode %}
+          <div class="col-12 col-md-2">
+            <button type="submit" name="start_compare" value="1" class="btn btn-outline-primary w-100">Compare</button>
+          </div>
+          {% endif %}
+        </form>
+
+        {% if sheet_names and compare_mode %}
+        <form id="compare-form" method="post" class="row g-2 align-items-end mt-2">
+          <div class="col-12 col-md-4">
+            <select id="compare-repo-select" name="compare_repo" class="form-select {% if comparison_active %}selected-compare{% endif %}">
+              <option value="">Select repository</option>
+              {% for repo in comparison_repositories %}
+              <option value="{{ repo }}" {% if repo == selected_compare_repo %}selected{% endif %}>{{ repo }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-md-4">
+            <select id="compare-workbook-select" name="compare_workbook_name" class="form-select {% if comparison_active %}selected-compare{% endif %}" {% if not compare_repo_files %}disabled{% endif %}>
+              <option value="">Select workbook</option>
+              {% for wb in compare_repo_files %}
+              <option value="{{ wb }}" {% if wb == selected_compare_workbook %}selected{% endif %}>{{ wb }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 col-md-2">
+            {% if comparison_active %}
+            <button type="submit" name="end_compare" value="1" class="btn btn-outline-secondary w-100">Clear Comparison</button>
+            {% else %}
+            <button id="load-comparison-btn" type="submit" class="btn btn-outline-primary w-100">Load Comparison</button>
+            {% endif %}
+          </div>
+        </form>
         {% endif %}
-        <section class="controls mb-3">
-            <form id="path-form" method="post" class="row g-2 align-items-end mb-3">
-                <div class="col-12 col-md-8">
-                    <label for="repo-base" class="form-label"><b>Select repository folder</b></label>
-                    <div class="input-group">
-                        <input type="text" id="repo-base" name="repo_base" class="form-control" value="{{ repo_base or '' }}" placeholder="Enter folder path" />
-                        <!-- Browse button to match JS handler -->
-                        <button type="button" id="repo-browse" class="btn btn-outline-secondary">Browse…</button>
-                    </div>
-                </div>
-                <div class="col-12 col-md-2">
-                    <button type="submit" id="repo-save" name="save_repo_base" value="1" class="btn btn-outline-secondary w-100" disabled>Save</button>
-                </div>
-                <div class="col-12 col-md-2">
-                    <button type="submit" id="repo-load" class="btn btn-primary w-100" disabled>Load</button>
-                </div>
-            </form>
-            {% if repositories %}
-            <form id="repo-form" method="post" class="row g-2 align-items-end">
-                <div class="col-12 col-md-4">
-                    <label for="repo-select" class="form-label"><b>Select the repository you want to edit a codeset for:</b></label>
-                    <select id="repo-select" name="repo" class="form-select {% if selected_repo %}selected-primary{% endif %}">
-                        <option value="">Select repository</option>
-                        {% for repo in repositories %}
-                        <option value="{{ repo }}" {% if repo == selected_repo %}selected{% endif %}>{{ repo }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-12 col-md-4">
-                    <label for="workbook-select" class="form-label"><b>Workbook</b></label>
-                    <select id="workbook-select" name="workbook_name" class="form-select {% if selected_workbook %}selected-primary{% endif %}" {% if not repo_files %}disabled{% endif %}>
-                        <option value="">Select workbook</option>
-                        {% for wb in repo_files %}
-                        <option value="{{ wb }}" {% if wb == selected_workbook %}selected{% endif %}>{{ wb }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-12 col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">Load Workbook</button>
-                </div>
-                {% if sheet_names and not compare_mode %}
-                <div class="col-12 col-md-2">
-                    <button type="submit" name="start_compare" value="1" class="btn btn-outline-primary w-100">Compare</button>
-                </div>
-                {% endif %}
-            </form>
-            {% if sheet_names and compare_mode %}
-            <form id="compare-form" method="post" class="row g-2 align-items-end mt-2">
-                <div class="col-12 col-md-4">
-                    <select id="compare-repo-select" name="compare_repo" class="form-select {% if comparison_active %}selected-compare{% endif %}">
-                        <option value="">Select repository</option>
-                        {% for repo in comparison_repositories %}
-                        <option value="{{ repo }}" {% if repo == selected_compare_repo %}selected{% endif %}>{{ repo }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-12 col-md-4">
-                    <select id="compare-workbook-select" name="compare_workbook_name" class="form-select {% if comparison_active %}selected-compare{% endif %}" {% if not compare_repo_files %}disabled{% endif %}>
-                        <option value="">Select workbook</option>
-                        {% for wb in compare_repo_files %}
-                        <option value="{{ wb }}" {% if wb == selected_compare_workbook %}selected{% endif %}>{{ wb }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-12 col-md-2">
-                    {% if comparison_active %}
-                    <button type="submit" name="end_compare" value="1" class="btn btn-outline-secondary w-100">Clear Comparison</button>
-                    {% else %}
-                    <button type="submit" class="btn btn-outline-primary w-100">Load Comparison</button>
-                    {% endif %}
-                </div>
-            </form>
-            {% endif %}
-            <form id="upload-form" method="post" enctype="multipart/form-data" class="row g-2 align-items-end mt-2">
-                <div class="col-12 col-md-8">
-                    <input type="file" name="workbook" accept=".xlsx" class="form-control" />
-                </div>
-                <div class="col-12 col-md-2">
-                    <button type="submit" class="btn btn-secondary w-100">Upload</button>
-                </div>
-            </form>
-            {% endif %}
-        </section>
 
-        {% if sheet_names %}
-        <div class="tabs">
+        <form id="upload-form" method="post" enctype="multipart/form-data" class="row g-2 align-items-end mt-2">
+          <div class="col-12 col-md-8">
+            <input type="file" name="workbook" accept=".xlsx" class="form-control" />
+          </div>
+          <div class="col-12 col-md-2">
+            <button type="submit" class="btn btn-secondary w-100">Upload</button>
+          </div>
+        </form>
+        {% endif %}
+      </div><!-- /controls-body (card) -->
+    </section>
 
-            <!-- Option B: align Active Sheet with the 8+2+2 layout (same as repository folder row) -->
-            <div class="row g-2 align-items-end mb-3">
-                <div class="col-12 col-md-8">
-                    <label for="sheet-select" class="form-label mb-0"><b>Active Sheet</b></label>
-                    <select id="sheet-select" class="form-select">
-                    {% for sheet in sheet_names %}
-                        <option value="{{ sheet }}" {% if sheet == initial_sheet %}selected{% endif %}>{{ sheet }}</option>
-                    {% endfor %}
-                    </select>
-                </div>
-                <div class="d-none d-md-block col-md-2"></div>
-                <div class="d-none d-md-block col-md-2"></div>
-            </div>
+    {% if sheet_names %}
+    <!-- Divider between controls and active sheet -->
+    <hr class="section-divider" aria-hidden="true">
 
-            <div class="row">
-                <div class="col-lg-9">
-                    <div id="table-wrapper" class="table-wrapper"></div>
-                    <div id="table-buttons" class="mt-2 d-flex gap-2"></div>
-                </div>
-                <div class="col-lg-3">
-                    <div id="fields-box" class="alert{% if not field_notes.get(initial_sheet) %} d-none{% endif %}">
-                        <h5 class="alert-heading fw-bold">Fields</h5>
-                        <p id="fields-text" class="mb-0">{{ field_notes.get(initial_sheet, '') }}</p>
-                    </div>
-                    <div id="requirements-box" class="alert alert-info">
-                        <h5 class="alert-heading fw-bold">Requirements</h5>
-                        <ul class="mb-0">
-                            <li>If CODE is populated, DISPLAY VALUE must be populated and vice versa.</li>
-                            <li>If STANDARD_CODE/STANDARD_DESCRIPTION exist, a MAPPED_STD_DESCRIPTION must be selected.</li>
-                            <li>If MAPPED_STD_DESCRIPTION is populated, CODE and DISPLAY VALUE must be provided.</li>
-                            <li>Codes must be unique within a tab.</li>
-                        </ul>
-                    </div>
-                    <div id="errors-box" class="alert alert-danger mt-3 d-none" aria-live="polite" aria-atomic="true">
-                        <h5 class="alert-heading fw-bold">Errors</h5>
-                        <ul id="error-list" class="mb-0"></ul>
-                        <button id="export-errors" class="btn btn-outline-danger btn-sm mt-2 d-none">Download Error Report</button>
-                    </div>
-                </div>
-            </div>
+    <!-- Active Sheet wrapped in a card -->
+    <div class="section-card" id="active-sheet-card">
+      <div class="section-title">Active Sheet</div>
+
+      <!-- Alignment 8 + 2 + 2 -->
+      <div class="row g-2 align-items-end mb-3">
+        <div class="col-12 col-md-8">
+          <label for="sheet-select" class="form-label mb-0"><b>Sheet</b></label>
+          <select id="sheet-select" class="form-select">
+            {% for sheet in sheet_names %}
+            <option value="{{ sheet }}" {% if sheet == initial_sheet %}selected{% endif %}>{{ sheet }}</option>
+            {% endfor %}
+          </select>
         </div>
-        {% endif %}
-    </main>
+        <div class="d-none d-md-block col-md-2"></div>
+        <div class="d-none d-md-block col-md-2"></div>
+      </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV" crossorigin="anonymous"></script>
+      <div class="row">
+        <div class="col-lg-9">
+          <div id="table-wrapper" class="table-wrapper"></div>
+          <div id="table-buttons" class="mt-2 d-flex gap-2"></div>
+        </div>
+        <div class="col-lg-3">
+          <div id="fields-box" class="alert{% if not field_notes.get(initial_sheet) %} d-none{% endif %}">
+            <h5 class="alert-heading fw-bold">Fields</h5>
+            <p id="fields-text" class="mb-0">{{ field_notes.get(initial_sheet, '') }}</p>
+          </div>
+          <div id="requirements-box" class="alert alert-info">
+            <h5 class="alert-heading fw-bold">Requirements</h5>
+            <ul class="mb-0">
+              <li>If CODE is populated, DISPLAY VALUE must be populated and vice versa.</li>
+              <li>If STANDARD_CODE/STANDARD_DESCRIPTION exist, a MAPPED_STD_DESCRIPTION must be selected.</li>
+              <li>If MAPPED_STD_DESCRIPTION is populated, CODE and DISPLAY VALUE must be provided.</li>
+              <li>Codes must be unique within a tab.</li>
+            </ul>
+          </div>
+          <div id="errors-box" class="alert alert-danger mt-3 d-none" aria-live="polite" aria-atomic="true">
+            <h5 class="alert-heading fw-bold">Errors</h5>
+            <ul id="error-list" class="mb-0"></ul>
+            <button id="export-errors" class="btn btn-outline-danger btn-sm mt-2 d-none">Download Error Report</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </main>
 
-    <script>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV"
+          crossorigin="anonymous"></script>
+
+  <script>
     const mappings = {{ mappings|tojson }};
     const dropdowns = {{ dropdowns|tojson }};
-    const headers = {{ headers|tojson }}; // base headers
+    const headers = {{ headers|tojson }};
     const renderHeaders = {{ render_headers|tojson }};
     const fieldNotes = {{ field_notes|tojson }};
     const sheetNames = {{ sheet_names|tojson }};
@@ -168,665 +214,678 @@
     const comparisonData = {};
     comparisonData[initialSheet] = {{ compare_records|tojson }};
     const originalFilename = {{ filename|tojson }};
+    const hasSelectedWorkbook = {{ 'true' if selected_workbook else 'false' }};
     let sheetLock = false;
     let currentSheet = initialSheet;
 
     document.addEventListener('DOMContentLoaded', () => {
-        const selector = document.getElementById('sheet-select');
-        const repoSelect = document.getElementById('repo-select');
-        const workbookSelect = document.getElementById('workbook-select');
-        const compareRepoSelect = document.getElementById('compare-repo-select');
-        const compareWorkbookSelect = document.getElementById('compare-workbook-select');
-        const repoBrowse = document.getElementById('repo-browse');
-        const repoBase = document.getElementById('repo-base');
-        const repoLoad = document.getElementById('repo-load');
-        const repoSave = document.getElementById('repo-save');
-        const errorsBox = document.getElementById('errors-box');
-        const errorList = document.getElementById('error-list');
-        const exportErrorsBtn = document.getElementById('export-errors');
-        const fieldsBox = document.getElementById('fields-box');
-        const fieldsText = document.getElementById('fields-text');
-        const errorsPerSheet = {};
+      const selector = document.getElementById('sheet-select');
+      const repoSelect = document.getElementById('repo-select');
+      const workbookSelect = document.getElementById('workbook-select');
+      const loadWorkbookBtn = document.getElementById('load-workbook-btn');
+      const compareRepoSelect = document.getElementById('compare-repo-select');
+      const compareWorkbookSelect = document.getElementById('compare-workbook-select');
+      const loadComparisonBtn = document.getElementById('load-comparison-btn');
+      const repoBrowse = document.getElementById('repo-browse');
+      const repoBase = document.getElementById('repo-base');
+      const repoLoad = document.getElementById('repo-load');
+      const repoSave = document.getElementById('repo-save');
+      const errorsBox = document.getElementById('errors-box');
+      const errorList = document.getElementById('error-list');
+      const exportErrorsBtn = document.getElementById('export-errors');
+      const fieldsBox = document.getElementById('fields-box');
+      const fieldsText = document.getElementById('fields-text');
 
-        // ---------- helpers ----------
-        const isAbsolutePath = (p) => !!p && (p.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(p));
-        const getSep = (p) => (p && p.includes('\\') && !p.includes('/')) ? '\\' : '/';
-        const ensureTrailing = (p) => { const s = getSep(p); return p.endsWith(s) ? p : p + s; };
-        const parentDir = (p) => {
-            if (!isAbsolutePath(p)) return '';
-            const s = getSep(p);
-            let q = p.endsWith(s) ? p.slice(0, -1) : p;
-            const cut = q.lastIndexOf(s);
-            return cut >= 0 ? q.slice(0, cut + 1) : '';
-        };
-        const driveRoot = (p) => {
-            if (!isAbsolutePath(p)) return '';
-            const s = getSep(p);
-            const m = p.match(/^[a-zA-Z]:[\\/]/);
-            return m ? m[0].replace(/[\\/]/, s) : s; // Windows "C:\" or POSIX "/"
-        };
-        const handlePath = async (h) => {
-            if (!h) return '';
+      // --- Taskbar / controls toggle with one-shot auto-hide on loads ---
+      const controlsBody = document.getElementById('controls-body');
+      const taskbar = document.getElementById('controls-taskbar');
 
-            let p = '';
-            if ('path' in h && h.path) {
-                p = String(h.path);
-            } else if ('fullPath' in h && h.fullPath) {
-                p = String(h.fullPath);
-            } else if ('nativePath' in h && h.nativePath) {
-                p = String(h.nativePath);
-            } else if ('fsPath' in h && h.fsPath) {
-                p = String(h.fsPath);
-            }
-            // Fall back to inspecting a file within the directory to infer its absolute path
-            if (!p) {
-                try {
-                    for await (const [, entry] of h.entries()) {
-                        if (entry.kind === 'file') {
-                            const f = await entry.getFile();
-                            if (f && 'path' in f && f.path) {
-                                const fp = String(f.path);
-                                const sep = fp.includes('\\') ? '\\' : '/';
-                                p = fp.slice(0, fp.lastIndexOf(sep));
-                                break;
-                            }
-                        }
-                    }
-                } catch (_) {}
-            }
-            // As a last resort, create a temporary file to read its path
-            if (!p) {
-                try {
-                    const tmp = await h.getFileHandle('.codeset_tmp', { create: true });
-                    const f = await tmp.getFile();
-                    if (f && 'path' in f && f.path) {
-                        const fp = String(f.path);
-                        const sep = fp.includes('\\') ? '\\' : '/';
-                        p = fp.slice(0, fp.lastIndexOf(sep));
-                    }
-                    await h.removeEntry('.codeset_tmp');
-                } catch (_) {}
-            }
-            if (!p) return '';
+      function collapseControls(){
+        controlsBody?.classList.add('d-none');
+        taskbar?.setAttribute('aria-expanded','false');
+        sessionStorage.setItem('controlsState','closed');   // persist manual state
+      }
+      function expandControls(){
+        controlsBody?.classList.remove('d-none');
+        taskbar?.setAttribute('aria-expanded','true');
+        sessionStorage.setItem('controlsState','open');     // persist manual state
+      }
+      function showTaskbar(){ taskbar?.classList.remove('d-none'); }
+      function hideTaskbar(){ taskbar?.classList.add('d-none'); }
 
-            if (p.startsWith('file://')) {
-                try { p = new URL(p).pathname; } catch (_) { p = p.slice(7); }
-            }
-            if (p.startsWith('/') && /^[a-zA-Z]:/.test(p.slice(1))) {
-                p = p.slice(1);
-            }
-            if (/^[a-zA-Z]:/.test(p)) {
-                p = p.replace(/\//g, '\\');
-            }
-            return p;
-        };
-        const enableRepoButtons = () => {
-            const val = (repoBase.value || '').trim();
-            const ok = isAbsolutePath(val);
-            if (repoLoad) repoLoad.disabled = !ok;
-            if (repoSave) repoSave.disabled = !ok;
-        };
-        const cacheRootsIfAbsolute = () => {
-            const v = (repoBase.value || '').trim();
-            if (isAbsolutePath(v)) {
-                localStorage.setItem('repoBaseParent', parentDir(v) || v);
-                localStorage.setItem('repoBaseDrive', driveRoot(v) || '');
-            }
-        };
+      (function applyInitialControlsState(){
+        const autoHide = localStorage.getItem('autoHideControls') === '1';
+        const saved = sessionStorage.getItem('controlsState');
 
-        // seed from default if absolute
-        (function seedFromDefault(){ cacheRootsIfAbsolute(); })();
+        if (!hasSelectedWorkbook) {       // nothing loaded yet
+          expandControls();
+          hideTaskbar();                  // taskbar should not show before any load
+          return;
+        }
 
-        // ---------- Select Folder (File System Access API) ----------
-        // Replace the field with the absolute path to the selected folder when possible.
-        repoBrowse?.addEventListener('click', async () => {
-            if (!window.showDirectoryPicker) {
-                alert('Your browser does not support Select Folder. Please paste an absolute path.');
-                return;
-            }
-            try {
-                const dirHandle = await window.showDirectoryPicker({ id: 'codeset-repo' });
+        showTaskbar();                    // once a workbook exists, always show taskbar
+        if (autoHide) {
+          collapseControls();
+          localStorage.removeItem('autoHideControls');
+          return;
+        }
 
-                // Some environments expose the absolute path directly
-                const fullPath = await handlePath(dirHandle);
+        if (saved === 'closed') collapseControls();
+        else expandControls();            // default to open
+      })();
 
-                if (fullPath && isAbsolutePath(fullPath)) {
-                    repoBase.value = ensureTrailing(fullPath);
-                    cacheRootsIfAbsolute();
-                    enableRepoButtons();
-                    return;
+      // Manual toggle
+      function taskbarToggle(){
+        if (!controlsBody) return;
+        const collapsed = controlsBody.classList.contains('d-none');
+        if (collapsed) expandControls(); else collapseControls();
+      }
+      taskbar?.addEventListener('click', taskbarToggle);
+      taskbar?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); taskbarToggle(); }
+      });
+
+      // Only these two actions should auto-hide on next page load
+      loadWorkbookBtn?.addEventListener('click', () => {
+        localStorage.setItem('autoHideControls','1');
+      });
+      loadComparisonBtn?.addEventListener('click', () => {
+        localStorage.setItem('autoHideControls','1');
+      });
+
+      // Enable/disable "Load Workbook" and paint highlight color
+      function updateLoadEnable(){
+        const hasRepo = !!(repoSelect && repoSelect.value);
+        const hasWb = !!(workbookSelect && workbookSelect.value);
+        if (loadWorkbookBtn) loadWorkbookBtn.disabled = !(hasRepo && hasWb);
+      }
+      function updateHighlight(){
+        if (repoSelect) repoSelect.classList.toggle('selected-primary', !!repoSelect.value);
+        if (workbookSelect) workbookSelect.classList.toggle('selected-primary', !!workbookSelect.value);
+      }
+      function updateCompareHighlight(){
+        if (compareRepoSelect) compareRepoSelect.classList.toggle('selected-compare', !!compareRepoSelect.value);
+        if (compareWorkbookSelect) compareWorkbookSelect.classList.toggle('selected-compare', !!compareWorkbookSelect.value);
+      }
+
+      repoSelect?.addEventListener('change', () => { updateLoadEnable(); updateHighlight(); });
+      workbookSelect?.addEventListener('change', () => { updateLoadEnable(); updateHighlight(); });
+      compareRepoSelect?.addEventListener('change', updateCompareHighlight);
+      compareWorkbookSelect?.addEventListener('change', updateCompareHighlight);
+
+      updateLoadEnable();
+      updateHighlight();
+      updateCompareHighlight();
+
+      // ---------- helpers ----------
+      const isAbsolutePath = (p) => !!p && (p.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(p));
+      const getSep = (p) => (p && p.includes('\\') && !p.includes('/')) ? '\\' : '/';
+      const ensureTrailing = (p) => { const s = getSep(p); return p.endsWith(s) ? p : p + s; };
+      const parentDir = (p) => {
+        if (!isAbsolutePath(p)) return '';
+        const s = getSep(p);
+        let q = p.endsWith(s) ? p.slice(0, -1) : p;
+        const cut = q.lastIndexOf(s);
+        return cut >= 0 ? q.slice(0, cut + 1) : '';
+      };
+      const driveRoot = (p) => {
+        if (!isAbsolutePath(p)) return '';
+        const s = getSep(p);
+        const m = p.match(/^[a-zA-Z]:[\\/]/);
+        return m ? m[0].replace(/[\\/]/, s) : s;
+      };
+      const handlePath = async (h) => {
+        if (!h) return '';
+        let p = '';
+        if ('path' in h && h.path) { p = String(h.path); }
+        else if ('fullPath' in h && h.fullPath) { p = String(h.fullPath); }
+        else if ('nativePath' in h && h.nativePath) { p = String(h.nativePath); }
+        else if ('fsPath' in h && h.fsPath) { p = String(h.fsPath); }
+        if (!p) {
+          try {
+            for await (const [, entry] of h.entries()) {
+              if (entry.kind === 'file') {
+                const f = await entry.getFile();
+                if (f && 'path' in f && f.path) {
+                  const fp = String(f.path);
+                  const sep = fp.includes('\\') ? '\\' : '/';
+                  p = fp.slice(0, fp.lastIndexOf(sep));
+                  break;
                 }
-
-                const selectedName = dirHandle?.name || '';
-                if (!selectedName) return;
-
-                let base = '';
-                const current = (repoBase.value || '').trim();
-                // If the field already holds an absolute path, use it as the base
-                if (isAbsolutePath(current)) {
-                    base = ensureTrailing(parentDir(current) || current); // e.g., "C\\IntegrationServices\\"
-                }
-
-                // Fallback to a cached absolute path from any previous valid selection
-                if (!base) {
-                    const cachedParent = localStorage.getItem('repoBaseParent') || '';
-                    if (isAbsolutePath(cachedParent)) {
-                        base = ensureTrailing(cachedParent);
-                    }
-                }
-
-                // Final fallback: try a cached drive root
-                if (!base) {
-                    const cachedDrive = localStorage.getItem('repoBaseDrive') || '';
-                    if (isAbsolutePath(cachedDrive) || /^[a-zA-Z]:[\\/]/.test(cachedDrive) || cachedDrive === '/') {
-                        base = ensureTrailing(cachedDrive);
-                    }
-                }
-
-                if (base) {
-                    repoBase.value = ensureTrailing(base + selectedName);
-                    cacheRootsIfAbsolute();
-                    enableRepoButtons();
-                } else {
-                    // No known base path yet — set to folder name and guide user once
-                    repoBase.value = selectedName;
-                    enableRepoButtons();
-                    alert('Full absolute path unavailable in browser. Paste an absolute path once (e.g., "C\\IntegrationServices\\") then use Select again.');
-                }
-            } catch (_) {
-                // user canceled or denied; ignore
+              }
             }
-        });
+          } catch (_) {}
+        }
+        if (!p) {
+          try {
+            const tmp = await h.getFileHandle('.codeset_tmp', { create: true });
+            const f = await tmp.getFile();
+            if (f && 'path' in f && f.path) {
+              const fp = String(f.path);
+              const sep = fp.includes('\\') ? '\\' : '/';
+              p = fp.slice(0, fp.lastIndexOf(sep));
+            }
+            await h.removeEntry('.codeset_tmp');
+          } catch (_) {}
+        }
+        if (!p) return '';
+        if (p.startsWith('file://')) { try { p = new URL(p).pathname; } catch (_) { p = p.slice(7); } }
+        if (p.startsWith('/') && /^[a-zA-Z]:/.test(p.slice(1))) { p = p.slice(1); }
+        if (/^[a-zA-Z]:/.test(p)) { p = p.replace(/\//g, '\\'); }
+        return p;
+      };
+      const enableRepoButtons = () => {
+        const val = (repoBase.value || '').trim();
+        const ok = isAbsolutePath(val);
+        if (repoLoad) repoLoad.disabled = !ok;
+        if (repoSave) repoSave.disabled = !ok;
+      };
+      const cacheRootsIfAbsolute = () => {
+        const v = (repoBase.value || '').trim();
+        if (isAbsolutePath(v)) {
+          localStorage.setItem('repoBaseParent', parentDir(v) || v);
+          localStorage.setItem('repoBaseDrive', driveRoot(v) || '');
+        }
+      };
 
-        repoBase?.addEventListener('input', () => {
-            enableRepoButtons();
+      (function seedFromDefault(){ cacheRootsIfAbsolute(); })();
+
+      // Select Folder
+      repoBrowse?.addEventListener('click', async () => {
+        if (!window.showDirectoryPicker) {
+          alert('Your browser does not support Select Folder. Please paste an absolute path.');
+          return;
+        }
+        try {
+          const dirHandle = await window.showDirectoryPicker({ id: 'codeset-repo' });
+          const fullPath = await handlePath(dirHandle);
+          if (fullPath && isAbsolutePath(fullPath)) {
+            repoBase.value = ensureTrailing(fullPath);
             cacheRootsIfAbsolute();
-        });
+            enableRepoButtons();
+            return;
+          }
+          const selectedName = dirHandle?.name || '';
+          if (!selectedName) return;
+
+          let base = '';
+          const current = (repoBase.value || '').trim();
+          if (isAbsolutePath(current)) base = ensureTrailing(parentDir(current) || current);
+          if (!base) {
+            const cachedParent = localStorage.getItem('repoBaseParent') || '';
+            if (isAbsolutePath(cachedParent)) base = ensureTrailing(cachedParent);
+          }
+          if (!base) {
+            const cachedDrive = localStorage.getItem('repoBaseDrive') || '';
+            if (isAbsolutePath(cachedDrive) || /^[a-zA-Z]:[\\/]/.test(cachedDrive) || cachedDrive === '/') {
+              base = ensureTrailing(cachedDrive);
+            }
+          }
+          if (base) {
+            repoBase.value = ensureTrailing(base + selectedName);
+            cacheRootsIfAbsolute();
+            enableRepoButtons();
+          } else {
+            repoBase.value = selectedName;
+            enableRepoButtons();
+            alert('Full absolute path unavailable in browser. Paste an absolute path once (e.g., "C\\IntegrationServices\\") then use Select again.');
+          }
+        } catch (_) { /* canceled */ }
+      });
+
+      repoBase?.addEventListener('input', () => {
         enableRepoButtons();
-        // --------------------------------------------
+        cacheRootsIfAbsolute();
+      });
+      enableRepoButtons();
 
-        function renderErrors() {
-            if (!errorsBox || !errorList) return;
-            const allErrors = Object.values(errorsPerSheet).flat();
-            if (allErrors.length) {
-                errorsBox.classList.remove('d-none');
-                // Safe render
-                errorList.replaceChildren(
-                    ...allErrors.map(txt => {
-                        const li = document.createElement('li');
-                        li.textContent = txt;
-                        return li;
-                    })
-                );
-                exportErrorsBtn?.classList.remove('d-none');
-            } else {
-                errorsBox.classList.add('d-none');
-                errorList.replaceChildren();
-                exportErrorsBtn?.classList.add('d-none');
-            }
+      function renderErrors() {
+        if (!errorsBox || !errorList) return;
+        const allErrors = Object.values(errorsPerSheet).flat();
+        if (allErrors.length) {
+          errorsBox.classList.remove('d-none');
+          errorList.replaceChildren(
+            ...allErrors.map(txt => { const li = document.createElement('li'); li.textContent = txt; return li; })
+          );
+          exportErrorsBtn?.classList.remove('d-none');
+        } else {
+          errorsBox.classList.add('d-none');
+          errorList.replaceChildren();
+          exportErrorsBtn?.classList.add('d-none');
         }
+      }
 
-        function renderFieldNote(sheet) {
-            if (!fieldsBox || !fieldsText) return;
-            const note = fieldNotes[sheet] || '';
-            if (note) {
-                fieldsBox.classList.remove('d-none');
-                fieldsText.textContent = note;
-            } else {
-                fieldsBox.classList.add('d-none');
-                fieldsText.textContent = '';
-            }
+      function renderFieldNote(sheet) {
+        if (!fieldsBox || !fieldsText) return;
+        const note = fieldNotes[sheet] || '';
+        if (note) {
+          fieldsBox.classList.remove('d-none');
+          fieldsText.textContent = note;
+        } else {
+          fieldsBox.classList.add('d-none');
+          fieldsText.textContent = '';
         }
+      }
 
-        function validateSheet(sheet) {
-            const info = mappings[sheet] || {};
-            const codeCol = info.code_col;
-            const displayCol = info.display_col;
-            const mappedCol = info.mapped_col;
-            const rows = workbook[sheet] || [];
-            const seenCodes = {};
-            const errs = [];
-            const table = document.querySelector('#table-wrapper table');
-            const headerList = renderHeaders[sheet] || [];
-            const codeIdx = headerList.indexOf(codeCol);
-            const displayIdx = headerList.indexOf(displayCol);
-            const mappedIdx = headerList.indexOf(mappedCol);
-            if (table) table.querySelectorAll('td').forEach(td => td.classList.remove('error-cell'));
+      const errorsPerSheet = {};
+      function validateSheet(sheet) {
+        const info = mappings[sheet] || {};
+        const codeCol = info.code_col;
+        const displayCol = info.display_col;
+        const mappedCol = info.mapped_col;
+        const rows = workbook[sheet] || [];
+        const seenCodes = {};
+        const errs = [];
+        const table = document.querySelector('#table-wrapper table');
+        const headerList = renderHeaders[sheet] || [];
+        const codeIdx = headerList.indexOf(codeCol);
+        const displayIdx = headerList.indexOf(displayCol);
+        const mappedIdx = headerList.indexOf(mappedCol);
+        if (table) table.querySelectorAll('td').forEach(td => td.classList.remove('error-cell'));
 
-            rows.forEach((row, idx) => {
-                const code    = String(row[codeCol] ?? '').trim();
-                const display = String(row[displayCol] ?? '').trim();
-                const mapped  = String(row[mappedCol] ?? '').trim();
-                const tr = table ? table.tBodies[0].rows[idx] : null;
-                if (code && !display) {
-                    errs.push(`On tab "${sheet}" - Code "${code}" does not have a display value`);
-                    if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell');
-                }
-                if (display && !code) {
-                    errs.push(`On tab "${sheet}" - Display value "${display}" does not have a code`);
-                    if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell');
-                }
-                if ((code || display) && !mapped) {
-                    errs.push(`On tab "${sheet}" - "${code || 'Row ' + (idx + 2)}" does not have a mapped standard description`);
-                    if (tr && mappedIdx !== -1) tr.children[mappedIdx].classList.add('error-cell');
-                }
-                if (mapped && !code) {
-                    errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a code`);
-                    if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell');
-                }
-                if (mapped && !display) {
-                    errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a display value`);
-                    if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell');
-                }
-                if (code) {
-                    if (seenCodes[code] !== undefined) {
-                        errs.push(`On tab "${sheet}" - Code "${code}" is a duplicate code. All codes within a tab must be unique.`);
-                        if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell');
-                        const other = table ? table.tBodies[0].rows[seenCodes[code]] : null;
-                        if (other && codeIdx !== -1) other.children[codeIdx].classList.add('error-cell');
-                    } else {
-                        seenCodes[code] = idx;
-                    }
-                }
+        rows.forEach((row, idx) => {
+          const code    = String(row[codeCol] ?? '').trim();
+          const display = String(row[displayCol] ?? '').trim();
+          const mapped  = String(row[mappedCol] ?? '').trim();
+          const tr = table ? table.tBodies[0].rows[idx] : null;
+          if (code && !display) {
+            errs.push(`On tab "${sheet}" - Code "${code}" does not have a display value`);
+            if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell');
+          }
+          if (display && !code) {
+            errs.push(`On tab "${sheet}" - Display value "${display}" does not have a code`);
+            if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell');
+          }
+          if ((code || display) && !mapped) {
+            errs.push(`On tab "${sheet}" - "${code || 'Row ' + (idx + 2)}" does not have a mapped standard description`);
+            if (tr && mappedIdx !== -1) tr.children[mappedIdx].classList.add('error-cell');
+          }
+          if (mapped && !code) {
+            errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a code`);
+            if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell');
+          }
+          if (mapped && !display) {
+            errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a display value`);
+            if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell');
+          }
+          if (code) {
+            if (seenCodes[code] !== undefined) {
+              errs.push(`On tab "${sheet}" - Code "${code}" is a duplicate code. All codes within a tab must be unique.`);
+              if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell');
+              const other = table ? table.tBodies[0].rows[seenCodes[code]] : null;
+              if (other && codeIdx !== -1) other.children[codeIdx].classList.add('error-cell');
+            } else {
+              seenCodes[code] = idx;
+            }
+          }
+        });
+        errorsPerSheet[sheet] = errs;
+        renderErrors();
+      }
+
+      repoSelect?.addEventListener('change', async () => {
+        const repo = repoSelect.value;
+        const workbookSelectEl = document.getElementById('workbook-select');
+        workbookSelectEl.innerHTML = '<option value="">Select workbook</option>';
+        if (repo) {
+          const resp = await fetch(`/workbooks/${encodeURIComponent(repo)}`);
+          if (resp.ok) {
+            const files = await resp.json();
+            files.forEach(f => {
+              const opt = document.createElement('option');
+              opt.value = f;
+              opt.textContent = f;
+              workbookSelectEl.appendChild(opt);
             });
-            errorsPerSheet[sheet] = errs;
+            workbookSelectEl.disabled = files.length === 0;
+          } else {
+            workbookSelectEl.disabled = true;
+          }
+        } else {
+          workbookSelectEl.disabled = true;
+        }
+        updateLoadEnable();
+        updateHighlight();
+      });
+
+      compareRepoSelect?.addEventListener('change', async () => {
+        const repo = compareRepoSelect.value;
+        compareWorkbookSelect.innerHTML = '<option value="">Select workbook</option>';
+        if (repo) {
+          const resp = await fetch(`/workbooks/${encodeURIComponent(repo)}`);
+          if (resp.ok) {
+            const files = await resp.json();
+            files.forEach(f => {
+              const opt = document.createElement('option');
+              opt.value = f;
+              opt.textContent = f;
+              compareWorkbookSelect.appendChild(opt);
+            });
+            compareWorkbookSelect.disabled = files.length === 0;
+          } else {
+            compareWorkbookSelect.disabled = true;
+          }
+        } else {
+          compareWorkbookSelect.disabled = true;
+        }
+        updateCompareHighlight();
+      });
+
+      function createInput(sheet, header, value = '') {
+        if (header.endsWith('_COMPARE')) {
+          const span = document.createElement('span');
+          span.textContent = value || '';
+          return span;
+        }
+        const key = header.toUpperCase().replace(/\s+/g, '_');
+        const mapInfo = mappings[sheet] || {};
+        const opts = dropdowns[sheet] && dropdowns[sheet][header];
+        if (mapInfo.mapped_col && header === mapInfo.mapped_col && opts) {
+          const sel = document.createElement('select');
+          sel.className = 'mapped-select';
+          sel.dataset.sheet = sheet;
+          sel.dataset.col = header;
+          const blank = document.createElement('option');
+          blank.value = '';
+          blank.textContent = '';
+          if (!value) blank.selected = true;
+          sel.appendChild(blank);
+          opts.forEach(o => {
+            const option = document.createElement('option');
+            option.value = o;
+            option.textContent = o;
+            if (o === value) option.selected = true;
+            sel.appendChild(option);
+          });
+          return sel;
+        }
+        if (key === 'CODE' || key === 'DISPLAY_VALUE') {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = value || '';
+          return input;
+        }
+        if (mapInfo.sub_col && header === mapInfo.sub_col) {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.readOnly = true;
+          input.value = value || '';
+          return input;
+        }
+        const span = document.createElement('span');
+        span.textContent = value || '';
+        return span;
+      }
+
+      function updateSubDefinition(sel) {
+        const sheet = sel.dataset.sheet;
+        const mapInfo = mappings[sheet];
+        if (!mapInfo) return;
+        const mapping = mapInfo.map;
+        const subCol = mapInfo.sub_col;
+        const row = sel.closest('tr');
+        if (row && subCol) {
+          const headerList = Array.from(row.closest('table').querySelectorAll('th')).map(th => th.innerText);
+          const subIndex = headerList.indexOf(subCol);
+          if (subIndex !== -1) {
+            const cell = row.children[subIndex];
+            if (cell) {
+              const input = cell.querySelector('input, select');
+              if (input) input.value = mapping[sel.value] || '';
+              else cell.textContent = mapping[sel.value] || '';
+            }
+          }
+        }
+      }
+
+      function readSheet(table, sheet) {
+        const baseRows = [];
+        const compRows = [];
+        const allHeaders = renderHeaders[sheet];
+        const mapInfo = mappings[sheet] || {};
+        const hidden = mapInfo.hidden_cols || [];
+        table.querySelectorAll('tbody tr').forEach((tr, rowIdx) => {
+          const existingBase = (workbook[sheet] || [])[rowIdx] || {};
+          const existingComp = (comparisonData[sheet] || [])[rowIdx] || {};
+          const baseObj = { ...existingBase };
+          const compObj = { ...existingComp };
+          allHeaders.forEach((h, idx) => {
+            const cell = tr.children[idx];
+            const input = cell.querySelector('input, select');
+            const val = input ? input.value : cell.textContent;
+            if (h.endsWith('_COMPARE')) compObj[h] = val;
+            else baseObj[h] = val;
+          });
+          hidden.forEach(h => { if (baseObj[h] === undefined) baseObj[h] = ''; });
+          baseRows.push(baseObj);
+          compRows.push(compObj);
+        });
+        return {baseRows, compRows};
+      }
+
+      function syncCurrentSheet() {
+        const table = document.querySelector('#table-wrapper table');
+        if (!table) return;
+        const data = readSheet(table, currentSheet);
+        workbook[currentSheet] = data.baseRows;
+        comparisonData[currentSheet] = data.compRows;
+      }
+
+      function renderSheet(sheet) {
+        const container = document.getElementById('table-wrapper');
+        const buttons = document.getElementById('table-buttons');
+        container.innerHTML = '';
+        buttons.innerHTML = '';
+
+        const lockDiv = document.createElement('div');
+        lockDiv.className = 'mb-2';
+        const lockBtn = document.createElement('button');
+        lockBtn.type = 'button';
+        lockBtn.className = 'btn btn-sm';
+        const lockText = document.createElement('span');
+        lockText.className = 'ms-2';
+        lockDiv.appendChild(lockBtn);
+        lockDiv.appendChild(lockText);
+        container.appendChild(lockDiv);
+
+        const table = document.createElement('table');
+        table.className = 'table table-bordered table-sm codeset-table';
+        table.id = 'table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_');
+        const thead = document.createElement('thead');
+        const headRow = document.createElement('tr');
+        renderHeaders[sheet].forEach(h => {
+          const th = document.createElement('th');
+          th.textContent = h.replace(/_/g, ' ');
+          if (h.endsWith('_COMPARE')) th.classList.add('compare-col', 'compare-header');
+          headRow.appendChild(th);
+        });
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        const rows = workbook[sheet] || [];
+        rows.forEach((row, idx) => {
+          const tr = document.createElement('tr');
+          const comp = (comparisonData[sheet] || [])[idx] || {};
+          renderHeaders[sheet].forEach(h => {
+            const td = document.createElement('td');
+            if (h.endsWith('_COMPARE')) td.classList.add('compare-col');
+            const value = h.endsWith('_COMPARE') ? comp[h] : row[h];
+            const input = createInput(sheet, h, value);
+            td.appendChild(input);
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        container.appendChild(table);
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'btn btn-primary';
+        addBtn.textContent = 'Add Row';
+        addBtn.addEventListener('click', () => {
+          const tr = document.createElement('tr');
+          renderHeaders[sheet].forEach(h => {
+            const td = document.createElement('td');
+            if (h.endsWith('_COMPARE')) td.classList.add('compare-col');
+            const input = createInput(sheet, h);
+            td.appendChild(input);
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        buttons.appendChild(addBtn);
+
+        const saveBtn = document.createElement('button');
+        saveBtn.id = 'export-workbook';
+        saveBtn.className = 'btn btn-success';
+        saveBtn.textContent = 'Export Workbook';
+        saveBtn.addEventListener('click', async () => {
+          syncCurrentSheet();
+          validateSheet(currentSheet);
+          const resp = await fetch('/export', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({data: workbook, locks: sheetLock})
+          });
+          if (resp.ok) {
+            await resp.json().catch(() => {});
             renderErrors();
-        }
-
-        repoSelect?.addEventListener('change', async () => {
-            const repo = repoSelect.value;
-            workbookSelect.innerHTML = '<option value="">Select workbook</option>';
-            if (repo) {
-                const resp = await fetch(`/workbooks/${encodeURIComponent(repo)}`);
-                if (resp.ok) {
-                    const files = await resp.json();
-                    files.forEach(f => {
-                        const opt = document.createElement('option');
-                        opt.value = f;
-                        opt.textContent = f;
-                        workbookSelect.appendChild(opt);
-                    });
-                    workbookSelect.disabled = files.length === 0;
-                } else {
-                    workbookSelect.disabled = true;
-                }
-            } else {
-                workbookSelect.disabled = true;
+            alert('Workbook saved to repository');
+          } else {
+            try {
+              const data = await resp.json();
+              if (data.errors) {
+                errorsBox.classList.remove('d-none');
+                errorList.replaceChildren(...data.errors.map(e => { const li = document.createElement('li'); li.textContent = e; return li; }));
+              } else {
+                errorsBox.classList.remove('d-none');
+                errorList.replaceChildren((() => { const li = document.createElement('li'); li.textContent = 'Export failed'; return li; })());
+              }
+            } catch {
+              errorsBox.classList.remove('d-none');
+              errorList.replaceChildren((() => { const li = document.createElement('li'); li.textContent = 'Export failed'; return li; })());
             }
+          }
         });
+        buttons.appendChild(saveBtn);
 
-        compareRepoSelect?.addEventListener('change', async () => {
-            const repo = compareRepoSelect.value;
-            compareWorkbookSelect.innerHTML = '<option value="">Select workbook</option>';
-            if (repo) {
-                const resp = await fetch(`/workbooks/${encodeURIComponent(repo)}`);
-                if (resp.ok) {
-                    const files = await resp.json();
-                    files.forEach(f => {
-                        const opt = document.createElement('option');
-                        opt.value = f;
-                        opt.textContent = f;
-                        compareWorkbookSelect.appendChild(opt);
-                    });
-                    compareWorkbookSelect.disabled = files.length === 0;
-                } else {
-                    compareWorkbookSelect.disabled = true;
-                }
-            } else {
-                compareWorkbookSelect.disabled = true;
-            }
+        const importInput = document.createElement('input');
+        importInput.type = 'file';
+        importInput.accept = '.xlsx';
+        importInput.style.display = 'none';
+        const importBtn = document.createElement('button');
+        importBtn.type = 'button';
+        importBtn.className = 'btn btn-secondary';
+        importBtn.textContent = 'Import Workbook';
+        importBtn.addEventListener('click', () => importInput.click());
+        importInput.addEventListener('change', async () => {
+          if (!importInput.files.length) return;
+          const fd = new FormData();
+          fd.append('workbook', importInput.files[0]);
+          const resp = await fetch('/import', { method: 'POST', body: fd });
+          if (resp.ok) { location.reload(); }
         });
+        buttons.appendChild(importBtn);
+        buttons.appendChild(importInput);
 
-        function createInput(sheet, header, value = '') {
-            if (header.endsWith('_COMPARE')) {
-                const span = document.createElement('span');
-                span.textContent = value || '';
-                return span;
-            }
-            const key = header.toUpperCase().replace(/\s+/g, '_');
-            const mapInfo = mappings[sheet] || {};
-            const opts = dropdowns[sheet] && dropdowns[sheet][header];
-            if (mapInfo.mapped_col && header === mapInfo.mapped_col && opts) {
-                const sel = document.createElement('select');
-                sel.className = 'mapped-select';
-                sel.dataset.sheet = sheet;
-                sel.dataset.col = header;
-                const blank = document.createElement('option');
-                blank.value = '';
-                blank.textContent = '';
-                if (!value) blank.selected = true;
-                sel.appendChild(blank);
-                opts.forEach(o => {
-                    const option = document.createElement('option');
-                    option.value = o;
-                    option.textContent = o;
-                    if (o === value) option.selected = true;
-                    sel.appendChild(option);
-                });
-                return sel;
-            }
-            if (key === 'CODE' || key === 'DISPLAY_VALUE') {
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.value = value || '';
-                return input;
-            }
-            if (mapInfo.sub_col && header === mapInfo.sub_col) {
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.readOnly = true;
-                input.value = value || '';
-                return input;
-            }
-            const span = document.createElement('span');
-            span.textContent = value || '';
-            return span;
+        function applyLockState() {
+          const locked = sheetLock;
+          lockBtn.textContent = locked ? '🔒' : '🔓';
+          lockBtn.className = `btn btn-sm ${locked ? 'btn-lock-protected' : 'btn-lock-unprotected'}`;
+          lockBtn.setAttribute('aria-pressed', String(locked));
+          lockText.textContent = locked ? 'Sheet Protected' : 'Sheet Unprotected';
+          table.querySelectorAll('input, select').forEach(el => { el.disabled = locked; });
+          addBtn.disabled = locked;
         }
 
-        function updateSubDefinition(sel) {
-            const sheet = sel.dataset.sheet;
-            const mapInfo = mappings[sheet];
-            if (!mapInfo) return;
-            const mapping = mapInfo.map;
-            const subCol = mapInfo.sub_col;
-            const row = sel.closest('tr');
-            if (row && subCol) {
-                const headerList = Array.from(
-                    row.closest('table').querySelectorAll('th')
-                ).map(th => th.innerText);
-                const subIndex = headerList.indexOf(subCol);
-                if (subIndex !== -1) {
-                    const cell = row.children[subIndex];
-                    if (cell) {
-                        const input = cell.querySelector('input, select');
-                        if (input) {
-                            input.value = mapping[sel.value] || '';
-                        } else {
-                            cell.textContent = mapping[sel.value] || '';
-                        }
-                    }
-                }
-            }
-        }
+        lockBtn.addEventListener('click', () => { sheetLock = !sheetLock; applyLockState(); });
+        applyLockState();
+      }
 
-        function readSheet(table, sheet) {
-            const baseRows = [];
-            const compRows = [];
-            const allHeaders = renderHeaders[sheet];
-            const mapInfo = mappings[sheet] || {};
-            const hidden = mapInfo.hidden_cols || [];
-            table.querySelectorAll('tbody tr').forEach((tr, rowIdx) => {
-                const existingBase = (workbook[sheet] || [])[rowIdx] || {};
-                const existingComp = (comparisonData[sheet] || [])[rowIdx] || {};
-                const baseObj = { ...existingBase };
-                const compObj = { ...existingComp };
-                allHeaders.forEach((h, idx) => {
-                    const cell = tr.children[idx];
-                    const input = cell.querySelector('input, select');
-                    const val = input ? input.value : cell.textContent;
-                    if (h.endsWith('_COMPARE')) {
-                        compObj[h] = val;
-                    } else {
-                        baseObj[h] = val;
-                    }
-                });
-                hidden.forEach(h => {
-                    if (baseObj[h] === undefined) baseObj[h] = '';
-                });
-                baseRows.push(baseObj);
-                compRows.push(compObj);
-            });
-            return {baseRows, compRows};
-        }
-
-        function syncCurrentSheet() {
-            const table = document.querySelector('#table-wrapper table');
-            if (!table) return;
-            const data = readSheet(table, currentSheet);
-            workbook[currentSheet] = data.baseRows;
-            comparisonData[currentSheet] = data.compRows;
-        }
-
-        function renderSheet(sheet) {
-            const container = document.getElementById('table-wrapper');
-            const buttons = document.getElementById('table-buttons');
-            container.innerHTML = '';
-            buttons.innerHTML = '';
-
-            const lockDiv = document.createElement('div');
-            lockDiv.className = 'mb-2';
-            const lockBtn = document.createElement('button');
-            lockBtn.type = 'button';
-            lockBtn.className = 'btn btn-sm';
-            const lockText = document.createElement('span');
-            lockText.className = 'ms-2';
-            lockDiv.appendChild(lockBtn);
-            lockDiv.appendChild(lockText);
-            container.appendChild(lockDiv);
-
-            const table = document.createElement('table');
-            table.className = 'table table-bordered table-sm codeset-table';
-            table.id = 'table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_');
-            const thead = document.createElement('thead');
-            const headRow = document.createElement('tr');
+      async function ensureSheetLoaded(sheet) {
+        if (workbook[sheet]) return;
+        const resp = await fetch(`/sheet/${encodeURIComponent(sheet)}`);
+        if (resp.ok) {
+          const rows = await resp.json();
+          const baseRows = [];
+          const compRows = [];
+          const hidden = (mappings[sheet] || {}).hidden_cols || [];
+          rows.forEach(r => {
+            const baseObj = {};
+            const compObj = {};
             renderHeaders[sheet].forEach(h => {
-                const th = document.createElement('th');
-                th.textContent = h.replace(/_/g, ' ');
-                if (h.endsWith('_COMPARE')) th.classList.add('compare-col', 'compare-header');
-                headRow.appendChild(th);
+              if (h.endsWith('_COMPARE')) { compObj[h] = r[h] || ''; }
+              else { baseObj[h] = r[h] || ''; }
             });
-            thead.appendChild(headRow);
-            table.appendChild(thead);
-            const tbody = document.createElement('tbody');
-            const rows = workbook[sheet] || [];
-            rows.forEach((row, idx) => {
-                const tr = document.createElement('tr');
-                const comp = (comparisonData[sheet] || [])[idx] || {};
-                renderHeaders[sheet].forEach(h => {
-                    const td = document.createElement('td');
-                    if (h.endsWith('_COMPARE')) td.classList.add('compare-col');
-                    const value = h.endsWith('_COMPARE') ? comp[h] : row[h];
-                    const input = createInput(sheet, h, value);
-                    td.appendChild(input);
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
-            table.appendChild(tbody);
-            container.appendChild(table);
-
-            const addBtn = document.createElement('button');
-            addBtn.className = 'btn btn-primary';
-            addBtn.textContent = 'Add Row';
-            addBtn.addEventListener('click', () => {
-                const tr = document.createElement('tr');
-                renderHeaders[sheet].forEach(h => {
-                    const td = document.createElement('td');
-                    if (h.endsWith('_COMPARE')) td.classList.add('compare-col');
-                    const input = createInput(sheet, h);
-                    td.appendChild(input);
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            });
-            buttons.appendChild(addBtn);
-
-            const saveBtn = document.createElement('button');
-            saveBtn.id = 'export-workbook';
-            saveBtn.className = 'btn btn-success';
-            saveBtn.textContent = 'Export Workbook';
-            saveBtn.addEventListener('click', async () => {
-                syncCurrentSheet();
-                validateSheet(currentSheet);
-                const resp = await fetch('/export', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({data: workbook, locks: sheetLock})
-                });
-                if (resp.ok) {
-                    await resp.json().catch(() => {});
-                    renderErrors();
-                    alert('Workbook saved to repository');
-                } else {
-                    try {
-                        const data = await resp.json();
-                        if (data.errors) {
-                            errorsBox.classList.remove('d-none');
-                            errorList.replaceChildren(
-                                ...data.errors.map(e => {
-                                    const li = document.createElement('li');
-                                    li.textContent = e;
-                                    return li;
-                                })
-                            );
-                        } else {
-                            errorsBox.classList.remove('d-none');
-                            errorList.replaceChildren(
-                                (() => { const li = document.createElement('li'); li.textContent = 'Export failed'; return li; })()
-                            );
-                        }
-                    } catch {
-                        errorsBox.classList.remove('d-none');
-                        errorList.replaceChildren(
-                            (() => { const li = document.createElement('li'); li.textContent = 'Export failed'; return li; })()
-                        );
-                    }
-                }
-            });
-            buttons.appendChild(saveBtn);
-
-            const importInput = document.createElement('input');
-            importInput.type = 'file';
-            importInput.accept = '.xlsx';
-            importInput.style.display = 'none';
-            const importBtn = document.createElement('button');
-            importBtn.type = 'button';
-            importBtn.className = 'btn btn-secondary';
-            importBtn.textContent = 'Import Workbook';
-            importBtn.addEventListener('click', () => importInput.click());
-            importInput.addEventListener('change', async () => {
-                if (!importInput.files.length) return;
-                const fd = new FormData();
-                fd.append('workbook', importInput.files[0]);
-                const resp = await fetch('/import', { method: 'POST', body: fd });
-                if (resp.ok) {
-                    location.reload();
-                }
-            });
-            buttons.appendChild(importBtn);
-            buttons.appendChild(importInput);
-
-            function applyLockState() {
-                const locked = sheetLock;
-                lockBtn.textContent = locked ? '🔒' : '🔓';
-                lockBtn.className = `btn btn-sm ${locked ? 'btn-lock-protected' : 'btn-lock-unprotected'}`;
-                lockBtn.setAttribute('aria-pressed', String(locked));
-                lockText.textContent = locked ? 'Sheet Protected' : 'Sheet Unprotected';
-                table.querySelectorAll('input, select').forEach(el => {
-                    el.disabled = locked;
-                });
-                addBtn.disabled = locked;
-            }
-
-            lockBtn.addEventListener('click', () => {
-                sheetLock = !sheetLock;
-                applyLockState();
-            });
-
-            applyLockState();
+            hidden.forEach(h => { baseObj[h] = r[h] || ''; });
+            baseRows.push(baseObj);
+            compRows.push(compObj);
+          });
+          workbook[sheet] = baseRows;
+          comparisonData[sheet] = compRows;
+        } else {
+          workbook[sheet] = [];
+          comparisonData[sheet] = [];
         }
+      }
 
-        async function ensureSheetLoaded(sheet) {
-            if (workbook[sheet]) return;
-            const resp = await fetch(`/sheet/${encodeURIComponent(sheet)}`);
-            if (resp.ok) {
-                const rows = await resp.json();
-                const baseRows = [];
-                const compRows = [];
-                const hidden = (mappings[sheet] || {}).hidden_cols || [];
-                rows.forEach(r => {
-                    const baseObj = {};
-                    const compObj = {};
-                    renderHeaders[sheet].forEach(h => {
-                        if (h.endsWith('_COMPARE')) {
-                            compObj[h] = r[h] || '';
-                        } else {
-                            baseObj[h] = r[h] || '';
-                        }
-                    });
-                    hidden.forEach(h => {
-                        baseObj[h] = r[h] || '';
-                    });
-                    baseRows.push(baseObj);
-                    compRows.push(compObj);
-                });
-                workbook[sheet] = baseRows;
-                comparisonData[sheet] = compRows;
-            } else {
-                workbook[sheet] = [];
-                comparisonData[sheet] = [];
-            }
+      selector?.addEventListener('change', async () => {
+        syncCurrentSheet();
+        validateSheet(currentSheet);
+        currentSheet = selector.value;
+        await ensureSheetLoaded(currentSheet);
+        renderSheet(currentSheet);
+        validateSheet(currentSheet);
+        renderFieldNote(currentSheet);
+      });
+
+      (async () => {
+        if (initialSheet) {
+          await ensureSheetLoaded(initialSheet);
+          renderSheet(initialSheet);
+          validateSheet(initialSheet);
+          renderFieldNote(initialSheet);
         }
+      })();
 
-        selector?.addEventListener('change', async () => {
-            syncCurrentSheet();
-            validateSheet(currentSheet);
-            currentSheet = selector.value;
-            await ensureSheetLoaded(currentSheet);
-            renderSheet(currentSheet);
-            validateSheet(currentSheet);
-            renderFieldNote(currentSheet);
+      document.addEventListener('input', ev => {
+        if (ev.target.closest('#table-wrapper')) {
+          syncCurrentSheet();
+          validateSheet(currentSheet);
+        }
+      });
+
+      document.addEventListener('change', ev => {
+        const target = ev.target;
+        if (target.classList.contains('mapped-select')) updateSubDefinition(target);
+        if (target.closest('#table-wrapper')) {
+          syncCurrentSheet();
+          validateSheet(currentSheet);
+        }
+      });
+
+      exportErrorsBtn?.addEventListener('click', async () => {
+        syncCurrentSheet();
+        validateSheet(currentSheet);
+        const resp = await fetch('/export_errors', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({data: workbook})
         });
-
-        (async () => {
-            if (initialSheet) {
-                await ensureSheetLoaded(initialSheet);
-                renderSheet(initialSheet);
-                validateSheet(initialSheet);
-                renderFieldNote(initialSheet);
-            }
-        })();
-
-        document.addEventListener('input', ev => {
-            if (ev.target.closest('#table-wrapper')) {
-                syncCurrentSheet();
-                validateSheet(currentSheet);
-            }
-        });
-
-        document.addEventListener('change', ev => {
-            const target = ev.target;
-            if (target.classList.contains('mapped-select')) {
-                updateSubDefinition(target);
-            }
-            if (target.closest('#table-wrapper')) {
-                syncCurrentSheet();
-                validateSheet(currentSheet);
-            }
-        });
-
-        exportErrorsBtn?.addEventListener('click', async () => {
-            syncCurrentSheet();
-            validateSheet(currentSheet);
-            const resp = await fetch('/export_errors', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({data: workbook})
-            });
-            if (resp.ok) {
-                const blob = await resp.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-                a.download = `error_report_${ts}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-            }
-        });
+        if (resp.ok) {
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+          a.download = `error_report_${ts}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }
+      });
     });
-    </script>
+  </script>
 </body>
 </html>
