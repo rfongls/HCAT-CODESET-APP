@@ -59,7 +59,7 @@
 </head>
 <body>
   <header>
-    <h1>Codeset Automation App</h1>
+    <h1>Codeset Management App</h1>
 
     {% if selected_workbook %}
     <div class="header-menu">
@@ -234,62 +234,70 @@
       </div>
       <div class="overlay-body">
         <div id="overlay-controls" class="section-card">
-          <!-- path -->
-          <form id="path-form-modal" method="post" class="row g-2 align-items-end mb-3">
-            <div class="col-12 col-md-8">
-              <label class="form-label"><b>Select repository folder</b></label>
-              <div class="input-group">
-                <input type="text" name="repo_base" class="form-control js-repo-base"
-                       value="{{ repo_base or '' }}" placeholder="Enter folder path" />
-                <button type="button" class="btn btn-outline-secondary js-repo-browse">Browse…</button>
+          <!-- Repository & Workbook card -->
+          <div id="repo-workbook-card-modal" class="section-card">
+            <div class="section-title">Repository &amp; Workbook</div>
+
+            <!-- path -->
+            <form id="path-form-modal" method="post" class="row g-2 align-items-end mb-3">
+              <div class="col-12 col-md-8">
+                <label class="form-label"><b>Select repository folder</b></label>
+                <div class="input-group">
+                  <input type="text" name="repo_base" class="form-control js-repo-base"
+                         value="{{ repo_base or '' }}" placeholder="Enter folder path" />
+                  <button type="button" class="btn btn-outline-secondary js-repo-browse">Browse…</button>
+                </div>
               </div>
-            </div>
-            <div class="col-12 col-md-2">
-              <button type="submit" name="save_repo_base" value="1"
-                      class="btn btn-outline-secondary w-100 js-repo-save" disabled>Save</button>
-            </div>
-            <div class="col-12 col-md-2">
-              <button type="submit" class="btn btn-primary w-100 js-repo-load" disabled>Load</button>
-            </div>
-          </form>
+              <div class="col-12 col-md-2">
+                <button type="submit" name="save_repo_base" value="1"
+                        class="btn btn-outline-secondary w-100 js-repo-save" disabled>Save</button>
+              </div>
+              <div class="col-12 col-md-2">
+                <button type="submit" class="btn btn-primary w-100 js-repo-load" disabled>Load</button>
+              </div>
+            </form>
 
-          <!-- repo/workbook -->
-          <form id="repo-form-modal" method="post" class="row g-2 align-items-end">
-            <div class="col-12 col-md-4">
-              <label class="form-label"><b>Select the repository you want to edit a codeset for:</b></label>
-              <select name="repo"
-                      class="form-select selected-primary js-repo-select {% if selected_repo %}selected-primary{% endif %}"
-                      {% if not repositories %}disabled{% endif %}>
-                <option value="">{% if repositories %}Select repository{% else %}Load a repository folder first{% endif %}</option>
-                {% for repo in repositories or [] %}
-                <option value="{{ repo }}" {% if repo == selected_repo %}selected{% endif %}>{{ repo }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label"><b>Workbook</b></label>
-              <select name="workbook_name"
-                      class="form-select selected-primary js-workbook-select {% if selected_workbook %}selected-primary{% endif %}"
-                      {% if not repo_files %}disabled{% endif %}>
-                <option value="">Select workbook</option>
-                {% for wb in repo_files or [] %}
-                <option value="{{ wb }}" {% if wb == selected_workbook %}selected{% endif %}>{{ wb }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-12 col-md-2">
-              <button type="submit" class="btn btn-primary w-100 js-load-btn" disabled>Load Workbook</button>
-            </div>
+            <!-- repo/workbook -->
+            <form id="repo-form-modal" method="post" class="row g-2 align-items-end">
+              <div class="col-12 col-md-4">
+                <label class="form-label"><b>Select the repository you want to edit a codeset for:</b></label>
+                <select name="repo"
+                        class="form-select selected-primary js-repo-select {% if selected_repo %}selected-primary{% endif %}"
+                        {% if not repositories %}disabled{% endif %}
+                        data-preselected="{{ selected_repo or '' }}">
+                  <option value="">{% if repositories %}Select repository{% else %}Load a repository folder first{% endif %}</option>
+                  {% for repo in repositories or [] %}
+                  <option value="{{ repo }}" {% if repo == selected_repo %}selected{% endif %}>{{ repo }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label"><b>Workbook</b></label>
+                <select name="workbook_name"
+                        class="form-select selected-primary js-workbook-select {% if selected_workbook %}selected-primary{% endif %}"
+                        {% if not repo_files %}disabled{% endif %}
+                        data-preselected="{{ selected_workbook or '' }}">
+                  <option value="">Select workbook</option>
+                  {% for wb in repo_files or [] %}
+                  <option value="{{ wb }}" {% if wb == selected_workbook %}selected{% endif %}>{{ wb }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-12 col-md-2">
+                <button type="submit" class="btn btn-primary w-100 js-load-btn" disabled>Load Workbook</button>
+              </div>
 
-            {% if sheet_names %}
-            <div class="col-12 col-md-2">
-              <!-- Shows compare UI without submitting -->
-              <button id="btn-show-compare-modal" type="button" class="btn btn-outline-primary w-100">Compare</button>
-            </div>
-            {% endif %}
-          </form>
+              {% if sheet_names %}
+              <div class="col-12 col-md-2">
+                <!-- Shows compare UI without submitting -->
+                <button id="btn-show-compare-modal" type="button" class="btn btn-outline-primary w-100">Compare</button>
+              </div>
+              {% endif %}
+            </form>
+          </div>
 
           {% if sheet_names %}
+          <!-- Comparison card -->
           <div id="compare-card-modal" class="section-card mt-3 {% if comparison_active %}{% else %}d-none{% endif %}">
             <div class="section-title">Comparison</div>
             <form id="compare-form-modal" method="post" class="row g-2 align-items-end">
@@ -322,6 +330,7 @@
           </div>
           {% endif %}
 
+          <!-- Upload (left outside cards or wrap if you prefer symmetry) -->
           <form id="upload-form-modal" method="post" enctype="multipart/form-data" class="row g-2 align-items-end mt-2">
             <div class="col-12 col-md-8">
               <input type="file" name="workbook" accept=".xlsx" class="form-control" />
@@ -377,13 +386,13 @@
         if (loadWorkbookBtn) loadWorkbookBtn.disabled = !(hasRepo && hasWb);
       }
       function updateHighlights(){
-        if (repoSelect) repoSelect.classList.toggle('selected-primary', true); // keep yellow on landing
+        if (repoSelect) repoSelect.classList.toggle('selected-primary', true); // keep yellow
         if (workbookSelect) workbookSelect.classList.toggle('selected-primary', true);
         if (compareRepoSelect) compareRepoSelect.classList.toggle('selected-compare', !!compareRepoSelect.value);
         if (compareWorkbookSelect) compareWorkbookSelect.classList.toggle('selected-compare', !!compareWorkbookSelect.value);
       }
 
-      // --- populate workbook list when repo changes
+      // Populate workbook list for a repo
       async function fillWorkbooksFor(repo) {
         if (!workbookSelect) return;
         workbookSelect.innerHTML = '<option value="">Select workbook</option>';
@@ -406,18 +415,27 @@
         updateLoadEnable();
       }
 
-      // If a repo is already selected on page load, prime the workbook list
+      // If a repo is already selected on page load, prime without clearing a preselected workbook
       async function primeRepo(){
-        if (repoSelect && repoSelect.value) {
-          await fillWorkbooksFor(repoSelect.value);
-        } else {
-          updateLoadEnable();
-        }
         updateHighlights();
+        if (repoSelect && repoSelect.value) {
+          // If the select already has a chosen workbook, don't refetch/clear
+          const hasOptions = !!(workbookSelect && workbookSelect.options.length > 1);
+          const hasChosen = hasOptions && Array.from(workbookSelect.options).some(o => o.selected && o.value);
+          if (!hasOptions || !hasChosen) {
+            await fillWorkbooksFor(repoSelect.value);
+            const want = (workbookSelect && workbookSelect.dataset && workbookSelect.dataset.preselected) || '';
+            if (want && workbookSelect) workbookSelect.value = want;
+          }
+        }
+        updateLoadEnable();
       }
 
       repoSelect?.addEventListener('change', async () => {
         await fillWorkbooksFor(repoSelect.value);
+        // Preserve preselected if present
+        const want = (workbookSelect && workbookSelect.dataset && workbookSelect.dataset.preselected) || '';
+        if (want && workbookSelect) workbookSelect.value = want;
         updateHighlights();
       });
       workbookSelect?.addEventListener('change', () => { updateLoadEnable(); updateHighlights(); });
@@ -552,7 +570,7 @@
       repoBase?.addEventListener('input', () => { enableRepoButtons(); cacheRootsIfAbsolute(); });
       enableRepoButtons();
 
-      // Run once on load to populate workbook list if a repo is already chosen
+      // Run once on load to populate workbook list if needed (preserves current selection)
       primeRepo();
     }
 
@@ -575,8 +593,19 @@
       const overlay = document.getElementById('controlsOverlay');
       const overlayClose = document.getElementById('overlayClose');
       const overlayDialog = overlay?.querySelector('.overlay-dialog');
-      function openOverlay(){ if (!overlay) return; document.body.classList.add('no-scroll'); overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false'); (overlay.querySelector('input,select,button,[tabindex]:not([tabindex="-1"])')||overlay).focus(); }
-      function closeOverlay(){ if (!overlay) return; overlay.classList.remove('open'); overlay.setAttribute('aria-hidden','true'); document.body.classList.remove('no-scroll'); }
+      function openOverlay(){
+        if (!overlay) return;
+        document.body.classList.add('no-scroll');
+        overlay.classList.add('open');
+        overlay.setAttribute('aria-hidden','false');
+        (overlay.querySelector('input,select,button,[tabindex]:not([tabindex="-1"])')||overlay).focus();
+      }
+      function closeOverlay(){
+        if (!overlay) return;
+        overlay.classList.remove('open');
+        overlay.setAttribute('aria-hidden','true');
+        document.body.classList.remove('no-scroll');
+      }
       menuOpenControls?.addEventListener('click', ()=>{ closeMenu(); openOverlay(); });
       overlayClose?.addEventListener('click', closeOverlay);
       overlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeOverlay);
@@ -672,21 +701,6 @@
         if (key === 'CODE' || key === 'DISPLAY_VALUE') { const i = document.createElement('input'); i.type='text'; i.value=value || ''; return i; }
         if (mapInfo.sub_col && header === mapInfo.sub_col) { const i = document.createElement('input'); i.type='text'; i.readOnly=true; i.value=value || ''; return i; }
         const s = document.createElement('span'); s.textContent = value || ''; return s;
-      }
-      function updateSubDefinition(sel) {
-        const sheet = sel.dataset.sheet;
-        const mapInfo = mappings[sheet]; if (!mapInfo) return;
-        const mapping = mapInfo.map; const subCol = mapInfo.sub_col;
-        const row = sel.closest('tr');
-        if (row && subCol) {
-          const headerList = Array.from(row.closest('table').querySelectorAll('th')).map(th => th.innerText);
-          const subIndex = headerList.indexOf(subCol);
-          if (subIndex !== -1) {
-            const cell = row.children[subIndex];
-            const input = cell.querySelector('input, select');
-            if (input) input.value = mapping[sel.value] || ''; else cell.textContent = mapping[sel.value] || '';
-          }
-        }
       }
       function readSheet(table, sheet) {
         const baseRows = [], compRows = [];
