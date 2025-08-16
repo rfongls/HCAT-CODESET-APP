@@ -44,11 +44,11 @@
     .overlay-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
     .overlay-dialog {
       position: relative; margin: 4vh auto; width: min(1200px, 95vw); max-height: 92vh;
-      display: flex; flex-direction: column; background: #fff; border-radius: .75rem;
+      display: flex; flex-direction: column; background: var(--background-color); border-radius: .75rem;
       box-shadow: 0 20px 60px rgba(0,0,0,.25); overflow: hidden;
     }
     .overlay-header {
-      padding: .75rem 1rem; background: #4B0082; color: #fff;
+      padding: .75rem 1rem; background: var(--primary-color); color: #fff;
       display: flex; align-items: center; justify-content: space-between;
     }
     .overlay-body { padding: 1rem; overflow: auto; }
@@ -60,15 +60,23 @@
 <body>
   <header>
     <h1>Codeset Management App</h1>
-
-    {% if selected_workbook %}
     <div class="header-menu">
       <button id="hamburger" class="hamburger-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="headerMenu" aria-label="Open menu">☰</button>
       <div id="headerMenu" class="menu-pop d-none" role="menu" aria-hidden="true">
+        {% if selected_workbook %}
         <button id="menuOpenControls" class="menu-item" role="menuitem" type="button">Controls</button>
+        {% endif %}
+        <div class="menu-item">
+          <label for="theme-select" class="form-label mb-1">Theme</label>
+          <select id="theme-select" class="form-select form-select-sm">
+            <option value="default">Default</option>
+            <option value="blue">Blue</option>
+            <option value="gray">Gray</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
       </div>
     </div>
-    {% endif %}
   </header>
 
   <main class="container-fluid my-4">
@@ -349,6 +357,18 @@
           crossorigin="anonymous"></script>
 
   <script>
+    const themeSelect = document.getElementById('theme-select');
+    const storedTheme = localStorage.getItem('theme') || 'default';
+    document.documentElement.setAttribute('data-theme', storedTheme);
+    if (themeSelect) {
+      themeSelect.value = storedTheme;
+      themeSelect.addEventListener('change', (e) => {
+        const theme = e.target.value;
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+      });
+    }
+
     const mappings = {{ mappings|tojson }};
     const dropdowns = {{ dropdowns|tojson }};
     const headers = {{ headers|tojson }};
