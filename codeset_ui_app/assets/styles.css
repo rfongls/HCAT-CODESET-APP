@@ -180,7 +180,7 @@ header {
 }
 
 /* =========================
-   Collapsible Taskbar
+   Collapsible Taskbar (legacy)
    ========================= */
 .control-taskbar {
     cursor: pointer;
@@ -201,4 +201,71 @@ header {
 }
 .control-taskbar[aria-expanded="true"] .chev {
     transform: rotate(180deg);
+}
+
+/* =========================
+   Controls Overlay (centered)
+   ========================= */
+.overlay {
+    position: fixed;
+    inset: 0;
+    display: none;             /* hidden by default */
+    z-index: 1050;
+    align-items: center;       /* center vertically */
+    justify-content: center;   /* center horizontally */
+}
+.overlay.open {
+    display: flex;             /* show as flex to center .overlay-dialog */
+}
+.overlay-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 0;                /* behind the dialog */
+}
+.overlay-dialog {
+    position: relative;
+    z-index: 1;                /* above the backdrop */
+    margin: 0;                 /* flex centers it */
+    width: min(1200px, 95vw);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-radius: .75rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    overflow: hidden;
+}
+
+/* Controls dialog header – white theme */
+.overlay-header {
+    padding: .75rem 1rem;
+    background: #fff;
+    color: #4B0082;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #e6e6f0;
+}
+/* Ensure white header even if markup includes bg-primary/text-white */
+.overlay-header.bg-primary {
+    background: #fff !important;
+    color: #4B0082 !important;
+}
+
+.overlay-body {
+    padding: 1rem;
+    overflow: auto;            /* scroll content if tall */
+}
+
+.overlay-header .btn-close {
+    filter: none;
+    opacity: .6;
+}
+.overlay-header .btn-close:hover {
+    opacity: 1;
+}
+
+.no-scroll {
+    overflow: hidden;          /* applied to body while overlay open */
 }
