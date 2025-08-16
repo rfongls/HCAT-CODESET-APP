@@ -66,15 +66,7 @@
         {% if selected_workbook %}
         <button id="menuOpenControls" class="menu-item" role="menuitem" type="button">Controls</button>
         {% endif %}
-        <div class="menu-item">
-          <label for="theme-select" class="form-label mb-1">Theme</label>
-          <select id="theme-select" class="form-select form-select-sm">
-            <option value="default">Default</option>
-            <option value="blue">Blue</option>
-            <option value="gray">Gray</option>
-            <option value="dark">Dark</option>
-          </select>
-        </div>
+        <button id="menuOpenTheme" class="menu-item" role="menuitem" type="button">Theme</button>
       </div>
     </div>
   </header>
@@ -352,6 +344,33 @@
     </div>
   </div>
 
+  <!-- THEME OVERLAY -->
+  <div id="themeOverlay" class="overlay" aria-hidden="true">
+    <div class="overlay-backdrop"></div>
+    <div class="overlay-dialog" role="dialog" aria-modal="true" aria-labelledby="themeOverlayTitle" tabindex="-1">
+      <div class="overlay-header">
+        <h5 id="themeOverlayTitle" class="mb-0">Theme</h5>
+        <button id="themeOverlayClose" type="button" class="btn btn-light btn-sm">Close</button>
+      </div>
+      <div class="overlay-body">
+        <div class="section-card">
+          <div class="section-title">Theme Selection</div>
+          <select id="theme-select" class="form-select">
+            <option value="default">Default</option>
+            <option value="blue">Blue</option>
+            <option value="gray">Gray</option>
+            <option value="dark">Dark</option>
+            <option value="orange">Orange</option>
+            <option value="pink">Pink</option>
+            <option value="green">Green</option>
+            <option value="lime">Lime</option>
+            <option value="darkgray">Dark Gray</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
           integrity="sha384-ZENmB1FQdJrEGAAtBqF7yqdv8cp8cYNjL6JTyAOuPBIYlFKE8ZFt5VtY3PQ9bFZV"
           crossorigin="anonymous"></script>
@@ -603,34 +622,58 @@
       const hamburger = document.getElementById('hamburger');
       const menu = document.getElementById('headerMenu');
       const menuOpenControls = document.getElementById('menuOpenControls');
+      const menuOpenTheme = document.getElementById('menuOpenTheme');
       function closeMenu(){ menu?.classList.add('d-none'); hamburger?.setAttribute('aria-expanded','false'); menu?.setAttribute('aria-hidden','true'); }
       function openMenu(){ menu?.classList.remove('d-none'); hamburger?.setAttribute('aria-expanded','true'); menu?.setAttribute('aria-hidden','false'); }
       hamburger?.addEventListener('click', (e)=>{ e.stopPropagation(); menu.classList.contains('d-none') ? openMenu() : closeMenu(); });
       document.addEventListener('click', (e)=>{ if (!menu || menu.classList.contains('d-none')) return; if (e.target===hamburger || menu.contains(e.target)) return; closeMenu(); });
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') closeMenu(); });
 
-      // Overlay
-      const overlay = document.getElementById('controlsOverlay');
-      const overlayClose = document.getElementById('overlayClose');
-      const overlayDialog = overlay?.querySelector('.overlay-dialog');
-      function openOverlay(){
-        if (!overlay) return;
+      // Controls overlay
+      const controlsOverlay = document.getElementById('controlsOverlay');
+      const controlsOverlayClose = document.getElementById('overlayClose');
+      const controlsOverlayDialog = controlsOverlay?.querySelector('.overlay-dialog');
+      function openControlsOverlay(){
+        if (!controlsOverlay) return;
         document.body.classList.add('no-scroll');
-        overlay.classList.add('open');
-        overlay.setAttribute('aria-hidden','false');
-        (overlay.querySelector('input,select,button,[tabindex]:not([tabindex="-1"])')||overlay).focus();
+        controlsOverlay.classList.add('open');
+        controlsOverlay.setAttribute('aria-hidden','false');
+        (controlsOverlay.querySelector('input,select,button,[tabindex]:not([tabindex="-1"])')||controlsOverlay).focus();
       }
-      function closeOverlay(){
-        if (!overlay) return;
-        overlay.classList.remove('open');
-        overlay.setAttribute('aria-hidden','true');
+      function closeControlsOverlay(){
+        if (!controlsOverlay) return;
+        controlsOverlay.classList.remove('open');
+        controlsOverlay.setAttribute('aria-hidden','true');
         document.body.classList.remove('no-scroll');
       }
-      menuOpenControls?.addEventListener('click', ()=>{ closeMenu(); openOverlay(); });
-      overlayClose?.addEventListener('click', closeOverlay);
-      overlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeOverlay);
-      document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && overlay?.classList.contains('open')) closeOverlay(); });
-      overlayDialog?.addEventListener('click',(e)=>e.stopPropagation());
+      menuOpenControls?.addEventListener('click', ()=>{ closeMenu(); openControlsOverlay(); });
+      controlsOverlayClose?.addEventListener('click', closeControlsOverlay);
+      controlsOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeControlsOverlay);
+      document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && controlsOverlay?.classList.contains('open')) closeControlsOverlay(); });
+      controlsOverlayDialog?.addEventListener('click',(e)=>e.stopPropagation());
+
+      // Theme overlay
+      const themeOverlay = document.getElementById('themeOverlay');
+      const themeOverlayClose = document.getElementById('themeOverlayClose');
+      const themeOverlayDialog = themeOverlay?.querySelector('.overlay-dialog');
+      function openThemeOverlay(){
+        if (!themeOverlay) return;
+        document.body.classList.add('no-scroll');
+        themeOverlay.classList.add('open');
+        themeOverlay.setAttribute('aria-hidden','false');
+        (themeOverlay.querySelector('input,select,button,[tabindex]:not([tabindex="-1"])')||themeOverlay).focus();
+      }
+      function closeThemeOverlay(){
+        if (!themeOverlay) return;
+        themeOverlay.classList.remove('open');
+        themeOverlay.setAttribute('aria-hidden','true');
+        document.body.classList.remove('no-scroll');
+      }
+      menuOpenTheme?.addEventListener('click', ()=>{ closeMenu(); openThemeOverlay(); });
+      themeOverlayClose?.addEventListener('click', closeThemeOverlay);
+      themeOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeThemeOverlay);
+      document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && themeOverlay?.classList.contains('open')) closeThemeOverlay(); });
+      themeOverlayDialog?.addEventListener('click',(e)=>e.stopPropagation());
 
       // Show compare card in overlay without submitting
       const showCompareBtn = document.getElementById('btn-show-compare-modal');
