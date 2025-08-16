@@ -20,3 +20,4 @@ def test_close_buttons_render(tmp_path, monkeypatch):
     css = (Path(__file__).resolve().parents[1] / "codeset_ui_app/assets/styles.css").read_text()
     assert ".overlay-header .btn-light" in css
     assert "box-shadow" in css
+
