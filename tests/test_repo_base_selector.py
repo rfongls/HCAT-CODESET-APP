@@ -28,6 +28,7 @@ def test_repository_folder_selection(tmp_path, monkeypatch):
     assert "js-repo-browse" in text
     assert "js-repo-save" in text
     assert 'name="repo_base"' in text
+    assert 'class="form-control selected-primary js-repo-base"' in text
     assert 'placeholder="Enter folder path"' in text
     assert '<button type="submit" class="btn btn-primary w-100 js-repo-load" disabled>' in text
     assert 'repo-base-picker' not in text
@@ -36,3 +37,4 @@ def test_repository_folder_selection(tmp_path, monkeypatch):
     resp = client.post("/", data={"repo_base": str(samples)})
     text2 = resp.get_data(as_text=True)
     assert f"<option value=\"{repo.name}\"" in text2
+    assert 'class="form-control selected-primary js-repo-base"' in text2
