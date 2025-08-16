@@ -1,7 +1,8 @@
 /* Theme Selection */
 :root {
     --background-color: #f7f7fa;
-    --text-color: #333;
+    --text-color: #000000;
+    --menu-text-color: #000000;	
     --primary-color: #4B0082;
     --primary-hover: #36005f;
     --secondary-color: #42b0f5;
@@ -35,6 +36,7 @@
 [data-theme="dark"] {
     --background-color: #121212;
     --text-color: #000000;
+	--menu-text-color: #f8f9fa;
     --primary-color: #0d6efd;
     --primary-hover: #0a58ca;
     --secondary-color: #0dcaf0;
@@ -89,6 +91,19 @@ header {
     padding: 20px;
     text-align: center;
     margin-bottom: 20px;
+}
+
+#inline-controls,
+#inline-controls .form-label,
+#inline-controls .form-control,
+#inline-controls .form-select,
+#inline-controls .btn,
+#controlsOverlay .overlay-body,
+#controlsOverlay .form-label,
+#controlsOverlay .form-control,
+#controlsOverlay .form-select,
+#controlsOverlay .btn {
+    color: var(--menu-text-color);
 }
 
 /* --- Bootstrap palette tweaks for consistency --- */
