@@ -34,11 +34,11 @@
 
 [data-theme="dark"] {
     --background-color: #121212;
-    --text-color: #f8f9fa;
+    --text-color: #000000;
     --primary-color: #0d6efd;
     --primary-hover: #0a58ca;
-    --secondary-color: #20c997;
-    --highlight-color: #3a3a3a;
+    --secondary-color: #0dcaf0;
+    --highlight-color: #e7f1ff;
     --table-even-color: #1e1e1e;
     --error-bg: #5a1e1e;
 }
@@ -48,7 +48,7 @@
     --text-color: #000000;
     --primary-color: #fd7e14;
     --primary-hover: #dc6502;
-    --secondary-color: #ffc107;
+    --secondary-color: #0dcaf0;
     --highlight-color: #fff3e0;
     --table-even-color: #fff8f1;
     --error-bg: #f8d7da;
@@ -59,8 +59,8 @@
     --text-color: #000000;
     --primary-color: #d63384;
     --primary-hover: #b11c6a;
-    --secondary-color: #e83e8c;
-    --highlight-color: #ffe2f1;
+    --secondary-color: #0dcaf0;
+    --highlight-color: #e2e3e5;
     --table-even-color: #f8f9fa;
     --error-bg: #f8d7da;
 }
@@ -76,24 +76,13 @@
     --error-bg: #f8d7da;
 }
 
-[data-theme="lime"] {
-    --background-color: #ffffff;
-    --text-color: #000000;
-    --primary-color: #cddc39;
-    --primary-hover: #afb42b;
-    --secondary-color: #8bc34a;
-    --highlight-color: #f0f4c3;
-    --table-even-color: #f8f9fa;
-    --error-bg: #f8d7da;
-}
-
 [data-theme="darkgray"] {
     --background-color: #1c1c1c;
-    --text-color: #f8f9fa;
+    --text-color: #000000;
     --primary-color: #6c757d;
     --primary-hover: #5c636a;
-    --secondary-color: #495057;
-    --highlight-color: #4a4a4a;
+    --secondary-color: #000000;
+    --highlight-color: #e2e3e5;
     --table-even-color: #2b2b2b;
     --error-bg: #5a1e1e;
 }
