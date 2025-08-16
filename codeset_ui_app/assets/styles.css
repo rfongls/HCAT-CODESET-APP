@@ -76,17 +76,6 @@
     --error-bg: #f8d7da;
 }
 
-[data-theme="darkgray"] {
-    --background-color: #1c1c1c;
-    --text-color: #000000;
-    --primary-color: #6c757d;
-    --primary-hover: #5c636a;
-    --secondary-color: #000000;
-    --highlight-color: #e2e3e5;
-    --table-even-color: #2b2b2b;
-    --error-bg: #5a1e1e;
-}
-
 body {
     font-family: Arial, sans-serif;
     background-color: var(--background-color);
