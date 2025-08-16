@@ -16,3 +16,8 @@ def test_close_buttons_render(tmp_path, monkeypatch):
 
     assert '<button id="overlayClose" type="button" class="btn btn-danger text-white fs-4" aria-label="Close">&times;</button>' in text
     assert '<button id="themeOverlayClose" type="button" class="btn btn-danger text-white fs-4" aria-label="Close">&times;</button>' in text
+
+    css = (Path(__file__).resolve().parents[1] / "codeset_ui_app/assets/styles.css").read_text()
+    assert ".overlay-header .btn-danger" in css
+    assert "box-shadow" in css
+
