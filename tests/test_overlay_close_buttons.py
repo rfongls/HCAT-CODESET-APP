@@ -14,5 +14,5 @@ def test_close_buttons_render(tmp_path, monkeypatch):
     resp = client.get("/")
     text = resp.get_data(as_text=True)
 
-    assert '<button id="overlayClose" type="button" class="btn btn-danger btn-sm" aria-label="Close">&times;</button>' in text
-    assert '<button id="themeOverlayClose" type="button" class="btn btn-danger btn-sm" aria-label="Close">&times;</button>' in text
+    assert '<button id="overlayClose" type="button" class="btn btn-danger text-white fs-4" aria-label="Close">&times;</button>' in text
+    assert '<button id="themeOverlayClose" type="button" class="btn btn-danger text-white fs-4" aria-label="Close">&times;</button>' in text
