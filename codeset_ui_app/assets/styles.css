@@ -38,7 +38,7 @@
     --primary-color: #0d6efd;
     --primary-hover: #0a58ca;
     --secondary-color: #20c997;
-    --highlight-color: #343a40;
+    --highlight-color: #3a3a3a;
     --table-even-color: #1e1e1e;
     --error-bg: #5a1e1e;
 }
@@ -93,7 +93,7 @@
     --primary-color: #6c757d;
     --primary-hover: #5c636a;
     --secondary-color: #495057;
-    --highlight-color: #343a40;
+    --highlight-color: #4a4a4a;
     --table-even-color: #2b2b2b;
     --error-bg: #5a1e1e;
 }
