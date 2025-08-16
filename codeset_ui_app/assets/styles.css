@@ -233,37 +233,33 @@ header {
     flex-direction: column;
     background: #fff;
     border-radius: .75rem;
-    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    /* White outline ring + soft shadow */
+    box-shadow:
+        0 0 0 6px #ffffff,                 /* crisp white outline */
+        0 20px 60px rgba(0,0,0,.25);       /* depth */
     overflow: hidden;
 }
 
-/* Controls dialog header – white theme */
+/* Header stays purple; close icon visible on dark bg */
 .overlay-header {
     padding: .75rem 1rem;
-    background: #fff;
-    color: #4B0082;
+    background: #4B0082;
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid #e6e6f0;
 }
-/* Ensure white header even if markup includes bg-primary/text-white */
-.overlay-header.bg-primary {
-    background: #fff !important;
-    color: #4B0082 !important;
+.overlay-header .btn-close {
+    filter: invert(1) brightness(1.4);
+    opacity: .8;
+}
+.overlay-header .btn-close:hover {
+    opacity: 1;
 }
 
 .overlay-body {
     padding: 1rem;
     overflow: auto;            /* scroll content if tall */
-}
-
-.overlay-header .btn-close {
-    filter: none;
-    opacity: .6;
-}
-.overlay-header .btn-close:hover {
-    opacity: 1;
 }
 
 .no-scroll {
