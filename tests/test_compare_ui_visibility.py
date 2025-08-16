@@ -32,17 +32,13 @@ def test_compare_form_visibility_and_repo_exclusion(tmp_path, monkeypatch):
 
     resp = client.get("/")
     html = resp.get_data(as_text=True)
-    assert 'name="start_compare"' not in html
+    assert 'name="compare_repo"' not in html
 
     resp = client.post("/", data={"repo": repo1, "workbook_name": wb1})
     html = resp.get_data(as_text=True)
-    assert 'name="start_compare"' in html
-    assert 'id="compare-repo-select"' not in html
-
-    resp = client.post("/", data={"start_compare": "1"})
-    html = resp.get_data(as_text=True)
-    assert 'id="compare-repo-select"' in html
-    match = re.search(r'<select id="compare-repo-select"[^>]*>(.*?)</select>', html, re.DOTALL)
+    assert 'name="compare_repo"' in html
+    assert re.search(r'<div id="compare-card-modal"[^>]*class="[^"]*d-none', html)
+    match = re.search(r'<select name="compare_repo"[^>]*>(.*?)</select>', html, re.DOTALL)
     assert match is not None
     select_html = match.group(1)
     assert f'<option value="{repo1}"' not in select_html
@@ -54,7 +50,6 @@ def test_compare_selection_and_clear_button(tmp_path, monkeypatch):
     client = app_module.app.test_client()
 
     client.post("/", data={"repo": repo1, "workbook_name": wb1})
-    client.post("/", data={"start_compare": "1"})
     resp = client.post("/", data={"compare_repo": repo2, "compare_workbook_name": wb2})
     html = resp.get_data(as_text=True)
 
@@ -65,5 +60,4 @@ def test_compare_selection_and_clear_button(tmp_path, monkeypatch):
 
     resp = client.post("/", data={"end_compare": "1"})
     html = resp.get_data(as_text=True)
-    assert 'id="compare-repo-select"' not in html
-    assert 'name="start_compare"' in html
+    assert re.search(r'<div id="compare-card-modal"[^>]*class="[^"]*d-none', html)
