@@ -90,7 +90,7 @@
           </div>
           <div class="col-12 col-md-2">
             <button type="submit" name="save_repo_base" value="1"
-                    class="btn btn-outline-secondary w-100 js-repo-save" disabled>Save</button>
+                    class="btn btn-primary w-100 js-repo-save" disabled>Save</button>
           </div>
           <div class="col-12 col-md-2">
             <button type="submit" class="btn btn-primary w-100 js-repo-load" disabled>Load</button>
@@ -127,7 +127,7 @@
           </div>
           {% if sheet_names and not compare_mode %}
           <div class="col-12 col-md-2">
-            <button type="submit" name="start_compare" value="1" class="btn btn-outline-primary w-100">Compare</button>
+            <button type="submit" name="start_compare" value="1" class="btn btn-primary w-100">Compare</button>
           </div>
           {% endif %}
         </form>
@@ -156,7 +156,7 @@
             {% if comparison_active %}
             <button type="submit" name="end_compare" value="1" class="btn btn-outline-secondary w-100">Clear Comparison</button>
             {% else %}
-            <button type="submit" class="btn btn-outline-primary w-100">Load Comparison</button>
+            <button type="submit" class="btn btn-primary w-100">Load Comparison</button>
             {% endif %}
           </div>
         </form>
@@ -164,11 +164,13 @@
 
         <form id="upload-form-inline" method="post" enctype="multipart/form-data" class="row g-2 align-items-end mt-2">
           <div class="col-12 col-md-8">
-            <input type="file" name="workbook" accept=".xlsx" class="form-control w-100" />
+            <div class="input-group">
+              <input type="file" name="workbook" accept=".xlsx" class="form-control" />
+            </div>
           </div>
           <div class="col-12 col-md-2"></div>
           <div class="col-12 col-md-2">
-            <button type="submit" class="btn btn-outline-secondary bg-white w-100">Upload</button>
+            <button type="submit" class="btn btn-outline-primary bg-white w-100">Upload</button>
           </div>
           <div class="col-12 col-md-2"></div>
         </form>
@@ -249,7 +251,7 @@
               </div>
               <div class="col-12 col-md-2">
                 <button type="submit" name="save_repo_base" value="1"
-                        class="btn btn-outline-secondary w-100 js-repo-save" disabled>Save</button>
+                        class="btn btn-primary w-100 js-repo-save" disabled>Save</button>
               </div>
               <div class="col-12 col-md-2">
                 <button type="submit" class="btn btn-primary w-100 js-repo-load" disabled>Load</button>
@@ -289,7 +291,7 @@
               {% if sheet_names %}
               <div class="col-12 col-md-2">
                 <!-- Shows compare UI without submitting -->
-                <button id="btn-show-compare-modal" type="button" class="btn btn-outline-primary w-100">Compare</button>
+                <button id="btn-show-compare-modal" type="button" class="btn btn-primary w-100">Compare</button>
               </div>
               {% endif %}
             </form>
@@ -322,7 +324,7 @@
                 {% if comparison_active %}
                 <button type="submit" name="end_compare" value="1" class="btn btn-outline-secondary w-100">Clear Comparison</button>
                 {% else %}
-                <button type="submit" class="btn btn-outline-primary w-100">Load Comparison</button>
+                <button type="submit" class="btn btn-primary w-100">Load Comparison</button>
                 {% endif %}
               </div>
             </form>
@@ -332,10 +334,12 @@
           <!-- Upload (left outside cards or wrap if you prefer symmetry) -->
           <form id="upload-form-modal" method="post" enctype="multipart/form-data" class="row g-2 align-items-end mt-2">
             <div class="col-12 col-md-8">
-              <input type="file" name="workbook" accept=".xlsx" class="form-control w-100" />
+              <div class="input-group">
+                <input type="file" name="workbook" accept=".xlsx" class="form-control" />
+              </div>
             </div>
             <div class="col-12 col-md-2">
-              <button type="submit" class="btn btn-secondary w-100">Upload</button>
+              <button type="submit" class="btn btn-outline-primary bg-white w-100">Upload</button>
             </div>
             <div class="col-12 col-md-2"></div>
           </form>
