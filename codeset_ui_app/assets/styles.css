@@ -270,6 +270,11 @@ header {
     color: var(--text-color);
 }
 
+[data-theme="dark"] .btn-lock-unprotected + span,
+[data-theme="dark"] .btn-lock-protected + span {
+    color: #fff;
+}
+
 /* =========================
    Cards & Dividers
    ========================= */
