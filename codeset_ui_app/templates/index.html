@@ -163,7 +163,8 @@
         {% endif %}
 
         <form id="upload-form-inline" method="post" enctype="multipart/form-data" class="row g-2 align-items-center mt-2">
-          <div class="col-12 col-md-8">
+          <div class="d-none d-md-block col-md-4"></div>
+          <div class="col-12 col-md-4">
             <label for="upload-file-inline" class="form-control selected-primary text-truncate js-file-label" title="Choose File" style="cursor: pointer;">Choose File</label>
             <input id="upload-file-inline" type="file" name="workbook" accept=".xlsx" class="d-none js-file-input" />
           </div>
@@ -171,7 +172,7 @@
           <div class="col-12 col-md-2">
             <button type="submit" class="btn btn-outline-primary bg-white w-100">Upload</button>
           </div>
-          <div class="col-12 col-md-2"></div>
+          <div class="d-none d-md-block col-md-2"></div>
         </form>
       </div>
     </section>
@@ -330,17 +331,20 @@
           </div>
           {% endif %}
 
-          <!-- Upload (left outside cards or wrap if you prefer symmetry) -->
-          <form id="upload-form-modal" method="post" enctype="multipart/form-data" class="row g-2 align-items-center mt-2">
-            <div class="col-12 col-md-8">
-              <label for="upload-file-modal" class="form-control selected-primary text-truncate js-file-label" title="Choose File" style="cursor: pointer;">Choose File</label>
-              <input id="upload-file-modal" type="file" name="workbook" accept=".xlsx" class="d-none js-file-input" />
-            </div>
-            <div class="col-12 col-md-2">
-              <button type="submit" class="btn btn-outline-primary bg-white w-100">Upload</button>
-            </div>
-            <div class="col-12 col-md-2"></div>
-          </form>
+          <div class="section-card mt-3">
+            <div class="section-title">Upload</div>
+            <form id="upload-form-modal" method="post" enctype="multipart/form-data" class="row g-2 align-items-center">
+              <div class="d-none d-md-block col-md-4"></div>
+              <div class="col-12 col-md-4">
+                <label for="upload-file-modal" class="form-control selected-primary text-truncate js-file-label" title="Choose File" style="cursor: pointer;">Choose File</label>
+                <input id="upload-file-modal" type="file" name="workbook" accept=".xlsx" class="d-none js-file-input" />
+              </div>
+              <div class="col-12 col-md-2">
+                <button type="submit" class="btn btn-outline-primary bg-white w-100">Upload</button>
+              </div>
+              <div class="d-none d-md-block col-md-2"></div>
+            </form>
+          </div>
         </div>
       </div>
     </div>
