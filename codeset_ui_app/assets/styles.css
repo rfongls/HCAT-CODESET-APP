@@ -133,11 +133,27 @@ header {
 .btn-outline-primary {
     color: var(--primary-color) !important;
     border-color: var(--primary-color);
+    background-color: #fff;
 }
 .btn-outline-primary:hover,
 .btn-outline-primary:focus {
     color: #fff !important;
     background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+#inline-controls .btn-primary,
+#controlsOverlay .btn-primary {
+    color: #fff !important;
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+#inline-controls .btn-primary:hover,
+#inline-controls .btn-primary:focus,
+#controlsOverlay .btn-primary:hover,
+#controlsOverlay .btn-primary:focus {
+    color: var(--primary-color) !important;
+    background-color: #fff;
     border-color: var(--primary-color);
 }
 
