@@ -164,9 +164,8 @@
 
         <form id="upload-form-inline" method="post" enctype="multipart/form-data" class="row g-2 align-items-center mt-2">
           <div class="col-12 col-md-8">
-            <div class="input-group">
-              <input type="file" name="workbook" accept=".xlsx" class="form-control" />
-            </div>
+            <label for="upload-file-inline" class="form-control selected-primary text-truncate js-file-label" title="Choose File" style="cursor: pointer;">Choose File</label>
+            <input id="upload-file-inline" type="file" name="workbook" accept=".xlsx" class="d-none js-file-input" />
           </div>
           <div class="col-12 col-md-2"></div>
           <div class="col-12 col-md-2">
@@ -334,9 +333,8 @@
           <!-- Upload (left outside cards or wrap if you prefer symmetry) -->
           <form id="upload-form-modal" method="post" enctype="multipart/form-data" class="row g-2 align-items-center mt-2">
             <div class="col-12 col-md-8">
-              <div class="input-group">
-                <input type="file" name="workbook" accept=".xlsx" class="form-control" />
-              </div>
+              <label for="upload-file-modal" class="form-control selected-primary text-truncate js-file-label" title="Choose File" style="cursor: pointer;">Choose File</label>
+              <input id="upload-file-modal" type="file" name="workbook" accept=".xlsx" class="d-none js-file-input" />
             </div>
             <div class="col-12 col-md-2">
               <button type="submit" class="btn btn-outline-primary bg-white w-100">Upload</button>
@@ -420,6 +418,8 @@
       const repoBrowse = scope.querySelector('.js-repo-browse');
       const repoLoad = scope.querySelector('.js-repo-load');
       const repoSave = scope.querySelector('.js-repo-save');
+      const fileInput = scope.querySelector('.js-file-input');
+      const fileLabel = scope.querySelector('.js-file-label');
 
       function updateLoadEnable(){
         const hasRepo = !!(repoSelect && !repoSelect.disabled && repoSelect.value);
@@ -430,6 +430,7 @@
         if (repoBase) repoBase.classList.toggle('selected-primary', true);
         if (repoSelect) repoSelect.classList.toggle('selected-primary', true); // keep yellow
         if (workbookSelect) workbookSelect.classList.toggle('selected-primary', true);
+        if (fileLabel) fileLabel.classList.toggle('selected-primary', true);
         if (compareRepoSelect) compareRepoSelect.classList.toggle('selected-compare', true);
         if (compareWorkbookSelect) compareWorkbookSelect.classList.toggle('selected-compare', true);
       }
@@ -506,6 +507,11 @@
         updateHighlights();
       });
       compareWorkbookSelect?.addEventListener('change', updateHighlights);
+
+      fileInput?.addEventListener('change', () => {
+        const name = fileInput.files.length ? fileInput.files[0].name : 'Choose File';
+        if (fileLabel) { fileLabel.textContent = name; fileLabel.title = name; }
+      });
 
       // path helpers
       const isAbsolutePath = (p) => !!p && (p.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(p));
