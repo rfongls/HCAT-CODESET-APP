@@ -119,23 +119,42 @@ header {
 }
 
 .btn-primary {
+    color: #fff !important;
     background-color: var(--primary-color);
     border-color: var(--primary-color);
 }
-.btn-primary:hover {
+.btn-primary:hover,
+.btn-primary:focus {
+    color: #fff !important;
     background-color: var(--primary-hover);
     border-color: var(--primary-hover);
 }
 
 .btn-outline-primary {
-    color: var(--primary-color);
+    color: var(--primary-color) !important;
     border-color: var(--primary-color);
 }
 .btn-outline-primary:hover,
 .btn-outline-primary:focus {
-    color: #fff;
+    color: #fff !important;
     background-color: var(--primary-color);
     border-color: var(--primary-color);
+}
+
+/* Prevent file inputs from overflowing their column */
+#upload-form-inline .form-control[type="file"],
+#upload-form-modal .form-control[type="file"] {
+    padding: .375rem .75rem;
+    height: calc(1.5em + .75rem + 2px);
+}
+
+#upload-form-inline .form-control[type="file"]::file-selector-button,
+#upload-form-modal .form-control[type="file"]::file-selector-button,
+#upload-form-inline .form-control[type="file"]::-webkit-file-upload-button,
+#upload-form-modal .form-control[type="file"]::-webkit-file-upload-button {
+    margin: 0;
+    padding: .375rem .75rem;
+    height: calc(1.5em + .75rem + 2px);
 }
 
 /* --- Tables / grid --- */
