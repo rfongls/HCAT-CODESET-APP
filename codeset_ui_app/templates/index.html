@@ -169,7 +169,7 @@
           </div>
           <div class="col-12 col-md-2"></div>
           <div class="col-12 col-md-2">
-            <button type="submit" class="btn btn-outline-primary bg-white w-100">Upload</button>
+            <button type="submit" class="btn btn-outline-primary w-100">Upload</button>
           </div>
           <div class="d-none d-md-block col-md-2"></div>
         </form>
@@ -337,7 +337,7 @@
                 <input id="upload-file-modal" type="file" name="workbook" accept=".xlsx" class="d-none js-file-input" />
               </div>
               <div class="col-12 col-md-2">
-                <button type="submit" class="btn btn-outline-primary bg-white w-100">Upload</button>
+                <button type="submit" class="btn btn-outline-primary w-100">Upload</button>
               </div>
               <div class="d-none d-md-block col-md-2"></div>
             </form>
@@ -359,13 +359,17 @@
         <div class="section-card">
           <div class="section-title">Theme Selection</div>
           <select id="theme-select" class="form-select">
-            <option value="default">Default</option>
-            <option value="blue">Blue</option>
-            <option value="gray">Gray</option>
-            <option value="dark">Dark</option>
-            <option value="orange">Orange</option>
-            <option value="pink">Pink</option>
-            <option value="green">Green</option>
+            <option value="light-purple">Light Purple</option>
+            <option value="light-blue">Light Blue</option>
+            <option value="light-gray">Light Gray</option>
+            <option value="light-orange">Light Orange</option>
+            <option value="light-pink">Light Pink</option>
+            <option value="light-green">Light Green</option>
+            <option value="dark-blue">Dark Blue</option>
+            <option value="dark-purple">Dark Purple</option>
+            <option value="dark-orange">Dark Orange</option>
+            <option value="dark-green">Dark Green</option>
+            <option value="dark-pink">Dark Pink</option>
           </select>
         </div>
       </div>
@@ -378,7 +382,7 @@
 
   <script>
     const themeSelect = document.getElementById('theme-select');
-    const storedTheme = localStorage.getItem('theme') || 'default';
+    const storedTheme = localStorage.getItem('theme') || 'light-purple';
     document.documentElement.setAttribute('data-theme', storedTheme);
     if (themeSelect) {
       themeSelect.value = storedTheme;
