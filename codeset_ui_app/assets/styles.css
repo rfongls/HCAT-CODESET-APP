@@ -141,6 +141,14 @@ header {
     border-color: var(--primary-color);
 }
 
+/* Prevent file inputs from overflowing their column */
+#upload-form-inline .form-control[type="file"]::file-selector-button,
+#upload-form-modal .form-control[type="file"]::file-selector-button,
+#upload-form-inline .form-control[type="file"]::-webkit-file-upload-button,
+#upload-form-modal .form-control[type="file"]::-webkit-file-upload-button {
+    margin: 0;
+}
+
 /* --- Tables / grid --- */
 .table-wrapper {
     overflow: auto;
