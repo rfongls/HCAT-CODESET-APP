@@ -164,7 +164,7 @@
 
         <form id="upload-form-inline" method="post" enctype="multipart/form-data" class="row g-2 align-items-center mt-2">
           <div class="col-12 col-md-8">
-            <label for="upload-file-inline" class="form-control selected-primary text-truncate js-file-label" title="Choose File" style="cursor: pointer;">Choose File</label>
+            <label for="upload-file-inline" class="form-control selected-primary text-truncate js-file-label" title="Choose File" style="cursor: pointer;">-- Click to Choose File --</label>
             <input id="upload-file-inline" type="file" name="workbook" accept=".xlsx" class="d-none js-file-input" />
           </div>
           <div class="col-12 col-md-2"></div>
@@ -185,7 +185,6 @@
 
       <div class="row g-2 align-items-end mb-3">
         <div class="col-12 col-md-8">
-          <label for="sheet-select" class="form-label mb-0"><b>Sheet</b></label>
           <select id="sheet-select" class="form-select">
             {% for sheet in sheet_names %}
             <option value="{{ sheet }}" {% if sheet == initial_sheet %}selected{% endif %}>{{ sheet }}</option>
@@ -334,7 +333,7 @@
             <div class="section-title">Upload</div>
             <form id="upload-form-modal" method="post" enctype="multipart/form-data" class="row g-2 align-items-center">
               <div class="col-12 col-md-8">
-                <label for="upload-file-modal" class="form-control selected-primary text-truncate js-file-label" title="Choose File" style="cursor: pointer;">Choose File</label>
+                <label for="upload-file-modal" class="form-control selected-primary text-truncate js-file-label" title="Choose File" style="cursor: pointer;">-- Click to Choose File --</label>
                 <input id="upload-file-modal" type="file" name="workbook" accept=".xlsx" class="d-none js-file-input" />
               </div>
               <div class="col-12 col-md-2">
