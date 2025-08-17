@@ -28,5 +28,18 @@ def test_theme_options_and_overlay(tmp_path, monkeypatch):
     html = resp.get_data(as_text=True)
     assert 'id="menuOpenTheme"' in html
     assert 'id="themeOverlay"' in html
-    for theme in ["default", "blue", "gray", "dark", "orange", "pink", "green"]:
+    themes = [
+        "light-purple",
+        "light-blue",
+        "light-gray",
+        "light-orange",
+        "light-pink",
+        "light-green",
+        "dark-blue",
+        "dark-purple",
+        "dark-orange",
+        "dark-green",
+        "dark-pink",
+    ]
+    for theme in themes:
         assert f'<option value="{theme}"' in html
