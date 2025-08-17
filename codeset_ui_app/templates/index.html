@@ -135,7 +135,7 @@
         {% if sheet_names and compare_mode %}
         <form id="compare-form-inline" method="post" class="row g-2 align-items-end mt-2">
           <div class="col-12 col-md-4">
-            <select name="compare_repo" class="form-select js-compare-repo {% if comparison_active %}selected-compare{% endif %}">
+            <select name="compare_repo" class="form-select selected-compare js-compare-repo {% if comparison_active %}selected-compare{% endif %}">
               <option value="">Select repository</option>
               {% for repo in (comparison_repositories or repositories or []) %}
               <option value="{{ repo }}" {% if repo == selected_compare_repo %}selected{% endif %}>{{ repo }}</option>
@@ -144,7 +144,7 @@
           </div>
           <div class="col-12 col-md-4">
             <select name="compare_workbook_name"
-                    class="form-select js-compare-wb {% if comparison_active %}selected-compare{% endif %}"
+                    class="form-select selected-compare js-compare-wb {% if comparison_active %}selected-compare{% endif %}"
                     {% if not compare_repo_files %}disabled{% endif %}>
               <option value="">Select workbook</option>
               {% for wb in compare_repo_files or [] %}
@@ -299,7 +299,7 @@
             <div class="section-title">Comparison</div>
             <form id="compare-form-modal" method="post" class="row g-2 align-items-end">
               <div class="col-12 col-md-4">
-                <select name="compare_repo" class="form-select js-compare-repo {% if comparison_active %}selected-compare{% endif %}">
+                <select name="compare_repo" class="form-select selected-compare js-compare-repo {% if comparison_active %}selected-compare{% endif %}">
                   <option value="">Select repository</option>
                   {% for repo in (comparison_repositories or repositories or []) %}
                   <option value="{{ repo }}" {% if repo == selected_compare_repo %}selected{% endif %}>{{ repo }}</option>
@@ -308,7 +308,7 @@
               </div>
               <div class="col-12 col-md-4">
                 <select name="compare_workbook_name"
-                        class="form-select js-compare-wb {% if comparison_active %}selected-compare{% endif %}"
+                        class="form-select selected-compare js-compare-wb {% if comparison_active %}selected-compare{% endif %}"
                         {% if not compare_repo_files %}disabled{% endif %}>
                   <option value="">Select workbook</option>
                   {% for wb in compare_repo_files or [] %}
@@ -360,6 +360,8 @@
             <option value="orange">Orange</option>
             <option value="pink">Pink</option>
             <option value="green">Green</option>
+            <option value="lime">Lime</option>
+            <option value="darkgray">Dark Gray</option>
           </select>
         </div>
       </div>
@@ -423,8 +425,8 @@
         if (repoBase) repoBase.classList.toggle('selected-primary', true);
         if (repoSelect) repoSelect.classList.toggle('selected-primary', true); // keep yellow
         if (workbookSelect) workbookSelect.classList.toggle('selected-primary', true);
-        if (compareRepoSelect) compareRepoSelect.classList.toggle('selected-compare', !!compareRepoSelect.value);
-        if (compareWorkbookSelect) compareWorkbookSelect.classList.toggle('selected-compare', !!compareWorkbookSelect.value);
+        if (compareRepoSelect) compareRepoSelect.classList.toggle('selected-compare', true);
+        if (compareWorkbookSelect) compareWorkbookSelect.classList.toggle('selected-compare', true);
       }
 
       // Populate workbook list for a repo
