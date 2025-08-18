@@ -1,15 +1,20 @@
 from __future__ import annotations
 from typing import Dict, Tuple
 from io import BytesIO
-from ..utils.xlsx_sanitizer import strip_invalid_font_families
+from importlib import import_module
 
 # ``file_parser`` can be imported either as part of the ``codeset_ui_app``
-# package (via unit tests) or executed when running ``app.py`` directly. Use a
-# flexible import so the sanitizer is found in both contexts.
+# package (via unit tests) or executed when running ``app.py`` directly. The
+# explicit ``import_module`` calls avoid fragile relative imports so the
+# sanitizer is located in both contexts.
 try:  # pragma: no cover - import resolution path tested indirectly
-    from ..utils.xlsx_sanitizer import strip_invalid_font_families
-except ImportError:  # running as a script from the ``codeset_ui_app`` directory
-    from utils.xlsx_sanitizer import strip_invalid_font_families
+    strip_invalid_font_families = import_module(
+        "codeset_ui_app.utils.xlsx_sanitizer"
+    ).strip_invalid_font_families
+except ModuleNotFoundError:  # running as a script from the ``codeset_ui_app`` directory
+    strip_invalid_font_families = import_module(
+        "utils.xlsx_sanitizer"
+    ).strip_invalid_font_families
 
 import pandas as pd
 from openpyxl import load_workbook as _load_workbook
