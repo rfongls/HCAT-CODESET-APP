@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Dict, Tuple
 from io import BytesIO
+from ..utils.xlsx_sanitizer import strip_invalid_font_families
 
 import pandas as pd
 from openpyxl import load_workbook as _load_workbook
@@ -15,8 +16,13 @@ def load_workbook(file) -> Tuple[Dict[str, pd.DataFrame], Workbook]:
     inspect formulas and validations).
     """
     file_bytes = file.read()
-    data_wb = _load_workbook(BytesIO(file_bytes), data_only=True)
-    wb = _load_workbook(BytesIO(file_bytes), data_only=False)
+    try:
+        data_wb = _load_workbook(BytesIO(file_bytes), data_only=True)
+        wb = _load_workbook(BytesIO(file_bytes), data_only=False)
+    except ValueError:
+        file_bytes = strip_invalid_font_families(file_bytes)
+        data_wb = _load_workbook(BytesIO(file_bytes), data_only=True)
+        wb = _load_workbook(BytesIO(file_bytes), data_only=False)
 
     data: Dict[str, pd.DataFrame] = {}
     for sheet in data_wb.sheetnames:

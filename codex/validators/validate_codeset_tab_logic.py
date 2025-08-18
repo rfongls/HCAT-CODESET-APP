@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Dict, Any, List
+from io import BytesIO
 
 import pandas as pd
 from openpyxl import load_workbook
+from codeset_ui_app.utils.xlsx_sanitizer import strip_invalid_font_families
 
 DEFAULT_DEFINITION = Path(__file__).resolve().parents[1] / "spreadsheet_definitions" / "codex-spreadsheet-definition.md"
 
@@ -42,8 +44,14 @@ def validate_codeset_tab_logic(workbook_path: str | Path,
     definition_path = definition_path or DEFAULT_DEFINITION
     rules = _parse_definition_table(definition_path)
 
-    xls = pd.ExcelFile(workbook_path, engine="openpyxl")
-    wb = load_workbook(workbook_path, data_only=False)
+    bytes_data = Path(workbook_path).read_bytes()
+    try:
+        xls = pd.ExcelFile(BytesIO(bytes_data), engine="openpyxl")
+        wb = load_workbook(BytesIO(bytes_data), data_only=False)
+    except ValueError:
+        bytes_data = strip_invalid_font_families(bytes_data)
+        xls = pd.ExcelFile(BytesIO(bytes_data), engine="openpyxl")
+        wb = load_workbook(BytesIO(bytes_data), data_only=False)
 
     results: List[Dict[str, Any]] = []
     for sheet in xls.sheet_names:
