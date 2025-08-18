@@ -7,8 +7,8 @@ from openpyxl import Workbook
 
 def setup_app(tmp_path, monkeypatch):
     samples = tmp_path / "Samples"
-    repo1 = samples / "repo1"
-    repo2 = samples / "repo2"
+    repo1 = samples / "repo1Repository"
+    repo2 = samples / "repo2Repository"
     repo1.mkdir(parents=True)
     repo2.mkdir(parents=True)
     wb1_path = repo1 / "Codeset1.xlsx"

@@ -51,14 +51,39 @@ def load_repository_base() -> None:
     refresh_repository_cache()
 
 def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
-    """Return a mapping of repository folder to codeset workbooks."""
+    """Return a mapping of repository folder to codeset workbooks.
+
+    The scan searches for any directory containing ``Codeset`` in its name and
+    looks for ``*.xlsx`` files with ``Codeset`` in the filename. For each file
+    found, the nearest ancestor directory whose name contains ``Repository``
+    (case-insensitive) is treated as the repository root. If no such ancestor is
+    found, the file is grouped under a pseudo repository named
+    ``SharedRepositories``. The returned mapping uses paths relative to the
+    repository root (or ``base`` for shared files).
+    """
+
     repo_map: Dict[str, list[str]] = {}
-    if base.exists():
-        for repo_dir in base.iterdir():
-            if repo_dir.is_dir():
-                files = [p.name for p in repo_dir.glob("*Codeset*.xlsx")]
-                if files:
-                    repo_map[repo_dir.name] = sorted(files)
+    shared_files: list[str] = []
+    if base and base.exists():
+        for file in base.rglob("*.xlsx"):
+            if "codeset" not in file.name.lower():
+                continue
+            repo_dir: Path | None = None
+            for ancestor in file.parents:
+                if ancestor == base:
+                    break
+                if "repository" in ancestor.name.lower():
+                    repo_dir = ancestor
+            if repo_dir is not None:
+                rel_path = str(file.relative_to(repo_dir))
+                repo_map.setdefault(repo_dir.name, []).append(rel_path)
+            else:
+                shared_files.append(str(file.relative_to(base)))
+
+    for name, files in repo_map.items():
+        repo_map[name] = sorted(files)
+    if shared_files:
+        repo_map["SharedRepositories"] = sorted(shared_files)
     return repo_map
 
 
@@ -339,8 +364,10 @@ def index():
     repo_files: list[str] = []
     compare_repo_files: list[str] = []
     compare_mode = bool(comparison_data)
+    reopen_controls = False
 
     if request.method == "POST":
+        reopen_controls = bool(request.form.get("open_overlay"))
         if "repo_base" in request.form:
             # user provided a parent directory to scan for repositories
             base_path = Path(request.form.get("repo_base", "")).expanduser()
@@ -379,12 +406,17 @@ def index():
                 if SAMPLES_DIR is None:
                     raise FileNotFoundError("Repository folder not selected")
                 base = SAMPLES_DIR.resolve()
-                repo_path = (SAMPLES_DIR / selected_repo).resolve()
-                if not repo_path.is_dir() or not repo_path.is_relative_to(base):
-                    raise FileNotFoundError("Repository not found")
-                workbook_path = repo_path / selected_workbook
-                if not workbook_path.is_file():
-                    raise FileNotFoundError("Workbook not found")
+                if selected_repo == "SharedRepositories":
+                    workbook_path = (SAMPLES_DIR / selected_workbook).resolve()
+                    if not workbook_path.is_file() or not workbook_path.is_relative_to(base):
+                        raise FileNotFoundError("Workbook not found")
+                else:
+                    repo_path = (SAMPLES_DIR / selected_repo).resolve()
+                    if not repo_path.is_dir() or not repo_path.is_relative_to(base):
+                        raise FileNotFoundError("Repository not found")
+                    workbook_path = repo_path / selected_workbook
+                    if not workbook_path.is_file():
+                        raise FileNotFoundError("Workbook not found")
                 _load_workbook_path(workbook_path, selected_workbook)
             except Exception as exc:
                 last_error = str(exc)
@@ -476,6 +508,7 @@ def index():
         compare_repo_files=compare_repo_files,
         comparison_active=bool(comparison_data),
         compare_mode=compare_mode,
+        reopen_controls=reopen_controls,
     )
 
 
