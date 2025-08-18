@@ -76,6 +76,7 @@ def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
                 if ancestor == base:
                     break
                 if "repository" in ancestor.name.lower():
+
                     # keep the first (closest) repository ancestor
                     repo_dir = ancestor
                     break
