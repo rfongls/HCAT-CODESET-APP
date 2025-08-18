@@ -6,7 +6,7 @@ from openpyxl import Workbook
 
 def test_repository_folder_selection(tmp_path, monkeypatch):
     samples = tmp_path / "Samples"
-    repo = samples / "repo1"
+    repo = samples / "repo1Repository"
     repo.mkdir(parents=True)
     wb_path = repo / "CodesetSample.xlsx"
     wb = Workbook()

@@ -7,7 +7,7 @@ from openpyxl.comments import Comment
 
 def setup_app(tmp_path, monkeypatch):
     samples = tmp_path / "Samples"
-    repo1 = samples / "repo1"
+    repo1 = samples / "repo1Repository"
     repo1.mkdir(parents=True)
     wb_path = repo1 / "Codeset1.xlsx"
     wb = Workbook()
