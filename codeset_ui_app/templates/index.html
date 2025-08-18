@@ -106,7 +106,7 @@
                     {% if not repositories %}disabled{% endif %}>
               <option value="">{% if repositories %}Select repository{% else %}Load a repository folder first{% endif %}</option>
               {% for repo in repositories or [] %}
-              <option value="{{ repo }}" {% if repo == selected_repo %}selected{% endif %}>{{ repo }}</option>
+              <option value="{{ repo }}" {% if repo == selected_repo %}selected{% endif %}>{{ repo_display[repo] }}</option>
               {% endfor %}
             </select>
           </div>
@@ -138,7 +138,7 @@
             <select name="compare_repo" class="form-select selected-compare js-compare-repo {% if comparison_active %}selected-compare{% endif %}">
               <option value="">Select repository</option>
               {% for repo in (comparison_repositories or repositories or []) %}
-              <option value="{{ repo }}" {% if repo == selected_compare_repo %}selected{% endif %}>{{ repo }}</option>
+              <option value="{{ repo }}" {% if repo == selected_compare_repo %}selected{% endif %}>{{ repo_display[repo] }}</option>
               {% endfor %}
             </select>
           </div>
@@ -266,9 +266,9 @@
                         {% if not repositories %}disabled{% endif %}
                         data-preselected="{{ selected_repo or '' }}">
                   <option value="">{% if repositories %}Select repository{% else %}Load a repository folder first{% endif %}</option>
-                  {% for repo in repositories or [] %}
-                  <option value="{{ repo }}" {% if repo == selected_repo %}selected{% endif %}>{{ repo }}</option>
-                  {% endfor %}
+              {% for repo in repositories or [] %}
+                  <option value="{{ repo }}" {% if repo == selected_repo %}selected{% endif %}>{{ repo_display[repo] }}</option>
+              {% endfor %}
                 </select>
               </div>
               <div class="col-12 col-md-4">
@@ -305,9 +305,9 @@
               <div class="col-12 col-md-4">
                 <select name="compare_repo" class="form-select selected-compare js-compare-repo {% if comparison_active %}selected-compare{% endif %}">
                   <option value="">Select repository</option>
-                  {% for repo in (comparison_repositories or repositories or []) %}
-                  <option value="{{ repo }}" {% if repo == selected_compare_repo %}selected{% endif %}>{{ repo }}</option>
-                  {% endfor %}
+              {% for repo in (comparison_repositories or repositories or []) %}
+                  <option value="{{ repo }}" {% if repo == selected_compare_repo %}selected{% endif %}>{{ repo_display[repo] }}</option>
+              {% endfor %}
                 </select>
               </div>
               <div class="col-12 col-md-4">

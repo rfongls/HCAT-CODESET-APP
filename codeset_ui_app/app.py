@@ -51,7 +51,7 @@ def load_repository_base() -> None:
     refresh_repository_cache()
 
 def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
-    """Return a mapping of repository folder to codeset workbooks.
+    """Return a mapping of repository *relative paths* to codeset workbooks.
 
     The scan searches for any directory containing ``Codeset`` in its name and
     looks for ``*.xlsx`` files with ``Codeset`` in the filename. For each file
@@ -59,7 +59,10 @@ def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
     (case-insensitive) is treated as the repository root. If no such ancestor is
     found, the file is grouped under a pseudo repository named
     ``SharedRepositories``. The returned mapping uses paths relative to the
-    repository root (or ``base`` for shared files).
+    repository root (or ``base`` for shared files). Repository keys are stored as
+    their path relative to ``base`` to avoid collisions between repositories
+    with the same name and to allow nested repositories to be addressed
+    correctly.
     """
 
     repo_map: Dict[str, list[str]] = {}
@@ -73,17 +76,21 @@ def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
                 if ancestor == base:
                     break
                 if "repository" in ancestor.name.lower():
+
+                    # keep the first (closest) repository ancestor
                     repo_dir = ancestor
+                    break
             if repo_dir is not None:
+                rel_repo = str(repo_dir.relative_to(base))
                 rel_path = str(file.relative_to(repo_dir))
-                repo_map.setdefault(repo_dir.name, []).append(rel_path)
+                repo_map.setdefault(rel_repo, []).append(rel_path)
             else:
                 shared_files.append(str(file.relative_to(base)))
 
     for name, files in repo_map.items():
-        repo_map[name] = sorted(files)
+        repo_map[name] = sorted(set(files))
     if shared_files:
-        repo_map["SharedRepositories"] = sorted(shared_files)
+        repo_map["SharedRepositories"] = sorted(set(shared_files))
     return repo_map
 
 
@@ -361,6 +368,7 @@ def index():
     selected_compare_repo: str | None = None
     selected_compare_workbook: str | None = None
     repo_names = sorted(REPOSITORY_CACHE.keys())
+    repo_display = {n: (n if n == "SharedRepositories" else Path(n).name) for n in repo_names}
     repo_files: list[str] = []
     compare_repo_files: list[str] = []
     compare_mode = bool(comparison_data)
@@ -377,6 +385,10 @@ def index():
                     CONFIG_FILE.write_text(str(base_path))
                 refresh_repository_cache()
                 repo_names = sorted(REPOSITORY_CACHE.keys())
+                repo_display = {
+                    n: (n if n == "SharedRepositories" else Path(n).name)
+                    for n in repo_names
+                }
             else:
                 last_error = "Repository folder not found"
         elif request.form.get("end_compare"):
@@ -444,16 +456,27 @@ def index():
 
     if workbook_path and not selected_repo:
         try:
-            selected_repo = workbook_path.parent.name
-            selected_workbook = workbook_path.name
+            if SAMPLES_DIR and workbook_path.is_relative_to(SAMPLES_DIR):
+                selected_repo = str(workbook_path.parent.relative_to(SAMPLES_DIR))
+                selected_workbook = workbook_path.name
+            else:
+                selected_repo = workbook_path.parent.name
+                selected_workbook = workbook_path.name
         except Exception:
             selected_repo = selected_workbook = None
 
     if comparison_path:
         try:
-            selected_compare_repo = comparison_path.parent.name
-            selected_compare_workbook = comparison_path.name
-            compare_repo_files = REPOSITORY_CACHE.get(selected_compare_repo, [])
+            if SAMPLES_DIR and comparison_path.is_relative_to(SAMPLES_DIR):
+                selected_compare_repo = str(
+                    comparison_path.parent.relative_to(SAMPLES_DIR)
+                )
+                selected_compare_workbook = comparison_path.name
+                compare_repo_files = REPOSITORY_CACHE.get(selected_compare_repo, [])
+            else:
+                selected_compare_repo = comparison_path.parent.name
+                selected_compare_workbook = comparison_path.name
+                compare_repo_files = []
         except Exception:
             selected_compare_repo = selected_compare_workbook = None
             compare_repo_files = []
@@ -498,6 +521,7 @@ def index():
         error=last_error,
         filename=original_filename,
         repositories=repo_names,
+        repo_display=repo_display,
         repo_base=SAMPLES_DIR,
         comparison_repositories=comparison_repos,
         repo_files=repo_files,
@@ -520,7 +544,7 @@ def sheet_data(sheet_name: str):
     return jsonify(df.to_dict(orient="records"))
 
 
-@app.route("/workbooks/<repo>")
+@app.route("/workbooks/<path:repo>")
 def list_workbooks(repo: str):
     """Return available workbooks for ``repo`` from the cached scan."""
     return jsonify(REPOSITORY_CACHE.get(repo, []))

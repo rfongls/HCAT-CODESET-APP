@@ -31,4 +31,4 @@ def test_repository_folder_persisted(tmp_path, monkeypatch):
     app_module.refresh_repository_cache()
     app_module.load_repository_base()
     assert app_module.SAMPLES_DIR == samples
-    assert repo.name in app_module.REPOSITORY_CACHE
+    assert str(repo.relative_to(samples)) in app_module.REPOSITORY_CACHE
