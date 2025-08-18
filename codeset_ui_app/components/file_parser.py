@@ -2,6 +2,14 @@ from __future__ import annotations
 from typing import Dict, Tuple
 from io import BytesIO
 
+# ``file_parser`` can be imported either as part of the ``codeset_ui_app``
+# package (via unit tests) or executed when running ``app.py`` directly. Use a
+# flexible import so the sanitizer is found in both contexts.
+try:  # pragma: no cover - import resolution path tested indirectly
+    from ..utils.xlsx_sanitizer import strip_invalid_font_families
+except ImportError:  # running as a script from the ``codeset_ui_app`` directory
+    from utils.xlsx_sanitizer import strip_invalid_font_families
+
 import pandas as pd
 from openpyxl import load_workbook as _load_workbook
 from openpyxl.workbook.workbook import Workbook
@@ -15,8 +23,13 @@ def load_workbook(file) -> Tuple[Dict[str, pd.DataFrame], Workbook]:
     inspect formulas and validations).
     """
     file_bytes = file.read()
-    data_wb = _load_workbook(BytesIO(file_bytes), data_only=True)
-    wb = _load_workbook(BytesIO(file_bytes), data_only=False)
+    try:
+        data_wb = _load_workbook(BytesIO(file_bytes), data_only=True)
+        wb = _load_workbook(BytesIO(file_bytes), data_only=False)
+    except ValueError:
+        file_bytes = strip_invalid_font_families(file_bytes)
+        data_wb = _load_workbook(BytesIO(file_bytes), data_only=True)
+        wb = _load_workbook(BytesIO(file_bytes), data_only=False)
 
     data: Dict[str, pd.DataFrame] = {}
     for sheet in data_wb.sheetnames:
