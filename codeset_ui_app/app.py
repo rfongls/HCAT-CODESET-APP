@@ -141,6 +141,7 @@ def _load_workbook_path(path: Path, filename: str) -> None:
         code_col = None
         display_col = None
         hidden_cols: list[str] = []
+        definition_col = None
         for col in df.columns:
             col_key = col.strip().upper().replace(" ", "_")
             if col_key in ["MAPPED_STANDARD_DESCRIPTION", "MAPPED_STD_DESCRIPTION"]:
@@ -171,14 +172,21 @@ def _load_workbook_path(path: Path, filename: str) -> None:
             if col_key in ["DISPLAY_VALUE", "DISPLAY"]:
                 display_col = col
             if col_key == "DEFINITION":
+                definition_col = col
                 hidden_cols.append(col)
+
+        if mapped_col is None and std_col is None and std_code_col is None and definition_col:
+            mapped_col = definition_col
+            mapped_type = "description"
+            hidden_cols = [c for c in hidden_cols if c != mapped_col]
 
         if mapped_col:
             source_col = std_col if mapped_type != "code" else std_code_col
-            if source_col:
-                options = sorted({v for v in _str_series(df, source_col) if v})
-                if options:
-                    dropdown_data.setdefault(sheet, {})[mapped_col] = options
+            if source_col is None:
+                source_col = mapped_col
+            options = sorted({v for v in _str_series(df, source_col) if v})
+            if options:
+                dropdown_data.setdefault(sheet, {})[mapped_col] = options
 
         sheet_map: Dict[str, str] = {}
 

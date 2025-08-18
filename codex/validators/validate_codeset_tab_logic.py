@@ -64,6 +64,7 @@ def validate_codeset_tab_logic(workbook_path: str | Path,
         mapped_col = None
         code_col = None
         display_col = None
+        definition_col = None
         for col, key in zip(df.columns, cols):
             if key == "STANDARD_CODE":
                 std_code_col = col
@@ -85,6 +86,11 @@ def validate_codeset_tab_logic(workbook_path: str | Path,
                 code_col = col
             if key in ["DISPLAY_VALUE", "DISPLAY"]:
                 display_col = col
+            if key == "DEFINITION":
+                definition_col = col
+
+        if mapped_col is None and std_code_col is None and std_desc_col is None and definition_col:
+            mapped_col = definition_col
 
         if code_col and display_col:
             mask = _str_series(df, code_col).ne("") | _str_series(df, display_col).ne("")
