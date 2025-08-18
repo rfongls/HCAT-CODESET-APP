@@ -6,7 +6,7 @@ from openpyxl import Workbook
 
 def setup_app(tmp_path, monkeypatch):
     samples = tmp_path / "Samples"
-    repo = samples / "repo1"
+    repo = samples / "repo1Repository"
     repo.mkdir(parents=True)
     wb_path = repo / "CodesetSample.xlsx"
     wb = Workbook()
@@ -18,13 +18,14 @@ def setup_app(tmp_path, monkeypatch):
     app_module = importlib.import_module("codeset_ui_app.app")
     monkeypatch.setattr(app_module, "SAMPLES_DIR", samples)
     app_module.refresh_repository_cache()
-    return app_module, repo.name, wb_path.name
+    return app_module, str(repo.relative_to(samples)), wb_path.name
 
 
 def test_workbooks_endpoint(tmp_path, monkeypatch):
     app_module, repo, fname = setup_app(tmp_path, monkeypatch)
     client = app_module.app.test_client()
-    resp = client.get(f"/workbooks/{repo}")
+    from urllib.parse import quote
+    resp = client.get(f"/workbooks/{quote(repo, safe='')}")
     assert resp.status_code == 200
     assert fname in resp.get_json()
 
