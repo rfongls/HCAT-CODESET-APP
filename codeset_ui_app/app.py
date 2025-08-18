@@ -42,19 +42,29 @@ SAMPLES_DIR: Path | None = None
 
 
 def _str_series(df: pd.DataFrame, col: str) -> pd.Series:
-    """Return a stripped string Series for ``col``, handling duplicate columns."""
+    """Return a stripped string Series for ``col`` selecting non-empty dupes."""
     series = df[col]
     if isinstance(series, pd.DataFrame):
-        series = series.iloc[:, 0]
+        non_empty = series.ne("").sum()
+        series = series.iloc[:, non_empty.idxmax()]
     return series.astype(str).str.strip()
 
 
 def _records(df: pd.DataFrame | None) -> list[dict]:
-    """Convert ``df`` to record dicts preserving first occurrence of duplicate cols."""
+    """Convert ``df`` to record dicts, keeping the densest duplicate column."""
     if df is None:
         return []
     if df.columns.duplicated().any():
-        df = df.loc[:, ~df.columns.duplicated()]
+        cols = []
+        for col in dict.fromkeys(df.columns):
+            part = df.loc[:, df.columns == col]
+            if isinstance(part, pd.Series):
+                cols.append(part)
+            else:
+                non_empty = part.ne("").sum()
+                cols.append(part.iloc[:, non_empty.idxmax()])
+        df = pd.concat(cols, axis=1)
+        df.columns = list(dict.fromkeys(df.columns))
     return df.to_dict(orient="records")
 
 

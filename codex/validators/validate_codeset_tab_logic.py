@@ -31,10 +31,11 @@ def _parse_definition_table(path: Path = DEFAULT_DEFINITION) -> Dict[str, Dict[s
 
 
 def _str_series(df: pd.DataFrame, col: str) -> pd.Series:
-    """Return a stripped string Series for ``col``, handling duplicate columns."""
+    """Return a stripped string Series for ``col`` selecting non-empty dupes."""
     series = df[col]
     if isinstance(series, pd.DataFrame):
-        series = series.iloc[:, 0]
+        non_empty = series.ne("").sum()
+        series = series.iloc[:, non_empty.idxmax()]
     return series.astype(str).str.strip()
 
 
