@@ -38,3 +38,25 @@ def test_definition_column_used_for_mapping_v3_workbook():
     app_module.last_error = None
     app_module.comparison_data.clear()
     app_module.comparison_path = None
+
+
+def test_v3_sheet_data_contains_values():
+    app_module = importlib.import_module("codeset_ui_app.app")
+    app_module._load_workbook_path(SAMPLE_V3, SAMPLE_V3.name)
+    client = app_module.app.test_client()
+    resp = client.get("/sheet/CS_DIAGNOSTIC_SERVICE_SECTION")
+    assert resp.status_code == 200
+    rows = resp.get_json()
+    assert rows and rows[0]["CODE"] and rows[0]["DISPLAY VALUE"] and rows[0]["DEFINITION"]
+    # cleanup
+    app_module.workbook_data.clear()
+    app_module.dropdown_data.clear()
+    app_module.mapping_data.clear()
+    app_module.field_notes.clear()
+    app_module.workbook_obj = None
+    app_module.original_filename = None
+    app_module.workbook_path = None
+    app_module.last_error = None
+    app_module.comparison_data.clear()
+    app_module.comparison_path = None
+

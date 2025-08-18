@@ -49,6 +49,15 @@ def _str_series(df: pd.DataFrame, col: str) -> pd.Series:
     return series.astype(str).str.strip()
 
 
+def _records(df: pd.DataFrame | None) -> list[dict]:
+    """Convert ``df`` to record dicts preserving first occurrence of duplicate cols."""
+    if df is None:
+        return []
+    if df.columns.duplicated().any():
+        df = df.loc[:, ~df.columns.duplicated()]
+    return df.to_dict(orient="records")
+
+
 def load_repository_base() -> None:
     """Load repository base from config and refresh cache."""
     global SAMPLES_DIR
@@ -454,16 +463,10 @@ def index():
         cols = [c for c in cols if c not in hidden]
         render_headers[s] = cols
     initial_sheet = sheet_names[0] if sheet_names else None
-    initial_records = (
-        _combine_sheet(initial_sheet).to_dict(orient="records") if initial_sheet else []
-    )
-    base_initial_records = (
-        workbook_data[initial_sheet].to_dict(orient="records") if initial_sheet else []
-    )
+    initial_records = _records(_combine_sheet(initial_sheet)) if initial_sheet else []
+    base_initial_records = _records(workbook_data.get(initial_sheet)) if initial_sheet else []
     initial_compare_records = (
-        comparison_data.get(initial_sheet, pd.DataFrame()).to_dict(orient="records")
-        if initial_sheet
-        else []
+        _records(comparison_data.get(initial_sheet, pd.DataFrame())) if initial_sheet else []
     )
     comparison_repos = [r for r in repo_names if r != selected_repo]
 
@@ -502,7 +505,7 @@ def sheet_data(sheet_name: str):
     df = _combine_sheet(sheet_name)
     if df is None:
         return jsonify([])
-    return jsonify(df.to_dict(orient="records"))
+    return jsonify(_records(df))
 
 
 @app.route("/workbooks/<path:repo>")
