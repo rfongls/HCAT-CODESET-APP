@@ -28,6 +28,14 @@ def _parse_definition_table(path: Path = DEFAULT_DEFINITION) -> Dict[str, Dict[s
     return rules
 
 
+def _str_series(df: pd.DataFrame, col: str) -> pd.Series:
+    """Return a stripped string Series for ``col``, handling duplicate columns."""
+    series = df[col]
+    if isinstance(series, pd.DataFrame):
+        series = series.iloc[:, 0]
+    return series.astype(str).str.strip()
+
+
 def validate_codeset_tab_logic(workbook_path: str | Path,
                                definition_path: Path | None = None) -> List[Dict[str, Any]]:
     """Validate mapping logic for each sheet in a workbook."""
@@ -51,7 +59,12 @@ def validate_codeset_tab_logic(workbook_path: str | Path,
         for col, key in zip(df.columns, cols):
             if key == "STANDARD_CODE":
                 std_code_col = col
-            if key == "STANDARD_DESCRIPTION":
+            if key in [
+                "STANDARD_DESCRIPTION",
+                "STADARD_DESCRIPTION",
+                "STANDARD_DESC",
+                "STADARD_DESC",
+            ]:
                 std_desc_col = col
             if key in [
                 "MAPPED_STD_DESCRIPTION",
@@ -66,16 +79,16 @@ def validate_codeset_tab_logic(workbook_path: str | Path,
                 display_col = col
 
         if code_col and display_col:
-            mask = df[code_col].str.strip().ne("") | df[display_col].str.strip().ne("")
+            mask = _str_series(df, code_col).ne("") | _str_series(df, display_col).ne("")
             df = df[mask]
 
-        std_code_has = bool(std_code_col and df[std_code_col].str.strip().any())
-        std_desc_has = bool(std_desc_col and df[std_desc_col].str.strip().any())
+        std_code_has = bool(std_code_col and _str_series(df, std_code_col).any())
+        std_desc_has = bool(std_desc_col and _str_series(df, std_desc_col).any())
         requires_mapping = std_code_has and std_desc_has and mapped_col is not None
 
         missing = 0
         if requires_mapping and mapped_col:
-            missing = int(df[mapped_col].str.strip().eq("").sum())
+            missing = int(_str_series(df, mapped_col).eq("").sum())
 
         sheet_rules = rules.get(sheet, {})
         formula_issues: List[str] = []
