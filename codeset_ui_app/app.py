@@ -41,6 +41,14 @@ CONFIG_FILE = Path(__file__).resolve().parent / "repo_base.txt"
 SAMPLES_DIR: Path | None = None
 
 
+def _str_series(df: pd.DataFrame, col: str) -> pd.Series:
+    """Return a stripped string Series for ``col``, handling duplicate columns."""
+    series = df[col]
+    if isinstance(series, pd.DataFrame):
+        series = series.iloc[:, 0]
+    return series.astype(str).str.strip()
+
+
 def load_repository_base() -> None:
     """Load repository base from config and refresh cache."""
     global SAMPLES_DIR
@@ -133,6 +141,7 @@ def _load_workbook_path(path: Path, filename: str) -> None:
         code_col = None
         display_col = None
         hidden_cols: list[str] = []
+        definition_col = None
         for col in df.columns:
             col_key = col.strip().upper().replace(" ", "_")
             if col_key in ["MAPPED_STANDARD_DESCRIPTION", "MAPPED_STD_DESCRIPTION"]:
@@ -148,7 +157,13 @@ def _load_workbook_path(path: Path, filename: str) -> None:
                 "SUB DEFINITION",
             ]:
                 sub_col = col
-            if col_key in ["STANDARD_DESCRIPTION", "STD_DESCRIPTION", "STANDARD_DESC"]:
+            if col_key in [
+                "STANDARD_DESCRIPTION",
+                "STD_DESCRIPTION",
+                "STANDARD_DESC",
+                "STADARD_DESCRIPTION",
+                "STADARD_DESC",
+            ]:
                 std_col = col
             if col_key in ["STANDARD_CODE", "STD_CODE"]:
                 std_code_col = col
@@ -157,20 +172,27 @@ def _load_workbook_path(path: Path, filename: str) -> None:
             if col_key in ["DISPLAY_VALUE", "DISPLAY"]:
                 display_col = col
             if col_key == "DEFINITION":
+                definition_col = col
                 hidden_cols.append(col)
+
+        if mapped_col is None and std_col is None and std_code_col is None and definition_col:
+            mapped_col = definition_col
+            mapped_type = "description"
+            hidden_cols = [c for c in hidden_cols if c != mapped_col]
 
         if mapped_col:
             source_col = std_col if mapped_type != "code" else std_code_col
-            if source_col:
-                options = sorted({str(v).strip() for v in df[source_col] if str(v).strip()})
-                if options:
-                    dropdown_data.setdefault(sheet, {})[mapped_col] = options
+            if source_col is None:
+                source_col = mapped_col
+            options = sorted({v for v in _str_series(df, source_col) if v})
+            if options:
+                dropdown_data.setdefault(sheet, {})[mapped_col] = options
 
         sheet_map: Dict[str, str] = {}
 
         if std_col and std_code_col:
-            std_series = df[std_col].astype(str).str.strip()
-            code_series = df[std_code_col].astype(str).str.strip()
+            std_series = _str_series(df, std_col)
+            code_series = _str_series(df, std_code_col)
             mask = std_series != ""
             if mapped_type == "code":
                 sheet_map.update({code: f"{code}^{desc}" for code, desc in zip(code_series[mask], std_series[mask])})
@@ -178,8 +200,8 @@ def _load_workbook_path(path: Path, filename: str) -> None:
                 sheet_map.update({desc: f"{code}^{desc}" for desc, code in zip(std_series[mask], code_series[mask])})
 
         if mapped_col and not (std_col and std_code_col) and sub_col:
-            mapped_series = df[mapped_col].astype(str).str.strip()
-            sub_series = df[sub_col].astype(str)
+            mapped_series = _str_series(df, mapped_col)
+            sub_series = _str_series(df, sub_col)
             mask = mapped_series != ""
             sheet_map.update({k: v for k, v in zip(mapped_series[mask], sub_series[mask])})
 
@@ -202,8 +224,8 @@ def _load_workbook_path(path: Path, filename: str) -> None:
         }
 
         if code_col and display_col and mapped_col:
-            code_series = df[code_col].astype(str).str.strip()
-            display_series = df[display_col].astype(str).str.strip()
+            code_series = _str_series(df, code_col)
+            display_series = _str_series(df, display_col)
             blank_mask = code_series.eq("") & display_series.eq("")
             if blank_mask.any():
                 df.loc[blank_mask, mapped_col] = ""
@@ -260,67 +282,6 @@ def _load_comparison_workbook_path(path: Path) -> None:
     comparison_path = path
 
 
-def _combine_sheet(sheet: str) -> pd.DataFrame | None:
-    """Return sheet data with comparison columns merged in."""
-    df = workbook_data.get(sheet)
-    if df is None:
-        return None
-    cmp = comparison_data.get(sheet)
-    if cmp is None:
-        return df
-    combined = df.copy()
-    info = mapping_data.get(sheet, {})
-    code_col = info.get("code_col")
-    display_col = info.get("display_col")
-    mapped_col = info.get("mapped_col")
-    if code_col and "CODE_COMPARE" in cmp:
-        combined.insert(combined.columns.get_loc(code_col) + 1, "CODE_COMPARE", cmp["CODE_COMPARE"])
-    if display_col and "DISPLAY_VALUE_COMPARE" in cmp:
-        combined.insert(
-            combined.columns.get_loc(display_col) + 1,
-            "DISPLAY_VALUE_COMPARE",
-            cmp["DISPLAY_VALUE_COMPARE"],
-        )
-    if mapped_col:
-        cmp_key = f"{mapped_col}_COMPARE"
-        if cmp_key in cmp:
-            combined.insert(
-                combined.columns.get_loc(mapped_col) + 1,
-                cmp_key,
-                cmp[cmp_key],
-            )
-    return combined
-
-def _combine_sheet(sheet: str) -> pd.DataFrame | None:
-    """Return sheet data with comparison columns merged in."""
-    df = workbook_data.get(sheet)
-    if df is None:
-        return None
-    cmp = comparison_data.get(sheet)
-    if cmp is None:
-        return df
-    combined = df.copy()
-    info = mapping_data.get(sheet, {})
-    code_col = info.get("code_col")
-    display_col = info.get("display_col")
-    mapped_col = info.get("mapped_col")
-    if code_col and "CODE_COMPARE" in cmp:
-        combined.insert(combined.columns.get_loc(code_col) + 1, "CODE_COMPARE", cmp["CODE_COMPARE"])
-    if display_col and "DISPLAY_VALUE_COMPARE" in cmp:
-        combined.insert(
-            combined.columns.get_loc(display_col) + 1,
-            "DISPLAY_VALUE_COMPARE",
-            cmp["DISPLAY_VALUE_COMPARE"],
-        )
-    if mapped_col:
-        cmp_key = f"{mapped_col}_COMPARE"
-        if cmp_key in cmp:
-            combined.insert(
-                combined.columns.get_loc(mapped_col) + 1,
-                cmp_key,
-                cmp[cmp_key],
-            )
-    return combined
 
 def _combine_sheet(sheet: str) -> pd.DataFrame | None:
     """Return sheet data with comparison columns merged in."""
