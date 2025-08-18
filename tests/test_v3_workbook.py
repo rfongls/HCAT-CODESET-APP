@@ -59,3 +59,4 @@ def test_v3_sheet_data_contains_values():
     app_module.last_error = None
     app_module.comparison_data.clear()
     app_module.comparison_path = None
+
