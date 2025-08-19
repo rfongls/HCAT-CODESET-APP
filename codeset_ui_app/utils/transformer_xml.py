@@ -20,7 +20,6 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
     """Return an indented XML string representing ``data`` as a codeset transformer."""
     root = Element("Configuration")
     fields_el = SubElement(root, "Fields")
-    codesets_el = SubElement(fields_el, "Codesets")
 
     for sheet, df in data.items():
         if not isinstance(df, pd.DataFrame):
@@ -37,6 +36,9 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
         if name.startswith("CS_"):
             name = name[3:]
         name = name.replace("_", " ").title()
+
+        field_el = SubElement(fields_el, "Field", Name=name)
+        codesets_el = SubElement(field_el, "Codesets")
         codeset_el = SubElement(codesets_el, "Codeset", Name=name)
 
         if oid_col:
@@ -60,4 +62,3 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
     xml_bytes = tostring(root, encoding="utf-8")
     # Pretty-print with CRLF newlines so Windows editors show each tag on its own line
     return minidom.parseString(xml_bytes).toprettyxml(indent="  ", newl="\r\n")
-

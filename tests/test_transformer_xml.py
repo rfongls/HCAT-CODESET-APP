@@ -13,7 +13,7 @@ def test_build_transformer_xml_generates_codeset():
         data, _ = load_workbook(fh)
     xml_str = build_transformer_xml(data)
     root = ET.fromstring(xml_str)
-    cs = root.find("./Fields/Codesets/Codeset[@Name='Diagnostic Service Section']")
+    cs = root.find("./Fields/Field[@Name='Diagnostic Service Section']/Codesets/Codeset")
     assert cs is not None
     assert cs.get('OID') == '2.16.840.1.114222.4.11.922'
     assert cs.get('URL') == 'PHIN VADS (CDC)'
@@ -21,9 +21,9 @@ def test_build_transformer_xml_generates_codeset():
     assert 'CARD^CARDIOLOGY' in values
     # Ensure output is indented with each code on its own line
     normalized = xml_str.replace('\r\n', '\n')
-    assert '\n    <Codesets>' in normalized
-    assert '\n      <Codeset' in normalized
-    assert '\n        <Code>' in normalized
+    assert '\n      <Codesets>' in normalized
+    assert '\n        <Codeset' in normalized
+    assert '\n          <Code>' in normalized
 
 
 def test_export_transformer_endpoint(tmp_path):
@@ -33,7 +33,8 @@ def test_export_transformer_endpoint(tmp_path):
         resp = c.get('/transformer')
         assert resp.status_code == 200
         root = ET.fromstring(resp.data)
-        assert root.find("./Fields/Codesets/Codeset[@Name='Diagnostic Service Section']") is not None
+        path = "./Fields/Field[@Name='Diagnostic Service Section']/Codesets/Codeset"
+        assert root.find(path) is not None
     # cleanup global state
     app_module = importlib.import_module("codeset_ui_app.app")
     app_module.workbook_data.clear()
