@@ -46,7 +46,7 @@ def _str_series(df: pd.DataFrame, col: str) -> pd.Series:
     series = df[col]
     if isinstance(series, pd.DataFrame):
         non_empty = series.ne("").sum()
-        series = series.iloc[:, non_empty.idxmax()]
+        series = series.iloc[:, non_empty.values.argmax()]
     return series.astype(str).str.strip()
 
 
@@ -62,7 +62,7 @@ def _records(df: pd.DataFrame | None) -> list[dict]:
                 cols.append(part)
             else:
                 non_empty = part.ne("").sum()
-                cols.append(part.iloc[:, non_empty.idxmax()])
+                cols.append(part.iloc[:, non_empty.values.argmax()])
         df = pd.concat(cols, axis=1)
         df.columns = list(dict.fromkeys(df.columns))
     return df.to_dict(orient="records")
