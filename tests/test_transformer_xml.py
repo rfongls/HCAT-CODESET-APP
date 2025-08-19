@@ -17,13 +17,19 @@ def test_build_transformer_xml_generates_codeset():
     assert cs is not None
     assert cs.get('OID') == '2.16.840.1.114222.4.11.922'
     assert cs.get('URL') == 'PHIN VADS (CDC)'
-    values = [v.text for v in cs.findall('Code')]
-    assert 'CARD^CARDIOLOGY' in values
+    codes = cs.findall('Code')
+    assert any(
+        c.get('LocalCode') == 'CARD'
+        and c.get('LocalDisplay') == 'CARDIOLOGY'
+        and c.get('StandardCode') == 'CARD'
+        and c.get('StandardDisplay') == 'CARDIOLOGY'
+        for c in codes
+    )
     # Ensure output is indented with each code on its own line
     normalized = xml_str.replace('\r\n', '\n')
     assert '\n      <Codesets>' in normalized
     assert '\n        <Codeset' in normalized
-    assert '\n          <Code>' in normalized
+    assert '\n          <Code ' in normalized
 
 
 def test_export_transformer_endpoint(tmp_path):
