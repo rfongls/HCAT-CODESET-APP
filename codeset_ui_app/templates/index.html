@@ -658,9 +658,10 @@
         document.body.classList.remove('no-scroll');
       }
       menuOpenControls?.addEventListener('click', ()=>{ closeMenu(); openControlsOverlay(); });
+      const transformerUrl = {{ transformer_url|tojson }};
       menuGenerateTransformer?.addEventListener('click', ()=>{
         closeMenu();
-        window.location.href='{{ url_for('export_transformer') }}';
+        if (transformerUrl) window.location.href = transformerUrl;
       });
       controlsOverlayClose?.addEventListener('click', closeControlsOverlay);
       controlsOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeControlsOverlay);

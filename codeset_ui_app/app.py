@@ -5,8 +5,9 @@ import tempfile
 import io
 
 import pandas as pd
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, url_for
 from werkzeug.utils import secure_filename
+from werkzeug.routing import BuildError
 try:  # allow running as a package or standalone script
     from components.file_parser import load_workbook
     from components.dropdown_logic import extract_dropdown_options
@@ -482,6 +483,10 @@ def index():
         _records(comparison_data.get(initial_sheet, pd.DataFrame())) if initial_sheet else []
     )
     comparison_repos = [r for r in repo_names if r != selected_repo]
+    try:
+        transformer_url = url_for("export_transformer")
+    except BuildError:
+        transformer_url = None
 
     return render_template(
         "index.html",
@@ -510,6 +515,7 @@ def index():
         comparison_active=bool(comparison_data),
         compare_mode=compare_mode,
         reopen_controls=reopen_controls,
+        transformer_url=transformer_url,
     )
 
 
