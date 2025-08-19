@@ -65,6 +65,7 @@
       <div id="headerMenu" class="menu-pop d-none" role="menu" aria-hidden="true">
         {% if selected_workbook %}
         <button id="menuOpenControls" class="menu-item" role="menuitem" type="button">Select Repository</button>
+        <button id="menuGenerateTransformer" class="menu-item" role="menuitem" type="button">Generate Codeset Transformer</button>
         {% endif %}
         <button id="menuOpenTheme" class="menu-item" role="menuitem" type="button">Theme</button>
       </div>
@@ -90,10 +91,7 @@
           </div>
           <div class="col-12 col-md-2">
             <button type="submit" name="save_repo_base" value="1"
-                    class="btn btn-primary w-100 js-repo-save" disabled>Save</button>
-          </div>
-          <div class="col-12 col-md-2">
-            <button type="submit" class="btn btn-primary w-100 js-repo-load" disabled>Load</button>
+                    class="btn btn-primary w-100 js-repo-save" disabled>Load</button>
           </div>
         </form>
 
@@ -249,10 +247,7 @@
               </div>
               <div class="col-12 col-md-2">
                 <button type="submit" name="save_repo_base" value="1"
-                        class="btn btn-primary w-100 js-repo-save" disabled>Save</button>
-              </div>
-              <div class="col-12 col-md-2">
-                <button type="submit" class="btn btn-primary w-100 js-repo-load" disabled>Load</button>
+                        class="btn btn-primary w-100 js-repo-save" disabled>Load</button>
               </div>
             </form>
 
@@ -424,7 +419,6 @@
 
       const repoBase = scope.querySelector('.js-repo-base');
       const repoBrowse = scope.querySelector('.js-repo-browse');
-      const repoLoad = scope.querySelector('.js-repo-load');
       const repoSave = scope.querySelector('.js-repo-save');
       const fileInput = scope.querySelector('.js-file-input');
       const fileLabel = scope.querySelector('.js-file-label');
@@ -574,10 +568,9 @@
         return p;
       };
       const enableRepoButtons = () => {
-        if (!repoBase || !repoLoad || !repoSave) return;
+        if (!repoBase || !repoSave) return;
         const val = (repoBase.value || '').trim();
-        const ok = isAbsolutePath(val);
-        repoLoad.disabled = !ok; repoSave.disabled = !ok;
+        repoSave.disabled = !isAbsolutePath(val);
       };
       const cacheRootsIfAbsolute = () => {
         if (!repoBase) return;
@@ -639,6 +632,7 @@
       const hamburger = document.getElementById('hamburger');
       const menu = document.getElementById('headerMenu');
       const menuOpenControls = document.getElementById('menuOpenControls');
+      const menuGenerateTransformer = document.getElementById('menuGenerateTransformer');
       const menuOpenTheme = document.getElementById('menuOpenTheme');
       function closeMenu(){ menu?.classList.add('d-none'); hamburger?.setAttribute('aria-expanded','false'); menu?.setAttribute('aria-hidden','true'); }
       function openMenu(){ menu?.classList.remove('d-none'); hamburger?.setAttribute('aria-expanded','true'); menu?.setAttribute('aria-hidden','false'); }
@@ -664,6 +658,11 @@
         document.body.classList.remove('no-scroll');
       }
       menuOpenControls?.addEventListener('click', ()=>{ closeMenu(); openControlsOverlay(); });
+      const transformerUrl = {{ transformer_url|tojson }};
+      menuGenerateTransformer?.addEventListener('click', ()=>{
+        closeMenu();
+        if (transformerUrl) window.location.href = transformerUrl;
+      });
       controlsOverlayClose?.addEventListener('click', closeControlsOverlay);
       controlsOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeControlsOverlay);
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && controlsOverlay?.classList.contains('open')) closeControlsOverlay(); });
