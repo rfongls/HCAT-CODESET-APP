@@ -12,12 +12,14 @@ try:  # allow running as a package or standalone script
     from components.dropdown_logic import extract_dropdown_options
     from components.formula_logic import extract_lookup_mappings
     from utils.export_excel import export_workbook
+    from utils.transformer_xml import build_transformer_xml
     from validators import validate_workbook
 except ModuleNotFoundError:  # pragma: no cover - fallback for imports when packaged
     from .components.file_parser import load_workbook
     from .components.dropdown_logic import extract_dropdown_options
     from .components.formula_logic import extract_lookup_mappings
     from .utils.export_excel import export_workbook
+    from .utils.transformer_xml import build_transformer_xml
     from .validators import validate_workbook
 from openpyxl.workbook.workbook import Workbook
 
@@ -523,6 +525,21 @@ def sheet_data(sheet_name: str):
 def list_workbooks(repo: str):
     """Return available workbooks for ``repo`` from the cached scan."""
     return jsonify(REPOSITORY_CACHE.get(repo, []))
+
+
+@app.route("/transformer")
+def export_transformer():
+    """Generate an XML transformer from the currently loaded workbook."""
+    global workbook_data
+    if not workbook_data:
+        return "No workbook loaded", 400
+    xml_str = build_transformer_xml(workbook_data)
+    return send_file(
+        io.BytesIO(xml_str.encode("utf-8")),
+        mimetype="application/xml",
+        as_attachment=True,
+        download_name="CodesetTransformer.xml",
+    )
 
 
 @app.route("/export", methods=["POST"])

@@ -65,6 +65,7 @@
       <div id="headerMenu" class="menu-pop d-none" role="menu" aria-hidden="true">
         {% if selected_workbook %}
         <button id="menuOpenControls" class="menu-item" role="menuitem" type="button">Select Repository</button>
+        <button id="menuGenerateTransformer" class="menu-item" role="menuitem" type="button">Generate Codeset Transformer</button>
         {% endif %}
         <button id="menuOpenTheme" class="menu-item" role="menuitem" type="button">Theme</button>
       </div>
@@ -631,6 +632,7 @@
       const hamburger = document.getElementById('hamburger');
       const menu = document.getElementById('headerMenu');
       const menuOpenControls = document.getElementById('menuOpenControls');
+      const menuGenerateTransformer = document.getElementById('menuGenerateTransformer');
       const menuOpenTheme = document.getElementById('menuOpenTheme');
       function closeMenu(){ menu?.classList.add('d-none'); hamburger?.setAttribute('aria-expanded','false'); menu?.setAttribute('aria-hidden','true'); }
       function openMenu(){ menu?.classList.remove('d-none'); hamburger?.setAttribute('aria-expanded','true'); menu?.setAttribute('aria-hidden','false'); }
@@ -656,6 +658,7 @@
         document.body.classList.remove('no-scroll');
       }
       menuOpenControls?.addEventListener('click', ()=>{ closeMenu(); openControlsOverlay(); });
+      menuGenerateTransformer?.addEventListener('click', ()=>{ closeMenu(); window.location.href='/transformer'; });
       controlsOverlayClose?.addEventListener('click', closeControlsOverlay);
       controlsOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeControlsOverlay);
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && controlsOverlay?.classList.contains('open')) closeControlsOverlay(); });
