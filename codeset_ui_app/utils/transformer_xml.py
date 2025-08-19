@@ -45,23 +45,25 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
         if code_col is None and display_col is None:
             continue
 
-        name = sheet
-        if name.startswith("CS_"):
-            name = name[3:]
-        name = name.replace("_", " ").title()
+        # ``sheet`` names already follow the CS_* convention in the workbook and
+        # should be emitted verbatim so the transformer mirrors the source tabs.
+        # Earlier iterations normalised names (dropping the ``CS_`` prefix and
+        # title‑casing them) which produced codeset identifiers that no longer
+        # matched the spreadsheet.  The transformer now preserves the exact tab
+        # name for both the ``Field`` and ``Codeset`` ``Name`` attributes.
 
-        field_el = SubElement(fields_el, "Field", Name=name)
+        field_el = SubElement(fields_el, "Field", Name=sheet)
         codesets_el = SubElement(field_el, "Codesets")
-        codeset_el = SubElement(codesets_el, "Codeset", Name=name)
+        codeset_el = SubElement(codesets_el, "Codeset", Name=sheet)
 
         if oid_col:
             oid_val = next((v for v in _str_series(df, oid_col) if v), "")
             if oid_val:
-                codeset_el.set("OID", oid_val)
+                codeset_el.set("Oid", oid_val)
         if url_col:
             url_val = next((v for v in _str_series(df, url_col) if v), "")
             if url_val:
-                codeset_el.set("URL", url_val)
+                codeset_el.set("Url", url_val)
 
         code_series = _str_series(df, code_col) if code_col else pd.Series([""] * len(df))
         display_series = _str_series(df, display_col) if display_col else pd.Series([""] * len(df))

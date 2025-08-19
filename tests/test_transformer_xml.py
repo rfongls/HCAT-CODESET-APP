@@ -13,10 +13,14 @@ def test_build_transformer_xml_generates_codeset():
         data, _ = load_workbook(fh)
     xml_str = build_transformer_xml(data)
     root = ET.fromstring(xml_str)
-    cs = root.find("./Fields/Field[@Name='Diagnostic Service Section']/Codesets/Codeset")
+    path = (
+        "./Fields/Field[@Name='CS_DIAGNOSTIC_SERVICE_SECTION']"
+        "/Codesets/Codeset[@Name='CS_DIAGNOSTIC_SERVICE_SECTION']"
+    )
+    cs = root.find(path)
     assert cs is not None
-    assert cs.get('OID') == '2.16.840.1.114222.4.11.922'
-    assert cs.get('URL') == 'PHIN VADS (CDC)'
+    assert cs.get('Oid') == '2.16.840.1.114222.4.11.922'
+    assert cs.get('Url') == 'PHIN VADS (CDC)'
     codes = cs.findall('Code')
     assert any(
         c.get('LocalCode') == 'CARD'
@@ -39,7 +43,10 @@ def test_export_transformer_endpoint(tmp_path):
         resp = c.get('/transformer')
         assert resp.status_code == 200
         root = ET.fromstring(resp.data)
-        path = "./Fields/Field[@Name='Diagnostic Service Section']/Codesets/Codeset"
+        path = (
+            "./Fields/Field[@Name='CS_DIAGNOSTIC_SERVICE_SECTION']"
+            "/Codesets/Codeset[@Name='CS_DIAGNOSTIC_SERVICE_SECTION']"
+        )
         assert root.find(path) is not None
     # cleanup global state
     app_module = importlib.import_module("codeset_ui_app.app")
