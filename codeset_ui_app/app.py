@@ -204,8 +204,9 @@ def _load_workbook_path(path: Path, filename: str) -> None:
             if source_col is None:
                 source_col = mapped_col
             options = sorted({v for v in _str_series(df, source_col) if v})
-            if options:
-                dropdown_data.setdefault(sheet, {})[mapped_col] = options
+            sheet_opts = dropdown_data.setdefault(sheet, {})
+            if options and mapped_col not in sheet_opts:
+                sheet_opts[mapped_col] = options
 
         sheet_map: Dict[str, str] = {}
 

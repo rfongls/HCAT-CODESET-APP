@@ -25,7 +25,17 @@ def test_definition_column_used_for_mapping_v3_workbook():
     info = app_module.mapping_data["CS_DIAGNOSTIC_SERVICE_SECTION"]
     assert info["mapped_col"] == "DEFINITION"
     opts = app_module.dropdown_data["CS_DIAGNOSTIC_SERVICE_SECTION"]["DEFINITION"]
-    assert "CARDIOLOGY" in opts
+    assert set(opts) == {
+        "LAB",
+        "PATHOLOGY",
+        "RAD",
+        "TRANSCRIPTION",
+        "MEDS",
+        "CARDIOLOGY",
+        "CATHETER",
+        "IMMUNIZATION",
+        "GI",
+    }
     assert info["map"]["CARDIOLOGY"] == "CARDIOLOGY^CARDIOLOGY"
     # cleanup global state
     app_module.workbook_data.clear()
