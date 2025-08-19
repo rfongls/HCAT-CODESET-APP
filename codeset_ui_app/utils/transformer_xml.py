@@ -58,5 +58,6 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
             SubElement(codeset_el, "Code").text = text
 
     xml_bytes = tostring(root, encoding="utf-8")
-    # Pretty-print the XML with two-space indentation
-    return minidom.parseString(xml_bytes).toprettyxml(indent="  ")
+    # Pretty-print with CRLF newlines so Windows editors show each tag on its own line
+    return minidom.parseString(xml_bytes).toprettyxml(indent="  ", newl="\r\n")
+

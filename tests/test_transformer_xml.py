@@ -20,9 +20,10 @@ def test_build_transformer_xml_generates_codeset():
     values = [v.text for v in cs.findall('Code')]
     assert 'CARD^CARDIOLOGY' in values
     # Ensure output is indented with each code on its own line
-    assert '\n    <Codesets>' in xml_str
-    assert '\n      <Codeset' in xml_str
-    assert '\n        <Code>' in xml_str
+    normalized = xml_str.replace('\r\n', '\n')
+    assert '\n    <Codesets>' in normalized
+    assert '\n      <Codeset' in normalized
+    assert '\n        <Code>' in normalized
 
 
 def test_export_transformer_endpoint(tmp_path):
