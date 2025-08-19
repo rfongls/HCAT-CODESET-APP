@@ -658,7 +658,10 @@
         document.body.classList.remove('no-scroll');
       }
       menuOpenControls?.addEventListener('click', ()=>{ closeMenu(); openControlsOverlay(); });
-      menuGenerateTransformer?.addEventListener('click', ()=>{ closeMenu(); window.location.href='/transformer'; });
+      menuGenerateTransformer?.addEventListener('click', ()=>{
+        closeMenu();
+        window.location.href='{{ url_for('export_transformer') }}';
+      });
       controlsOverlayClose?.addEventListener('click', closeControlsOverlay);
       controlsOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeControlsOverlay);
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && controlsOverlay?.classList.contains('open')) closeControlsOverlay(); });
