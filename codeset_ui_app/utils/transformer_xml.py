@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from typing import Dict, List
-
 import pandas as pd
 from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom import minidom
@@ -131,7 +129,6 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
         url_col = col_map.get("URL")
         if code_col is None and display_col is None and std_code_col is None and std_display_col is None:
             continue
-
         codeset_el = SubElement(codesets_el, "Codeset", Name=sheet)
 
         if oid_col:
@@ -179,7 +176,6 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
                     "StandardDisplay": sd,
                 },
             )
-
     xml_bytes = tostring(root, encoding="utf-8")
     # Pretty-print with CRLF newlines so Windows editors show each tag on its own line
     return minidom.parseString(xml_bytes).toprettyxml(indent="  ", newl="\r\n")
