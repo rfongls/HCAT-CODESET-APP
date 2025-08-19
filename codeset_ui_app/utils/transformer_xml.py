@@ -60,3 +60,4 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
     xml_bytes = tostring(root, encoding="utf-8")
     # Pretty-print with CRLF newlines so Windows editors show each tag on its own line
     return minidom.parseString(xml_bytes).toprettyxml(indent="  ", newl="\r\n")
+
