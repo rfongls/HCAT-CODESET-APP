@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from typing import Dict, List
-
 import pandas as pd
 from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom import minidom
@@ -142,7 +140,6 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
             url_val = next((v for v in _str_series(df, url_col) if v), "")
             if url_val:
                 codeset_el.set("Url", url_val)
-
         code_series = _str_series(df, code_col) if code_col else pd.Series([""] * len(df))
         display_series = _str_series(df, display_col) if display_col else pd.Series([""] * len(df))
         std_code_series = _str_series(df, std_code_col) if std_code_col else pd.Series([""] * len(df))
@@ -170,7 +167,6 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
             if sd:
                 attrs["StandardDisplay"] = sd
             SubElement(codeset_el, "Code", attrs)
-
     xml_bytes = tostring(root, encoding="utf-8")
     # Pretty-print with CRLF newlines so Windows editors show each tag on its own line
     return minidom.parseString(xml_bytes).toprettyxml(indent="  ", newl="\r\n")
