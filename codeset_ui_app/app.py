@@ -5,19 +5,22 @@ import tempfile
 import io
 
 import pandas as pd
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, url_for
 from werkzeug.utils import secure_filename
+from werkzeug.routing import BuildError
 try:  # allow running as a package or standalone script
     from components.file_parser import load_workbook
     from components.dropdown_logic import extract_dropdown_options
     from components.formula_logic import extract_lookup_mappings
     from utils.export_excel import export_workbook
+    from utils.transformer_xml import build_transformer_xml
     from validators import validate_workbook
 except ModuleNotFoundError:  # pragma: no cover - fallback for imports when packaged
     from .components.file_parser import load_workbook
     from .components.dropdown_logic import extract_dropdown_options
     from .components.formula_logic import extract_lookup_mappings
     from .utils.export_excel import export_workbook
+    from .utils.transformer_xml import build_transformer_xml
     from .validators import validate_workbook
 from openpyxl.workbook.workbook import Workbook
 
@@ -39,6 +42,33 @@ CONFIG_FILE = Path(__file__).resolve().parent / "repo_base.txt"
 # Directory containing sample repositories and workbooks. Defaults to the
 # saved base path if available, otherwise the bundled Samples directory.
 SAMPLES_DIR: Path | None = None
+
+
+def _str_series(df: pd.DataFrame, col: str) -> pd.Series:
+    """Return a stripped string Series for ``col`` selecting non-empty dupes."""
+    series = df[col]
+    if isinstance(series, pd.DataFrame):
+        non_empty = series.ne("").sum()
+        series = series.iloc[:, non_empty.values.argmax()]
+    return series.astype(str).str.strip()
+
+
+def _records(df: pd.DataFrame | None) -> list[dict]:
+    """Convert ``df`` to record dicts, keeping the densest duplicate column."""
+    if df is None:
+        return []
+    if df.columns.duplicated().any():
+        cols = []
+        for col in dict.fromkeys(df.columns):
+            part = df.loc[:, df.columns == col]
+            if isinstance(part, pd.Series):
+                cols.append(part)
+            else:
+                non_empty = part.ne("").sum()
+                cols.append(part.iloc[:, non_empty.values.argmax()])
+        df = pd.concat(cols, axis=1)
+        df.columns = list(dict.fromkeys(df.columns))
+    return df.to_dict(orient="records")
 
 
 def load_repository_base() -> None:
@@ -133,6 +163,7 @@ def _load_workbook_path(path: Path, filename: str) -> None:
         code_col = None
         display_col = None
         hidden_cols: list[str] = []
+        definition_col = None
         for col in df.columns:
             col_key = col.strip().upper().replace(" ", "_")
             if col_key in ["MAPPED_STANDARD_DESCRIPTION", "MAPPED_STD_DESCRIPTION"]:
@@ -148,7 +179,13 @@ def _load_workbook_path(path: Path, filename: str) -> None:
                 "SUB DEFINITION",
             ]:
                 sub_col = col
-            if col_key in ["STANDARD_DESCRIPTION", "STD_DESCRIPTION", "STANDARD_DESC"]:
+            if col_key in [
+                "STANDARD_DESCRIPTION",
+                "STD_DESCRIPTION",
+                "STANDARD_DESC",
+                "STADARD_DESCRIPTION",
+                "STADARD_DESC",
+            ]:
                 std_col = col
             if col_key in ["STANDARD_CODE", "STD_CODE"]:
                 std_code_col = col
@@ -157,20 +194,28 @@ def _load_workbook_path(path: Path, filename: str) -> None:
             if col_key in ["DISPLAY_VALUE", "DISPLAY"]:
                 display_col = col
             if col_key == "DEFINITION":
+                definition_col = col
                 hidden_cols.append(col)
+
+        if mapped_col is None and std_col is None and std_code_col is None and definition_col:
+            mapped_col = definition_col
+            mapped_type = "description"
+            hidden_cols = [c for c in hidden_cols if c != mapped_col]
 
         if mapped_col:
             source_col = std_col if mapped_type != "code" else std_code_col
-            if source_col:
-                options = sorted({str(v).strip() for v in df[source_col] if str(v).strip()})
-                if options:
-                    dropdown_data.setdefault(sheet, {})[mapped_col] = options
+            if source_col is None:
+                source_col = mapped_col
+            options = sorted({v for v in _str_series(df, source_col) if v})
+            sheet_opts = dropdown_data.setdefault(sheet, {})
+            if options and mapped_col not in sheet_opts:
+                sheet_opts[mapped_col] = options
 
         sheet_map: Dict[str, str] = {}
 
         if std_col and std_code_col:
-            std_series = df[std_col].astype(str).str.strip()
-            code_series = df[std_code_col].astype(str).str.strip()
+            std_series = _str_series(df, std_col)
+            code_series = _str_series(df, std_code_col)
             mask = std_series != ""
             if mapped_type == "code":
                 sheet_map.update({code: f"{code}^{desc}" for code, desc in zip(code_series[mask], std_series[mask])})
@@ -178,8 +223,8 @@ def _load_workbook_path(path: Path, filename: str) -> None:
                 sheet_map.update({desc: f"{code}^{desc}" for desc, code in zip(std_series[mask], code_series[mask])})
 
         if mapped_col and not (std_col and std_code_col) and sub_col:
-            mapped_series = df[mapped_col].astype(str).str.strip()
-            sub_series = df[sub_col].astype(str)
+            mapped_series = _str_series(df, mapped_col)
+            sub_series = _str_series(df, sub_col)
             mask = mapped_series != ""
             sheet_map.update({k: v for k, v in zip(mapped_series[mask], sub_series[mask])})
 
@@ -202,8 +247,8 @@ def _load_workbook_path(path: Path, filename: str) -> None:
         }
 
         if code_col and display_col and mapped_col:
-            code_series = df[code_col].astype(str).str.strip()
-            display_series = df[display_col].astype(str).str.strip()
+            code_series = _str_series(df, code_col)
+            display_series = _str_series(df, display_col)
             blank_mask = code_series.eq("") & display_series.eq("")
             if blank_mask.any():
                 df.loc[blank_mask, mapped_col] = ""
@@ -260,67 +305,6 @@ def _load_comparison_workbook_path(path: Path) -> None:
     comparison_path = path
 
 
-def _combine_sheet(sheet: str) -> pd.DataFrame | None:
-    """Return sheet data with comparison columns merged in."""
-    df = workbook_data.get(sheet)
-    if df is None:
-        return None
-    cmp = comparison_data.get(sheet)
-    if cmp is None:
-        return df
-    combined = df.copy()
-    info = mapping_data.get(sheet, {})
-    code_col = info.get("code_col")
-    display_col = info.get("display_col")
-    mapped_col = info.get("mapped_col")
-    if code_col and "CODE_COMPARE" in cmp:
-        combined.insert(combined.columns.get_loc(code_col) + 1, "CODE_COMPARE", cmp["CODE_COMPARE"])
-    if display_col and "DISPLAY_VALUE_COMPARE" in cmp:
-        combined.insert(
-            combined.columns.get_loc(display_col) + 1,
-            "DISPLAY_VALUE_COMPARE",
-            cmp["DISPLAY_VALUE_COMPARE"],
-        )
-    if mapped_col:
-        cmp_key = f"{mapped_col}_COMPARE"
-        if cmp_key in cmp:
-            combined.insert(
-                combined.columns.get_loc(mapped_col) + 1,
-                cmp_key,
-                cmp[cmp_key],
-            )
-    return combined
-
-def _combine_sheet(sheet: str) -> pd.DataFrame | None:
-    """Return sheet data with comparison columns merged in."""
-    df = workbook_data.get(sheet)
-    if df is None:
-        return None
-    cmp = comparison_data.get(sheet)
-    if cmp is None:
-        return df
-    combined = df.copy()
-    info = mapping_data.get(sheet, {})
-    code_col = info.get("code_col")
-    display_col = info.get("display_col")
-    mapped_col = info.get("mapped_col")
-    if code_col and "CODE_COMPARE" in cmp:
-        combined.insert(combined.columns.get_loc(code_col) + 1, "CODE_COMPARE", cmp["CODE_COMPARE"])
-    if display_col and "DISPLAY_VALUE_COMPARE" in cmp:
-        combined.insert(
-            combined.columns.get_loc(display_col) + 1,
-            "DISPLAY_VALUE_COMPARE",
-            cmp["DISPLAY_VALUE_COMPARE"],
-        )
-    if mapped_col:
-        cmp_key = f"{mapped_col}_COMPARE"
-        if cmp_key in cmp:
-            combined.insert(
-                combined.columns.get_loc(mapped_col) + 1,
-                cmp_key,
-                cmp[cmp_key],
-            )
-    return combined
 
 def _combine_sheet(sheet: str) -> pd.DataFrame | None:
     """Return sheet data with comparison columns merged in."""
@@ -493,18 +477,16 @@ def index():
         cols = [c for c in cols if c not in hidden]
         render_headers[s] = cols
     initial_sheet = sheet_names[0] if sheet_names else None
-    initial_records = (
-        _combine_sheet(initial_sheet).to_dict(orient="records") if initial_sheet else []
-    )
-    base_initial_records = (
-        workbook_data[initial_sheet].to_dict(orient="records") if initial_sheet else []
-    )
+    initial_records = _records(_combine_sheet(initial_sheet)) if initial_sheet else []
+    base_initial_records = _records(workbook_data.get(initial_sheet)) if initial_sheet else []
     initial_compare_records = (
-        comparison_data.get(initial_sheet, pd.DataFrame()).to_dict(orient="records")
-        if initial_sheet
-        else []
+        _records(comparison_data.get(initial_sheet, pd.DataFrame())) if initial_sheet else []
     )
     comparison_repos = [r for r in repo_names if r != selected_repo]
+    try:
+        transformer_url = url_for("export_transformer")
+    except BuildError:
+        transformer_url = None
 
     return render_template(
         "index.html",
@@ -533,6 +515,7 @@ def index():
         comparison_active=bool(comparison_data),
         compare_mode=compare_mode,
         reopen_controls=reopen_controls,
+        transformer_url=transformer_url,
     )
 
 
@@ -541,13 +524,28 @@ def sheet_data(sheet_name: str):
     df = _combine_sheet(sheet_name)
     if df is None:
         return jsonify([])
-    return jsonify(df.to_dict(orient="records"))
+    return jsonify(_records(df))
 
 
 @app.route("/workbooks/<path:repo>")
 def list_workbooks(repo: str):
     """Return available workbooks for ``repo`` from the cached scan."""
     return jsonify(REPOSITORY_CACHE.get(repo, []))
+
+
+@app.route("/transformer")
+def export_transformer():
+    """Generate an XML transformer from the currently loaded workbook."""
+    global workbook_data
+    if not workbook_data:
+        return "No workbook loaded", 400
+    xml_str = build_transformer_xml(workbook_data)
+    return send_file(
+        io.BytesIO(xml_str.encode("utf-8")),
+        mimetype="application/xml",
+        as_attachment=True,
+        download_name="CodesetTransformer.xml",
+    )
 
 
 @app.route("/export", methods=["POST"])
