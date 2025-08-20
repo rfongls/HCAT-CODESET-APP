@@ -129,6 +129,7 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
         url_col = col_map.get("URL")
         if code_col is None and display_col is None and std_code_col is None and std_display_col is None:
             continue
+
         codeset_el = SubElement(codesets_el, "Codeset", Name=sheet)
 
         if oid_col:
@@ -147,33 +148,13 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
         seen = set()
         for lc, ld, sc, sd in zip(code_series, display_series, std_code_series, std_display_series):
             lc = (lc or "").strip()
-            if not lc:
-                continue
             ld = (ld or "").strip()
+            if not lc or not ld:
+                # rows without a local code and display represent lookup lists
+                # or other metadata and should not be exported as codes
+                continue
             sc = (sc or "").strip()
             sd = (sd or "").strip()
-        code_series = _str_series(df, code_col) if code_col else None
-        display_series = _str_series(df, display_col) if display_col else None
-        std_code_series = _str_series(df, std_code_col) if std_code_col else None
-        std_display_series = _str_series(df, std_display_col) if std_display_col else None
-
-        if code_series is None or not code_series.str.strip().any():
-            code_series = std_code_series if std_code_series is not None else pd.Series([""] * len(df))
-        if display_series is None or not display_series.str.strip().any():
-            display_series = std_display_series if std_display_series is not None else pd.Series([""] * len(df))
-        if std_code_series is None or not std_code_series.str.strip().any():
-            std_code_series = code_series
-        if std_display_series is None or not std_display_series.str.strip().any():
-            std_display_series = display_series
-
-        seen = set()
-        for lc, ld, sc, sd in zip(code_series, display_series, std_code_series, std_display_series):
-            if not any([lc, ld, sc, sd]):
-                continue
-            lc = lc or sc
-            ld = ld or sd
-            sc = sc or lc
-            sd = sd or ld
             key = (lc, ld, sc, sd)
             if key in seen:
                 continue
