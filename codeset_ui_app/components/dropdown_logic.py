@@ -6,7 +6,7 @@ from openpyxl import load_workbook
 from openpyxl.utils import range_boundaries
 
 
-def _parse_formula(formula: str, wb) -> List[str]:
+def _parse_formula(formula: str, wb, ws=None) -> List[str]:
     """Return a list of options from a data-validation formula.
 
     Any errors in the formula (for example, ``#REF!`` references) result
@@ -41,6 +41,7 @@ def _parse_formula(formula: str, wb) -> List[str]:
             sheet_name, cell_range = formula.split("!", 1)
             if sheet_name == "#REF":
                 return []
+            sheet_name = sheet_name.strip("'")
             try:
                 sheet = wb[sheet_name]
             except KeyError:
@@ -48,7 +49,7 @@ def _parse_formula(formula: str, wb) -> List[str]:
         else:
             # Current sheet range
             cell_range = formula
-            sheet = wb.active
+            sheet = ws or wb.active
 
         min_col, min_row, max_col, max_row = range_boundaries(cell_range)
         values: List[str] = []
@@ -94,7 +95,7 @@ def extract_dropdown_options(file_or_wb) -> Dict[str, Dict[str, List[str]]]:
         for dv in ws.data_validations.dataValidation:
             if dv.type != "list":
                 continue
-            options = _parse_formula(dv.formula1, wb)
+            options = _parse_formula(dv.formula1, wb, ws)
             for rng in dv.cells.ranges:
                 try:
                     min_col, min_row, max_col, max_row = range_boundaries(str(rng))
