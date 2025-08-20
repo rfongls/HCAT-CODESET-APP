@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 from typing import Dict, List
-
 import pandas as pd
 from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom import minidom
@@ -131,7 +129,6 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
         url_col = col_map.get("URL")
         if code_col is None and display_col is None and std_code_col is None and std_display_col is None:
             continue
-
         codeset_el = SubElement(codesets_el, "Codeset", Name=sheet)
 
         if oid_col:
@@ -142,7 +139,6 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
             url_val = next((v for v in _str_series(df, url_col) if v), "")
             if url_val:
                 codeset_el.set("Url", url_val)
-
         code_series = _str_series(df, code_col) if code_col else pd.Series([""] * len(df))
         display_series = _str_series(df, display_col) if display_col else pd.Series([""] * len(df))
         std_code_series = _str_series(df, std_code_col) if std_code_col else pd.Series([""] * len(df))
@@ -156,6 +152,28 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
             ld = (ld or "").strip()
             sc = (sc or "").strip()
             sd = (sd or "").strip()
+        code_series = _str_series(df, code_col) if code_col else None
+        display_series = _str_series(df, display_col) if display_col else None
+        std_code_series = _str_series(df, std_code_col) if std_code_col else None
+        std_display_series = _str_series(df, std_display_col) if std_display_col else None
+
+        if code_series is None or not code_series.str.strip().any():
+            code_series = std_code_series if std_code_series is not None else pd.Series([""] * len(df))
+        if display_series is None or not display_series.str.strip().any():
+            display_series = std_display_series if std_display_series is not None else pd.Series([""] * len(df))
+        if std_code_series is None or not std_code_series.str.strip().any():
+            std_code_series = code_series
+        if std_display_series is None or not std_display_series.str.strip().any():
+            std_display_series = display_series
+
+        seen = set()
+        for lc, ld, sc, sd in zip(code_series, display_series, std_code_series, std_display_series):
+            if not any([lc, ld, sc, sd]):
+                continue
+            lc = lc or sc
+            ld = ld or sd
+            sc = sc or lc
+            sd = sd or ld
             key = (lc, ld, sc, sd)
             if key in seen:
                 continue
@@ -168,7 +186,6 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
             if sd:
                 attrs["StandardDisplay"] = sd
             SubElement(codeset_el, "Code", attrs)
-
     xml_bytes = tostring(root, encoding="utf-8")
     # Pretty-print with CRLF newlines so Windows editors show each tag on its own line
     return minidom.parseString(xml_bytes).toprettyxml(indent="  ", newl="\r\n")
