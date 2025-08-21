@@ -85,9 +85,9 @@ def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
 
     The scan searches for any directory containing ``Codeset`` in its name and
     looks for ``*.xlsx`` files with ``Codeset`` in the filename. For each file
-    found, the nearest ancestor directory whose name contains ``Repository``
-    (case-insensitive) is treated as the repository root. If no such ancestor is
-    found, the file is grouped under a pseudo repository named
+    found, the nearest ancestor directory whose name contains ``Repository`` or
+    ends with ``-prc`` (case-insensitive) is treated as the repository root. If
+    no such ancestor is found, the file is grouped under a pseudo repository named
     ``SharedRepositories``. The returned mapping uses paths relative to the
     repository root (or ``base`` for shared files). Repository keys are stored as
     their path relative to ``base`` to avoid collisions between repositories
@@ -105,8 +105,8 @@ def discover_repository_workbooks(base: Path) -> Dict[str, list[str]]:
             for ancestor in file.parents:
                 if ancestor == base:
                     break
-                if "repository" in ancestor.name.lower():
-
+                name = ancestor.name.lower()
+                if "repository" in name or name.endswith("-prc"):
                     # keep the first (closest) repository ancestor
                     repo_dir = ancestor
                     break
