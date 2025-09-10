@@ -97,12 +97,31 @@ DEFAULT_FIELDS: List[dict] = [
 ]
 
 
-def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
-    """Return an indented XML string representing ``data`` as a codeset transformer."""
+def build_transformer_xml(
+    data: Dict[str, pd.DataFrame],
+    freetext: Dict[str, bool] | None = None,
+) -> str:
+    """Return an indented XML string representing ``data`` as a codeset transformer.
+
+    Parameters
+    ----------
+    data:
+        Mapping of sheet name to DataFrame representing the codeset workbook.
+    freetext:
+        Optional mapping of codeset name to a boolean indicating whether the
+        field should allow free text (``True`` disables the field in the
+        transformer ``Fields`` section).
+    """
+
     root = Element("Configuration")
     fields_el = SubElement(root, "Fields")
+
+    free_map = {k: v for k, v in (freetext or {}).items() if v}
     for f in DEFAULT_FIELDS:
-        SubElement(fields_el, "Field", **f)
+        attrs = f.copy()
+        if free_map.get(attrs["Codeset"]):
+            attrs["Enabled"] = "False"
+        SubElement(fields_el, "Field", **attrs)
 
     codesets_el = SubElement(root, "Codesets")
 
