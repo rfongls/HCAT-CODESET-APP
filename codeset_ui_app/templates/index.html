@@ -517,6 +517,14 @@
         if (fileLabel) { fileLabel.textContent = name; fileLabel.title = name; }
       });
 
+      // Clicking Upload without a file should open the picker instead of submitting
+      fileInput?.form?.addEventListener('submit', (e) => {
+        if (!fileInput.files.length) {
+          e.preventDefault();
+          fileInput.click();
+        }
+      });
+
       // path helpers
       const isAbsolutePath = (p) => !!p && (p.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(p));
       const getSep = (p) => (p && p.includes('\\') && !p.includes('/')) ? '\\' : '/';
