@@ -406,6 +406,8 @@
     const hasSelectedWorkbook = {{ 'true' if selected_workbook else 'false' }};
     let sheetLock = false;
     let currentSheet = initialSheet;
+    const freeTextFlags = {};
+    sheetNames.forEach(s => { freeTextFlags[s] = false; });
 
     /* ---------- shared controls wiring (inline & overlay) ---------- */
     function wireControls(scope){
@@ -661,7 +663,10 @@
       const transformerUrl = {{ transformer_url|tojson }};
       menuGenerateTransformer?.addEventListener('click', ()=>{
         closeMenu();
-        if (transformerUrl) window.location.href = transformerUrl;
+        if (transformerUrl) {
+          const param = encodeURIComponent(JSON.stringify(freeTextFlags));
+          window.location.href = `${transformerUrl}?freetext=${param}`;
+        }
       });
       controlsOverlayClose?.addEventListener('click', closeControlsOverlay);
       controlsOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeControlsOverlay);
@@ -818,6 +823,16 @@
         const lockBtn = document.createElement('button'); lockBtn.type='button'; lockBtn.className='btn btn-sm';
         const lockText = document.createElement('span'); lockText.className='ms-2';
         lockDiv.appendChild(lockBtn); lockDiv.appendChild(lockText); container.appendChild(lockDiv);
+
+        const ftDiv = document.createElement('div'); ftDiv.className='form-check form-switch mb-2';
+        const ftInput = document.createElement('input'); ftInput.type='checkbox'; ftInput.className='form-check-input';
+        ftInput.id = 'freetext-' + sheet;
+        ftInput.checked = !!freeTextFlags[sheet];
+        ftInput.addEventListener('change', () => { freeTextFlags[sheet] = ftInput.checked; });
+        const ftLabel = document.createElement('label'); ftLabel.className='form-check-label ms-2';
+        ftLabel.htmlFor = ftInput.id; ftLabel.textContent = 'Free Text';
+        ftDiv.appendChild(ftInput); ftDiv.appendChild(ftLabel);
+        container.appendChild(ftDiv);
 
         const table = document.createElement('table');
         table.className = 'table table-bordered table-sm codeset-table';
