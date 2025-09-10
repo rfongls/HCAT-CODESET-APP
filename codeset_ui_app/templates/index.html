@@ -672,7 +672,9 @@
       menuGenerateTransformer?.addEventListener('click', ()=>{
         closeMenu();
         if (transformerUrl) {
-          const param = encodeURIComponent(JSON.stringify(freeTextFlags));
+          const selected = {};
+          Object.keys(freeTextFlags).forEach(k => { if (freeTextFlags[k]) selected[k] = true; });
+          const param = encodeURIComponent(JSON.stringify(selected));
           window.location.href = `${transformerUrl}?freetext=${param}`;
         }
       });
