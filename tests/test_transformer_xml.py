@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 import importlib
 import json
 import re
+import pandas as pd
 from codeset_ui_app.components.file_parser import load_workbook
 from codeset_ui_app.utils.transformer_xml import build_transformer_xml
 from codeset_ui_app.app import app, _load_workbook_path
@@ -88,7 +89,7 @@ def test_export_transformer_respects_freetext(tmp_path):
     app_module.last_error = None
     app_module.comparison_data.clear()
     app_module.comparison_path = None
-    
+
 
 def test_alignment_of_fields_and_codes():
     path = Path('Samples/Generic Codeset V4/(Health System) Codeset Template (Nexus Engine v4) (1).xlsx')
@@ -126,3 +127,20 @@ def test_alignment_of_fields_and_codes():
             assert len({l.index('StandardCode=') for l in cls if 'StandardCode=' in l}) == 1
         if any('StandardDisplay=' in l for l in cls):
             assert len({l.index('StandardDisplay=') for l in cls if 'StandardDisplay=' in l}) == 1
+
+
+def test_duplicate_codes_use_populated_standard_code():
+    df = pd.DataFrame(
+        {
+            "Code": ["UNK", "UNK"],
+            "Display": ["Unknown", "Unknown"],
+            "Standard Code": ["", "UNK"],
+            "Standard Description": ["", "Unknown"],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_ADMIN_GENDER": df})
+    root = ET.fromstring(xml_str)
+    codes = root.findall("./Codesets/Codeset[@Name='CS_ADMIN_GENDER']/Code")
+    assert len(codes) == 1
+    code = codes[0]
+    assert code.get("StandardCode") == "UNK"

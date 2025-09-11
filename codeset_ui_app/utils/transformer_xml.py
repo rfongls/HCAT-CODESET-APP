@@ -183,21 +183,33 @@ def build_transformer_xml(
         std_code_series = _str_series(df, std_code_col) if std_code_col else pd.Series([""] * len(df))
         std_display_series = _str_series(df, std_display_col) if std_display_col else pd.Series([""] * len(df))
 
-        seen = set()
-        for lc, ld, sc, sd in zip(code_series, display_series, std_code_series, std_display_series):
+        code_map: Dict[tuple[str, str], dict] = {}
+        code_order_keys: List[tuple[str, str]] = []
+        for lc, ld, sc, sd in zip(
+            code_series, display_series, std_code_series, std_display_series
+        ):
             lc = (lc or "").strip()
             ld = (ld or "").strip()
             if not lc or not ld:
                 continue
             sc = (sc or "").strip()
             sd = (sd or "").strip()
-            key = (lc, ld, sc, sd)
-            if key in seen:
-                continue
-            seen.add(key)
-            code_attrs = {"LocalCode": lc, "LocalDisplay": ld, "StandardCode": sc, "StandardDisplay": sd}
-            codeset_info["Codes"].append(code_attrs)
-
+            key = (lc, ld)
+            if key in code_map:
+                existing = code_map[key]
+                if sc and not existing.get("StandardCode"):
+                    existing["StandardCode"] = sc
+                if sd and not existing.get("StandardDisplay"):
+                    existing["StandardDisplay"] = sd
+            else:
+                code_map[key] = {
+                    "LocalCode": lc,
+                    "LocalDisplay": ld,
+                    "StandardCode": sc,
+                    "StandardDisplay": sd,
+                }
+                code_order_keys.append(key)
+        codeset_info["Codes"].extend(code_map[k] for k in code_order_keys)
         codesets.append(codeset_info)
 
     # Build codeset XML lines with column widths calculated per codeset to
