@@ -162,3 +162,31 @@ def test_subdefinition_fills_missing_standard_fields():
     assert code is not None
     assert code.get("StandardCode") == "UNK"
     assert code.get("StandardDisplay") == "Unknown"
+
+
+def test_mapped_std_description_preference():
+    df = pd.DataFrame(
+        {
+            "Code": ["UNKNOWN", "01", "06"],
+            "Display Value": ["Unknown", "Accident/Medical Coverage", "Crime Victim"],
+            "Mapped_STD_DESCRIPTION": [
+                "U^Unknown accident nature",
+                "U^Unknown accident nature",
+                "C^Assault and battery",
+            ],
+            "Standard Code": ["P", "T", "X"],
+            "Standard Description": [
+                "Accident on public road",
+                "Occupational accident",
+                "Assault and battery",
+            ],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_ACCIDENT_CODE": df})
+    root = ET.fromstring(xml_str)
+    codes = root.findall("./Codesets/Codeset[@Name='CS_ACCIDENT_CODE']/Code")
+    assert len(codes) == 3
+    assert codes[0].get("StandardCode") == "U"
+    assert codes[1].get("StandardCode") == "U"
+    # Description matches for third row so explicit Standard Code is preferred
+    assert codes[2].get("StandardCode") == "X"

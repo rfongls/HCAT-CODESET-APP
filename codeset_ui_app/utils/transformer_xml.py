@@ -155,17 +155,25 @@ def build_transformer_xml(
             or col_map.get("STANDARD_CODE")
             or col_map.get("STD_CODE")
         )
-        std_display_col = (
+        mapped_sd_col = (
             col_map.get("MAPPED_STD_DESCRIPTION")
             or col_map.get("MAPPED_STANDARD_DESCRIPTION")
-            or col_map.get("STANDARD_DESCRIPTION")
-            or col_map.get("STD_DESCRIPTION")
             or col_map.get("MAPPED_STD_DESC")
+        )
+        std_desc_col = (
+            col_map.get("STANDARD_DESCRIPTION")
+            or col_map.get("STD_DESCRIPTION")
         )
         subdef_col = col_map.get("SUBDEFINITION") or col_map.get("SUBSECTION")
         oid_col = col_map.get("OID")
         url_col = col_map.get("URL")
-        if code_col is None and display_col is None and std_code_col is None and std_display_col is None:
+        if (
+            code_col is None
+            and display_col is None
+            and std_code_col is None
+            and mapped_sd_col is None
+            and std_desc_col is None
+        ):
             continue
 
         codeset_info: dict = {"Name": sheet, "Codes": []}
@@ -182,16 +190,18 @@ def build_transformer_xml(
         code_series = _str_series(df, code_col) if code_col else pd.Series([""] * len(df))
         display_series = _str_series(df, display_col) if display_col else pd.Series([""] * len(df))
         std_code_series = _str_series(df, std_code_col) if std_code_col else pd.Series([""] * len(df))
-        std_display_series = _str_series(df, std_display_col) if std_display_col else pd.Series([""] * len(df))
+        mapped_sd_series = _str_series(df, mapped_sd_col) if mapped_sd_col else pd.Series([""] * len(df))
+        std_desc_series = _str_series(df, std_desc_col) if std_desc_col else pd.Series([""] * len(df))
         subdef_series = _str_series(df, subdef_col) if subdef_col else pd.Series([""] * len(df))
 
         code_map: Dict[tuple[str, str], dict] = {}
         code_order_keys: List[tuple[str, str]] = []
-        for lc, ld, sc, sd, subdef in zip(
+        for lc, ld, sc, mapped_sd, std_desc, subdef in zip(
             code_series,
             display_series,
             std_code_series,
-            std_display_series,
+            mapped_sd_series,
+            std_desc_series,
             subdef_series,
         ):
             lc = (lc or "").strip()
@@ -199,30 +209,50 @@ def build_transformer_xml(
             if not lc or not ld:
                 continue
             sc = (sc or "").strip()
-            sd = (sd or "").strip()
+            mapped_sd = (mapped_sd or "").strip()
+            std_desc = (std_desc or "").strip()
             subdef = (subdef or "").strip()
 
-            if (not sc or not sd) and subdef:
+            sd = ""
+            mapped_code = ""
+            if mapped_sd:
+                parts = mapped_sd.split("^", 1)
+                if len(parts) == 1:
+                    parts = mapped_sd.split("-", 1)
+                if len(parts) == 2:
+                    mapped_code, sd = parts[0].strip(), parts[1].strip()
+                else:
+                    sd = mapped_sd
+            if not sd and std_desc:
+                sd = std_desc
+
+            if std_desc and sd and std_desc == sd and sc:
+                final_sc = sc
+            else:
+                final_sc = mapped_code or sc
+
+            if (not final_sc or not sd) and subdef:
                 parts = subdef.split("^", 1)
                 if len(parts) == 1:
                     parts = subdef.split("-", 1)
                 if len(parts) == 2:
-                    if not sc and parts[0]:
-                        sc = parts[0].strip()
+                    if not final_sc and parts[0]:
+                        final_sc = parts[0].strip()
                     if not sd and parts[1]:
                         sd = parts[1].strip()
+
             key = (lc, ld)
             if key in code_map:
                 existing = code_map[key]
-                if sc and not existing.get("StandardCode"):
-                    existing["StandardCode"] = sc
+                if final_sc and not existing.get("StandardCode"):
+                    existing["StandardCode"] = final_sc
                 if sd and not existing.get("StandardDisplay"):
                     existing["StandardDisplay"] = sd
             else:
                 code_map[key] = {
                     "LocalCode": lc,
                     "LocalDisplay": ld,
-                    "StandardCode": sc,
+                    "StandardCode": final_sc,
                     "StandardDisplay": sd,
                 }
                 code_order_keys.append(key)
