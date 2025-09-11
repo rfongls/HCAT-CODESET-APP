@@ -20,6 +20,10 @@ def render_sheet_tabs(workbook: Dict[str, pd.DataFrame]) -> None:
             if lock_key not in st.session_state:
                 st.session_state[lock_key] = False
 
+            free_key = f"{sheet}_freetext"
+            if free_key not in st.session_state:
+                st.session_state[free_key] = False
+
             icon = "🔒" if st.session_state[lock_key] else "🔓"
             status_text = (
                 "Sheet Protected" if st.session_state[lock_key] else "Sheet Unprotected"
@@ -41,6 +45,8 @@ def render_sheet_tabs(workbook: Dict[str, pd.DataFrame]) -> None:
                 f"<span style='{style}'>{icon}</span> <span style='margin-left:0.5rem'>{status_text}</span>",
                 unsafe_allow_html=True,
             )
+
+            st.checkbox("Free Text", key=free_key)
 
             gb = GridOptionsBuilder.from_dataframe(df)
             gb.configure_default_column(editable=not st.session_state[lock_key], resizable=True)
