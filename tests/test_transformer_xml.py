@@ -3,7 +3,6 @@ import xml.etree.ElementTree as ET
 import importlib
 import json
 import re
-
 from codeset_ui_app.components.file_parser import load_workbook
 from codeset_ui_app.utils.transformer_xml import build_transformer_xml
 from codeset_ui_app.app import app, _load_workbook_path
@@ -89,7 +88,7 @@ def test_export_transformer_respects_freetext(tmp_path):
     app_module.last_error = None
     app_module.comparison_data.clear()
     app_module.comparison_path = None
-
+    
 
 def test_alignment_of_fields_and_codes():
     path = Path('Samples/Generic Codeset V4/(Health System) Codeset Template (Nexus Engine v4) (1).xlsx')

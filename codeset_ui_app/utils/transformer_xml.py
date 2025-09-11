@@ -213,7 +213,6 @@ def build_transformer_xml(
             header += f" Url={quoteattr(cs['Url'])}"
         header += ">"
         codeset_lines.append(header)
-
         code_attr_strings = [
             [f"{k}={quoteattr(c[k])}" if c.get(k) else "" for k in code_order]
             for c in cs["Codes"]
