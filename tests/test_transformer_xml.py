@@ -103,19 +103,8 @@ def test_alignment_of_fields_and_codes():
     assert len({l.index('Enabled=') for l in field_lines}) == 1
     assert len({l.index('Description=') for l in field_lines}) == 1
 
-    codes_lines = []
-    current_cs = None
-    for l in lines:
-        s = l.strip()
-        if s.startswith('<Codeset '):
-            m = re.search(r'Name="([^"]+)"', s)
-            current_cs = m.group(1) if m else None
-        elif s.startswith('</Codeset'):
-            current_cs = None
-        elif s.startswith('<Code ') and current_cs == 'CS_ABNORMAL_FLAG':
-            codes_lines.append(l)
-
-    assert codes_lines, 'expected codes for CS_ABNORMAL_FLAG'
-    assert len({l.index('LocalDisplay=') for l in codes_lines if 'LocalDisplay=' in l}) == 1
-    assert len({l.index('StandardCode=') for l in codes_lines if 'StandardCode=' in l}) == 1
-    assert len({l.index('StandardDisplay=') for l in codes_lines if 'StandardDisplay=' in l}) == 1
+    code_lines = [l for l in lines if l.strip().startswith('<Code ')]
+    assert code_lines, 'expected code entries'
+    assert len({l.index('LocalDisplay=') for l in code_lines if 'LocalDisplay=' in l}) == 1
+    assert len({l.index('StandardCode=') for l in code_lines if 'StandardCode=' in l}) == 1
+    assert len({l.index('StandardDisplay=') for l in code_lines if 'StandardDisplay=' in l}) == 1
