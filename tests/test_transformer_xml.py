@@ -4,7 +4,6 @@ import importlib
 import json
 import re
 import pandas as pd
-
 from codeset_ui_app.components.file_parser import load_workbook
 from codeset_ui_app.utils.transformer_xml import build_transformer_xml
 from codeset_ui_app.app import app, _load_workbook_path
@@ -268,7 +267,7 @@ def test_no_xml_declaration():
     df = pd.DataFrame({"Code": ["A"], "Display": ["Alpha"]})
     xml_str = build_transformer_xml({"CS_ALPHA": df})
     assert not xml_str.lstrip().startswith("<?xml")
-
+    
 
 def test_mismatched_standard_code_uses_subdefinition_lookup():
     df = pd.DataFrame(

@@ -34,7 +34,6 @@ def _split_code_display(text: str) -> tuple[str, str]:
             return left.strip(), right.strip()
     return "", text.strip()
 
-
 # Static field configuration copied from the generic transformer template.  The
 # application does not derive these from the workbook; every exported
 # transformer should include this same set of ``Field`` definitions.
@@ -239,21 +238,18 @@ def build_transformer_xml(
             std_desc = (std_desc or "").strip()
             subdef = (subdef or "").strip()
             definition = (definition or "").strip()
-
             sd = ""
             mapped_code = ""
             if mapped_sd:
                 mapped_code, sd = _split_code_display(mapped_sd)
             if not sd and std_desc:
                 sd = std_desc
-
             def_code = ""
             def_desc = ""
             if definition:
                 def_code, def_desc = _split_code_display(definition)
                 if not sd:
                     sd = def_desc
-
             final_sc = ""
             if sd and std_desc == sd and sc:
                 final_sc = sc
@@ -265,7 +261,6 @@ def build_transformer_xml(
                 final_sc = def_code
             elif sc and not std_desc:
                 final_sc = sc
-
             if (not final_sc or not sd) and subdef:
                 sc2, sd2 = _split_code_display(subdef)
                 if sd2 and not sd:
@@ -274,7 +269,6 @@ def build_transformer_xml(
                     final_sc = sc2
                 elif not final_sc and sc2:
                     final_sc = sc2
-
             if sd and not final_sc:
                 matches = std_desc_series[std_desc_series == sd]
                 if not matches.empty:
@@ -285,7 +279,6 @@ def build_transformer_xml(
 
             if not sd:
                 continue
-
             key = (lc, ld)
             if key in code_map:
                 existing = code_map[key]
@@ -302,7 +295,6 @@ def build_transformer_xml(
                 }
                 code_order_keys.append(key)
         codeset_info["Codes"].extend(code_map[k] for k in code_order_keys)
-
         codesets.append(codeset_info)
 
     # Build codeset XML lines with column widths calculated per codeset to
@@ -323,7 +315,6 @@ def build_transformer_xml(
 
         header += ">"
         codeset_lines.append(header)
-
         code_attr_strings = [
             [f"{k}={quoteattr(c[k])}" if c.get(k) else "" for k in code_order]
             for c in cs["Codes"]
