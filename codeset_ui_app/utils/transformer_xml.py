@@ -12,6 +12,26 @@ def _str_series(df: pd.DataFrame, col: str) -> pd.Series:
     return series.astype(str).str.strip()
 
 
+def _split_code_display(text: str) -> tuple[str, str]:
+    """Return a code/description pair from ``text``.
+
+    The workbook sometimes stores combined values like ``"X^Desc"`` or
+    ``"X-Desc"``.  Hyphen splits are only considered a separator when the code
+    portion contains no spaces; otherwise the entire value is treated as the
+    description (e.g. ``"HIPAA OPT-OUT"``).
+    """
+
+    text = text.strip()
+    if "^" in text:
+        left, right = text.split("^", 1)
+        return left.strip(), right.strip()
+    if "-" in text:
+        left, right = text.split("-", 1)
+        if " " not in left.strip():
+            return left.strip(), right.strip()
+    return "", text.strip()
+
+
 # Static field configuration copied from the generic transformer template.  The
 # application does not derive these from the workbook; every exported
 # transformer should include this same set of ``Field`` definitions.
@@ -216,13 +236,7 @@ def build_transformer_xml(
             sd = ""
             mapped_code = ""
             if mapped_sd:
-                parts = mapped_sd.split("^", 1)
-                if len(parts) == 1:
-                    parts = mapped_sd.split("-", 1)
-                if len(parts) == 2:
-                    mapped_code, sd = parts[0].strip(), parts[1].strip()
-                else:
-                    sd = mapped_sd
+                mapped_code, sd = _split_code_display(mapped_sd)
             if not sd and std_desc:
                 sd = std_desc
 
@@ -232,15 +246,11 @@ def build_transformer_xml(
                 final_sc = mapped_code or sc
 
             if (not final_sc or not sd) and subdef:
-                parts = subdef.split("^", 1)
-                if len(parts) == 1:
-                    parts = subdef.split("-", 1)
-                if len(parts) == 2:
-                    if not final_sc and parts[0]:
-                        final_sc = parts[0].strip()
-                    if not sd and parts[1]:
-                        sd = parts[1].strip()
-
+                sc2, sd2 = _split_code_display(subdef)
+                if not final_sc and sc2:
+                    final_sc = sc2
+                if not sd and sd2:
+                    sd = sd2
             key = (lc, ld)
             if key in code_map:
                 existing = code_map[key]

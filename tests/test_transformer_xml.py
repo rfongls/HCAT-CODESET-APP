@@ -190,3 +190,21 @@ def test_mapped_std_description_preference():
     assert codes[1].get("StandardCode") == "U"
     # Description matches for third row so explicit Standard Code is preferred
     assert codes[2].get("StandardCode") == "X"
+
+
+def test_mapped_std_description_with_hyphen():
+    df = pd.DataFrame(
+        {
+            "Code": ["OO"],
+            "Display": ["HIPAA OPT-OUT"],
+            "Mapped_STD_DESCRIPTION": ["HIPAA OPT-OUT"],
+            "Standard Code": ["OO"],
+            "Standard Description": ["HIPAA OPT-OUT"],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_PROTECTION_IND": df})
+    root = ET.fromstring(xml_str)
+    code = root.find("./Codesets/Codeset[@Name='CS_PROTECTION_IND']/Code")
+    assert code is not None
+    assert code.get("StandardCode") == "OO"
+    assert code.get("StandardDisplay") == "HIPAA OPT-OUT"
