@@ -1,6 +1,9 @@
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import importlib
+import json
+import re
+import pandas as pd
 
 from codeset_ui_app.components.file_parser import load_workbook
 from codeset_ui_app.utils.transformer_xml import build_transformer_xml
@@ -33,6 +36,18 @@ def test_build_transformer_xml_generates_codeset():
     assert '\n      <Code ' in normalized
 
 
+def test_build_transformer_xml_disables_freetext():
+    path = Path('Samples/Generic Codeset V4/(Health System) Codeset Template (Nexus Engine v4) (1).xlsx')
+    with path.open('rb') as fh:
+        data, _ = load_workbook(fh)
+    xml_str = build_transformer_xml(data, {'CS_RACE': True})
+    root = ET.fromstring(xml_str)
+    field = root.find("./Fields/Field[@Codeset='CS_RACE']")
+    assert field is not None and field.get('Enabled') == 'False'
+    other = root.find("./Fields/Field[@Codeset='CS_LANGUAGE']")
+    assert other is not None and other.get('Enabled') == 'True'
+
+
 def test_export_transformer_endpoint(tmp_path):
     path = Path('Samples/Generic Codeset V4/(Health System) Codeset Template (Nexus Engine v4) (1).xlsx')
     _load_workbook_path(path, path.name)
@@ -53,3 +68,184 @@ def test_export_transformer_endpoint(tmp_path):
     app_module.last_error = None
     app_module.comparison_data.clear()
     app_module.comparison_path = None
+
+
+def test_export_transformer_respects_freetext(tmp_path):
+    path = Path('Samples/Generic Codeset V4/(Health System) Codeset Template (Nexus Engine v4) (1).xlsx')
+    _load_workbook_path(path, path.name)
+    with app.test_client() as c:
+        resp = c.get('/transformer', query_string={'freetext': json.dumps({'CS_RACE': True})})
+        assert resp.status_code == 200
+        root = ET.fromstring(resp.data)
+        field = root.find("./Fields/Field[@Codeset='CS_RACE']")
+        assert field is not None and field.get('Enabled') == 'False'
+    app_module = importlib.import_module("codeset_ui_app.app")
+    app_module.workbook_data.clear()
+    app_module.dropdown_data.clear()
+    app_module.mapping_data.clear()
+    app_module.field_notes.clear()
+    app_module.workbook_obj = None
+    app_module.original_filename = None
+    app_module.workbook_path = None
+    app_module.last_error = None
+    app_module.comparison_data.clear()
+    app_module.comparison_path = None
+
+
+def test_alignment_of_fields_and_codes():
+    path = Path('Samples/Generic Codeset V4/(Health System) Codeset Template (Nexus Engine v4) (1).xlsx')
+    with path.open('rb') as fh:
+        data, _ = load_workbook(fh)
+    xml_str = build_transformer_xml(data)
+    lines = xml_str.split('\r\n')
+
+    field_lines = [l for l in lines if l.strip().startswith('<Field ')]
+    assert len({l.index('Codeset=') for l in field_lines}) == 1
+    assert len({l.index('OutputType=') for l in field_lines}) == 1
+    assert len({l.index('Enabled=') for l in field_lines}) == 1
+    assert len({l.index('Description=') for l in field_lines}) == 1
+
+    # Ensure code attribute columns are consistent within each codeset
+    codeset_code_lines: List[List[str]] = []
+    current: List[str] | None = None
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith('<Codeset '):
+            current = []
+            codeset_code_lines.append(current)
+        elif stripped.startswith('<Code '):
+            if current is not None:
+                current.append(line)
+        elif stripped.startswith('</Codeset>'):
+            current = None
+
+    for cls in codeset_code_lines:
+        if not cls:
+            continue
+        if any('LocalDisplay=' in l for l in cls):
+            assert len({l.index('LocalDisplay=') for l in cls if 'LocalDisplay=' in l}) == 1
+        if any('StandardCode=' in l for l in cls):
+            assert len({l.index('StandardCode=') for l in cls if 'StandardCode=' in l}) == 1
+        if any('StandardDisplay=' in l for l in cls):
+            assert len({l.index('StandardDisplay=') for l in cls if 'StandardDisplay=' in l}) == 1
+
+
+def test_duplicate_codes_use_populated_standard_code():
+    df = pd.DataFrame(
+        {
+            "Code": ["UNK", "UNK"],
+            "Display": ["Unknown", "Unknown"],
+            "Standard Code": ["", "UNK"],
+            "Standard Description": ["", "Unknown"],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_ADMIN_GENDER": df})
+    root = ET.fromstring(xml_str)
+    codes = root.findall("./Codesets/Codeset[@Name='CS_ADMIN_GENDER']/Code")
+    assert len(codes) == 1
+    code = codes[0]
+    assert code.get("StandardCode") == "UNK"
+
+
+def test_subdefinition_fills_missing_standard_fields():
+    df = pd.DataFrame(
+        {
+            "Code": ["UNK"],
+            "Display": ["Unknown"],
+            "Subdefinition": ["UNK^Unknown"],
+            "Standard Code": [""],
+            "Standard Description": [""],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_ADMIN_GENDER": df})
+    root = ET.fromstring(xml_str)
+    code = root.find("./Codesets/Codeset[@Name='CS_ADMIN_GENDER']/Code")
+    assert code is not None
+    assert code.get("StandardCode") == "UNK"
+    assert code.get("StandardDisplay") == "Unknown"
+
+
+def test_mapped_std_description_preference():
+    df = pd.DataFrame(
+        {
+            "Code": ["UNKNOWN", "01", "06"],
+            "Display Value": ["Unknown", "Accident/Medical Coverage", "Crime Victim"],
+            "Mapped_STD_DESCRIPTION": [
+                "U^Unknown accident nature",
+                "U^Unknown accident nature",
+                "C^Assault and battery",
+            ],
+            "Standard Code": ["P", "T", "X"],
+            "Standard Description": [
+                "Accident on public road",
+                "Occupational accident",
+                "Assault and battery",
+            ],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_ACCIDENT_CODE": df})
+    root = ET.fromstring(xml_str)
+    codes = root.findall("./Codesets/Codeset[@Name='CS_ACCIDENT_CODE']/Code")
+    assert len(codes) == 3
+    assert codes[0].get("StandardCode") == "U"
+    assert codes[1].get("StandardCode") == "U"
+    # Description matches for third row so explicit Standard Code is preferred
+    assert codes[2].get("StandardCode") == "X"
+
+
+def test_mapped_std_description_with_hyphen():
+    df = pd.DataFrame(
+        {
+            "Code": ["OO"],
+            "Display": ["HIPAA OPT-OUT"],
+            "Mapped_STD_DESCRIPTION": ["HIPAA OPT-OUT"],
+            "Standard Code": ["OO"],
+            "Standard Description": ["HIPAA OPT-OUT"],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_PROTECTION_IND": df})
+    root = ET.fromstring(xml_str)
+    code = root.find("./Codesets/Codeset[@Name='CS_PROTECTION_IND']/Code")
+    assert code is not None
+    assert code.get("StandardCode") == "OO"
+    assert code.get("StandardDisplay") == "HIPAA OPT-OUT"
+
+
+def test_hyphenated_standard_code_not_split():
+    df = pd.DataFrame(
+        {
+            "Code": ["I9"],
+            "Display Value": ["ICD-9"],
+            "Mapped_STD_DESCRIPTION": ["ICD-9"],
+            "Standard Code": ["ICD-9"],
+            "Standard Description": ["ICD-9"],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_DIAGNOSIS_CODE_METHOD": df})
+    root = ET.fromstring(xml_str)
+    code = root.find("./Codesets/Codeset[@Name='CS_DIAGNOSIS_CODE_METHOD']/Code")
+    assert code is not None
+    assert code.get("StandardCode") == "ICD-9"
+    assert code.get("StandardDisplay") == "ICD-9"
+
+
+def test_codeset_without_codes_self_closes():
+    df = pd.DataFrame(
+        {
+            "Code": [""],
+            "Display": [""],
+            "OID": ["No OID"],
+            "URL": ["http://example.com"],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_EMPTY": df})
+    root = ET.fromstring(xml_str)
+    cs = root.find("./Codesets/Codeset[@Name='CS_EMPTY']")
+    assert cs is not None
+    assert list(cs) == []
+
+
+def test_no_xml_declaration():
+    df = pd.DataFrame({"Code": ["A"], "Display": ["Alpha"]})
+    xml_str = build_transformer_xml({"CS_ALPHA": df})
+    assert not xml_str.lstrip().startswith("<?xml")
