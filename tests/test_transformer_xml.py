@@ -208,3 +208,43 @@ def test_mapped_std_description_with_hyphen():
     assert code is not None
     assert code.get("StandardCode") == "OO"
     assert code.get("StandardDisplay") == "HIPAA OPT-OUT"
+
+
+def test_hyphenated_standard_code_not_split():
+    df = pd.DataFrame(
+        {
+            "Code": ["I9"],
+            "Display Value": ["ICD-9"],
+            "Mapped_STD_DESCRIPTION": ["ICD-9"],
+            "Standard Code": ["ICD-9"],
+            "Standard Description": ["ICD-9"],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_DIAGNOSIS_CODE_METHOD": df})
+    root = ET.fromstring(xml_str)
+    code = root.find("./Codesets/Codeset[@Name='CS_DIAGNOSIS_CODE_METHOD']/Code")
+    assert code is not None
+    assert code.get("StandardCode") == "ICD-9"
+    assert code.get("StandardDisplay") == "ICD-9"
+
+
+def test_codeset_without_codes_self_closes():
+    df = pd.DataFrame(
+        {
+            "Code": [""],
+            "Display": [""],
+            "OID": ["No OID"],
+            "URL": ["http://example.com"],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_EMPTY": df})
+    root = ET.fromstring(xml_str)
+    cs = root.find("./Codesets/Codeset[@Name='CS_EMPTY']")
+    assert cs is not None
+    assert list(cs) == []
+
+
+def test_no_xml_declaration():
+    df = pd.DataFrame({"Code": ["A"], "Display": ["Alpha"]})
+    xml_str = build_transformer_xml({"CS_ALPHA": df})
+    assert not xml_str.lstrip().startswith("<?xml")

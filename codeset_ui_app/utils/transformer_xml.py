@@ -27,7 +27,7 @@ def _split_code_display(text: str) -> tuple[str, str]:
         return left.strip(), right.strip()
     if "-" in text:
         left, right = text.split("-", 1)
-        if " " not in left.strip():
+        if " " not in left.strip() and " " in right.strip():
             return left.strip(), right.strip()
     return "", text.strip()
 
@@ -280,6 +280,11 @@ def build_transformer_xml(
             header += f" Oid={quoteattr(cs['Oid'])}"
         if cs.get("Url"):
             header += f" Url={quoteattr(cs['Url'])}"
+
+        if not cs["Codes"]:
+            codeset_lines.append(header + " />")
+            continue
+
         header += ">"
         codeset_lines.append(header)
         code_attr_strings = [
@@ -301,7 +306,6 @@ def build_transformer_xml(
         codeset_lines.append("    </Codeset>")
 
     lines = [
-        "<?xml version=\"1.0\" ?>",
         "<Configuration>",
         "  <Fields>",
         *field_lines,
