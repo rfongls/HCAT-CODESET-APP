@@ -1,8 +1,7 @@
 from __future__ import annotations
 from typing import Dict, List
 import pandas as pd
-from xml.etree.ElementTree import Element, SubElement, tostring
-from xml.dom import minidom
+from xml.sax.saxutils import quoteattr
 
 
 def _str_series(df: pd.DataFrame, col: str) -> pd.Series:
@@ -97,15 +96,53 @@ DEFAULT_FIELDS: List[dict] = [
 ]
 
 
-def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
-    """Return an indented XML string representing ``data`` as a codeset transformer."""
-    root = Element("Configuration")
-    fields_el = SubElement(root, "Fields")
+def build_transformer_xml(
+    data: Dict[str, pd.DataFrame],
+    freetext: Dict[str, bool] | None = None,
+) -> str:
+    """Return an indented XML string representing ``data`` as a codeset transformer.
+
+    Parameters
+    ----------
+    data:
+        Mapping of sheet name to DataFrame representing the codeset workbook.
+    freetext:
+        Optional mapping of codeset name to a boolean indicating whether the
+        field should allow free text (``True`` disables the field in the
+        transformer ``Fields`` section).
+    """
+
+    free_map = {k: v for k, v in (freetext or {}).items() if v}
+
+    # Build fields data with optional free text overrides
+    field_dicts: List[dict] = []
     for f in DEFAULT_FIELDS:
-        SubElement(fields_el, "Field", **f)
+        attrs = f.copy()
+        if free_map.get(attrs["Codeset"]):
+            attrs["Enabled"] = "False"
+        field_dicts.append(attrs)
 
-    codesets_el = SubElement(root, "Codesets")
+    # Determine column widths for field attributes to align output
+    field_order = ["Name", "Codeset", "OutputType", "Enabled", "Description"]
+    field_attr_strings = [
+        [f"{k}={quoteattr(d[k])}" for k in field_order]
+        for d in field_dicts
+    ]
+    field_widths = [
+        max(len(attrs[i]) for attrs in field_attr_strings) + 2
+        for i in range(len(field_order) - 1)
+    ]
 
+    field_lines: List[str] = []
+    for attrs in field_attr_strings:
+        parts = [attrs[0].ljust(field_widths[0])]
+        for i in range(1, len(field_order) - 1):
+            parts.append(attrs[i].ljust(field_widths[i]))
+        parts.append(attrs[-1])
+        field_lines.append("    <Field " + "".join(parts).rstrip() + " />")
+
+    # Collect codeset information from workbook data
+    codesets: List[dict] = []
     for sheet, df in data.items():
         if not isinstance(df, pd.DataFrame):
             continue
@@ -130,16 +167,17 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
         if code_col is None and display_col is None and std_code_col is None and std_display_col is None:
             continue
 
-        codeset_el = SubElement(codesets_el, "Codeset", Name=sheet)
+        codeset_info: dict = {"Name": sheet, "Codes": []}
 
         if oid_col:
             oid_val = next((v for v in _str_series(df, oid_col) if v), "")
             if oid_val:
-                codeset_el.set("Oid", oid_val)
+                codeset_info["Oid"] = oid_val
         if url_col:
             url_val = next((v for v in _str_series(df, url_col) if v), "")
             if url_val:
-                codeset_el.set("Url", url_val)
+                codeset_info["Url"] = url_val
+
         code_series = _str_series(df, code_col) if code_col else pd.Series([""] * len(df))
         display_series = _str_series(df, display_col) if display_col else pd.Series([""] * len(df))
         std_code_series = _str_series(df, std_code_col) if std_code_col else pd.Series([""] * len(df))
@@ -150,8 +188,6 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
             lc = (lc or "").strip()
             ld = (ld or "").strip()
             if not lc or not ld:
-                # rows without a local code and display represent lookup lists
-                # or other metadata and should not be exported as codes
                 continue
             sc = (sc or "").strip()
             sd = (sd or "").strip()
@@ -159,15 +195,53 @@ def build_transformer_xml(data: Dict[str, pd.DataFrame]) -> str:
             if key in seen:
                 continue
             seen.add(key)
-            attrs = {"LocalCode": lc}
-            if ld:
-                attrs["LocalDisplay"] = ld
-            if sc:
-                attrs["StandardCode"] = sc
-            if sd:
-                attrs["StandardDisplay"] = sd
-            SubElement(codeset_el, "Code", attrs)
-    xml_bytes = tostring(root, encoding="utf-8")
-    # Pretty-print with CRLF newlines so Windows editors show each tag on its own line
-    return minidom.parseString(xml_bytes).toprettyxml(indent="  ", newl="\r\n")
+            code_attrs = {"LocalCode": lc, "LocalDisplay": ld, "StandardCode": sc, "StandardDisplay": sd}
+            codeset_info["Codes"].append(code_attrs)
+
+        codesets.append(codeset_info)
+
+    # Build codeset XML lines with aligned code attributes
+    codeset_lines: List[str] = []
+    for cs in codesets:
+        header = f"    <Codeset Name={quoteattr(cs['Name'])}"
+        if cs.get("Oid"):
+            header += f" Oid={quoteattr(cs['Oid'])}"
+        if cs.get("Url"):
+            header += f" Url={quoteattr(cs['Url'])}"
+        header += ">"
+        codeset_lines.append(header)
+
+        codes = cs["Codes"]
+        code_order = ["LocalCode", "LocalDisplay", "StandardCode", "StandardDisplay"]
+        code_attr_strings = [
+            [f"{k}={quoteattr(c[k])}" if c.get(k) else "" for k in code_order]
+            for c in codes
+        ]
+        code_widths = [
+            (max((len(attrs[i]) for attrs in code_attr_strings if attrs[i]), default=0) + 2)
+            for i in range(len(code_order) - 1)
+        ]
+
+        for attrs in code_attr_strings:
+            parts = [attrs[0].ljust(code_widths[0])]
+            for i in range(1, len(code_order) - 1):
+                parts.append(attrs[i].ljust(code_widths[i]))
+            parts.append(attrs[-1])
+            codeset_lines.append("      <Code " + "".join(parts).rstrip() + " />")
+
+        codeset_lines.append("    </Codeset>")
+
+    lines = [
+        "<?xml version=\"1.0\" ?>",
+        "<Configuration>",
+        "  <Fields>",
+        *field_lines,
+        "  </Fields>",
+        "  <Codesets>",
+        *codeset_lines,
+        "  </Codesets>",
+        "</Configuration>",
+    ]
+
+    return "\r\n".join(lines) + "\r\n"
 
