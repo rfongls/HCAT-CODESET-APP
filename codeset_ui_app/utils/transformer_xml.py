@@ -200,19 +200,10 @@ def build_transformer_xml(
 
         codesets.append(codeset_info)
 
-    # Determine global column widths for code attributes so all codes align
+    # Build codeset XML lines with column widths calculated per codeset to
+    # avoid excessive gaps between attributes when one codeset contains very
+    # long values.
     code_order = ["LocalCode", "LocalDisplay", "StandardCode", "StandardDisplay"]
-    all_code_attrs = [
-        [f"{k}={quoteattr(c[k])}" if c.get(k) else "" for k in code_order]
-        for cs in codesets
-        for c in cs["Codes"]
-    ]
-    code_widths = [
-        max((len(attrs[i]) for attrs in all_code_attrs if attrs[i]), default=0) + 2
-        for i in range(len(code_order) - 1)
-    ]
-
-    # Build codeset XML lines with aligned code attributes
     codeset_lines: List[str] = []
     for cs in codesets:
         header = f"    <Codeset Name={quoteattr(cs['Name'])}"
@@ -222,9 +213,16 @@ def build_transformer_xml(
             header += f" Url={quoteattr(cs['Url'])}"
         header += ">"
         codeset_lines.append(header)
+        code_attr_strings = [
+            [f"{k}={quoteattr(c[k])}" if c.get(k) else "" for k in code_order]
+            for c in cs["Codes"]
+        ]
+        code_widths = [
+            max((len(attrs[i]) for attrs in code_attr_strings if attrs[i]), default=0) + 2
+            for i in range(len(code_order) - 1)
+        ]
 
-        for c in cs["Codes"]:
-            attrs = [f"{k}={quoteattr(c[k])}" if c.get(k) else "" for k in code_order]
+        for attrs in code_attr_strings:
             parts = [attrs[0].ljust(code_widths[0])]
             for i in range(1, len(code_order) - 1):
                 parts.append(attrs[i].ljust(code_widths[i]))

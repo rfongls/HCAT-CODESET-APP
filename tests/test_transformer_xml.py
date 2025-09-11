@@ -103,8 +103,26 @@ def test_alignment_of_fields_and_codes():
     assert len({l.index('Enabled=') for l in field_lines}) == 1
     assert len({l.index('Description=') for l in field_lines}) == 1
 
-    code_lines = [l for l in lines if l.strip().startswith('<Code ')]
-    assert code_lines, 'expected code entries'
-    assert len({l.index('LocalDisplay=') for l in code_lines if 'LocalDisplay=' in l}) == 1
-    assert len({l.index('StandardCode=') for l in code_lines if 'StandardCode=' in l}) == 1
-    assert len({l.index('StandardDisplay=') for l in code_lines if 'StandardDisplay=' in l}) == 1
+    # Ensure code attribute columns are consistent within each codeset
+    codeset_code_lines: List[List[str]] = []
+    current: List[str] | None = None
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith('<Codeset '):
+            current = []
+            codeset_code_lines.append(current)
+        elif stripped.startswith('<Code '):
+            if current is not None:
+                current.append(line)
+        elif stripped.startswith('</Codeset>'):
+            current = None
+
+    for cls in codeset_code_lines:
+        if not cls:
+            continue
+        if any('LocalDisplay=' in l for l in cls):
+            assert len({l.index('LocalDisplay=') for l in cls if 'LocalDisplay=' in l}) == 1
+        if any('StandardCode=' in l for l in cls):
+            assert len({l.index('StandardCode=') for l in cls if 'StandardCode=' in l}) == 1
+        if any('StandardDisplay=' in l for l in cls):
+            assert len({l.index('StandardDisplay=') for l in cls if 'StandardDisplay=' in l}) == 1
