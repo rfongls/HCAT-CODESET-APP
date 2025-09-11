@@ -162,6 +162,7 @@ def build_transformer_xml(
             or col_map.get("STD_DESCRIPTION")
             or col_map.get("MAPPED_STD_DESC")
         )
+        subdef_col = col_map.get("SUBDEFINITION") or col_map.get("SUBSECTION")
         oid_col = col_map.get("OID")
         url_col = col_map.get("URL")
         if code_col is None and display_col is None and std_code_col is None and std_display_col is None:
@@ -182,11 +183,16 @@ def build_transformer_xml(
         display_series = _str_series(df, display_col) if display_col else pd.Series([""] * len(df))
         std_code_series = _str_series(df, std_code_col) if std_code_col else pd.Series([""] * len(df))
         std_display_series = _str_series(df, std_display_col) if std_display_col else pd.Series([""] * len(df))
+        subdef_series = _str_series(df, subdef_col) if subdef_col else pd.Series([""] * len(df))
 
         code_map: Dict[tuple[str, str], dict] = {}
         code_order_keys: List[tuple[str, str]] = []
-        for lc, ld, sc, sd in zip(
-            code_series, display_series, std_code_series, std_display_series
+        for lc, ld, sc, sd, subdef in zip(
+            code_series,
+            display_series,
+            std_code_series,
+            std_display_series,
+            subdef_series,
         ):
             lc = (lc or "").strip()
             ld = (ld or "").strip()
@@ -194,6 +200,17 @@ def build_transformer_xml(
                 continue
             sc = (sc or "").strip()
             sd = (sd or "").strip()
+            subdef = (subdef or "").strip()
+
+            if (not sc or not sd) and subdef:
+                parts = subdef.split("^", 1)
+                if len(parts) == 1:
+                    parts = subdef.split("-", 1)
+                if len(parts) == 2:
+                    if not sc and parts[0]:
+                        sc = parts[0].strip()
+                    if not sd and parts[1]:
+                        sd = parts[1].strip()
             key = (lc, ld)
             if key in code_map:
                 existing = code_map[key]

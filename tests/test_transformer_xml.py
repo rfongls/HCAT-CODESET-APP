@@ -144,3 +144,21 @@ def test_duplicate_codes_use_populated_standard_code():
     assert len(codes) == 1
     code = codes[0]
     assert code.get("StandardCode") == "UNK"
+
+
+def test_subdefinition_fills_missing_standard_fields():
+    df = pd.DataFrame(
+        {
+            "Code": ["UNK"],
+            "Display": ["Unknown"],
+            "Subdefinition": ["UNK^Unknown"],
+            "Standard Code": [""],
+            "Standard Description": [""],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_ADMIN_GENDER": df})
+    root = ET.fromstring(xml_str)
+    code = root.find("./Codesets/Codeset[@Name='CS_ADMIN_GENDER']/Code")
+    assert code is not None
+    assert code.get("StandardCode") == "UNK"
+    assert code.get("StandardDisplay") == "Unknown"
