@@ -6,6 +6,7 @@ import io
 
 import pandas as pd
 from flask import Flask, render_template, request, jsonify, send_file, url_for
+import json
 from werkzeug.utils import secure_filename
 from werkzeug.routing import BuildError
 try:  # allow running as a package or standalone script
@@ -539,7 +540,16 @@ def export_transformer():
     global workbook_data
     if not workbook_data:
         return "No workbook loaded", 400
-    xml_str = build_transformer_xml(workbook_data)
+
+    free_param = request.args.get("freetext")
+    free_map = {}
+    if free_param:
+        try:
+            free_map = json.loads(free_param)
+        except json.JSONDecodeError:
+            free_map = {}
+
+    xml_str = build_transformer_xml(workbook_data, free_map)
     return send_file(
         io.BytesIO(xml_str.encode("utf-8")),
         mimetype="application/xml",
