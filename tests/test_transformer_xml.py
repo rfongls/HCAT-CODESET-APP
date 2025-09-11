@@ -267,3 +267,22 @@ def test_no_xml_declaration():
     df = pd.DataFrame({"Code": ["A"], "Display": ["Alpha"]})
     xml_str = build_transformer_xml({"CS_ALPHA": df})
     assert not xml_str.lstrip().startswith("<?xml")
+    
+
+def test_mismatched_standard_code_uses_subdefinition_lookup():
+    df = pd.DataFrame(
+        {
+            "Code": ["UNK"],
+            "Display": ["Unknown"],
+            "Mapped_STD_DESCRIPTION": ["Unknown"],
+            "Subdefinition": ["UNK^Unknown"],
+            "Standard Code": ["126485001"],
+            "Standard Description": ["Hives"],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_ALLERGY_REACTION_CODE": df})
+    root = ET.fromstring(xml_str)
+    code = root.find("./Codesets/Codeset[@Name='CS_ALLERGY_REACTION_CODE']/Code")
+    assert code is not None
+    assert code.get("StandardCode") == "UNK"
+    assert code.get("StandardDisplay") == "Unknown"

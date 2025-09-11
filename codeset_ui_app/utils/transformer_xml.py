@@ -34,27 +34,6 @@ def _split_code_display(text: str) -> tuple[str, str]:
             return left.strip(), right.strip()
     return "", text.strip()
 
-
-def _split_code_display(text: str) -> tuple[str, str]:
-    """Return a code/description pair from ``text``.
-
-    The workbook sometimes stores combined values like ``"X^Desc"`` or
-    ``"X-Desc"``.  Hyphen splits are only considered a separator when the code
-    portion contains no spaces; otherwise the entire value is treated as the
-    description (e.g. ``"HIPAA OPT-OUT"``).
-    """
-
-    text = text.strip()
-    if "^" in text:
-        left, right = text.split("^", 1)
-        return left.strip(), right.strip()
-    if "-" in text:
-        left, right = text.split("-", 1)
-        if " " not in left.strip() and " " in right.strip():
-            return left.strip(), right.strip()
-    return "", text.strip()
-
-
 # Static field configuration copied from the generic transformer template.  The
 # application does not derive these from the workbook; every exported
 # transformer should include this same set of ``Field`` definitions.
@@ -271,14 +250,17 @@ def build_transformer_xml(
                 def_code, def_desc = _split_code_display(definition)
                 if not sd:
                     sd = def_desc
-
-            if std_desc and sd and std_desc == sd and sc:
+            final_sc = ""
+            if sd and std_desc == sd and sc:
                 final_sc = sc
-            elif def_desc and sd and def_desc == sd and def_code:
+            elif sd and def_desc == sd and def_code:
                 final_sc = def_code
-            else:
-                final_sc = mapped_code or def_code or sc
-
+            elif mapped_code:
+                final_sc = mapped_code
+            elif def_code:
+                final_sc = def_code
+            elif sc and not std_desc:
+                final_sc = sc
             if (not final_sc or not sd) and subdef:
                 sc2, sd2 = _split_code_display(subdef)
                 if sd2 and not sd:
@@ -287,6 +269,16 @@ def build_transformer_xml(
                     final_sc = sc2
                 elif not final_sc and sc2:
                     final_sc = sc2
+            if sd and not final_sc:
+                matches = std_desc_series[std_desc_series == sd]
+                if not matches.empty:
+                    idx = matches.index[0]
+                    sc_lookup = std_code_series.iloc[idx].strip()
+                    if sc_lookup:
+                        final_sc = sc_lookup
+
+            if not sd:
+                continue
             key = (lc, ld)
             if key in code_map:
                 existing = code_map[key]
