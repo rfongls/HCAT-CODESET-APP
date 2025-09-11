@@ -210,7 +210,6 @@ def build_transformer_xml(
                 }
                 code_order_keys.append(key)
         codeset_info["Codes"].extend(code_map[k] for k in code_order_keys)
-
         codesets.append(codeset_info)
 
     # Build codeset XML lines with column widths calculated per codeset to
@@ -226,7 +225,6 @@ def build_transformer_xml(
             header += f" Url={quoteattr(cs['Url'])}"
         header += ">"
         codeset_lines.append(header)
-
         code_attr_strings = [
             [f"{k}={quoteattr(c[k])}" if c.get(k) else "" for k in code_order]
             for c in cs["Codes"]
