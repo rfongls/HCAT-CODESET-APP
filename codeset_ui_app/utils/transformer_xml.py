@@ -9,7 +9,30 @@ def _str_series(df: pd.DataFrame, col: str) -> pd.Series:
     series = df[col]
     if isinstance(series, pd.DataFrame):
         series = series.iloc[:, 0]
-    return series.astype(str).str.strip()
+    # ``astype(str)`` turns ``NaN`` into the literal string "nan" which later
+    # appears as a legitimate value.  Replace these with empty strings so rows
+    # with missing data can be dropped cleanly during processing.
+    return series.astype(str).replace("nan", "").str.strip()
+
+
+def _split_code_display(text: str) -> tuple[str, str]:
+    """Return a code/description pair from ``text``.
+
+    The workbook sometimes stores combined values like ``"X^Desc"`` or
+    ``"X-Desc"``.  Hyphen splits are only considered a separator when the code
+    portion contains no spaces; otherwise the entire value is treated as the
+    description (e.g. ``"HIPAA OPT-OUT"``).
+    """
+
+    text = text.strip()
+    if "^" in text:
+        left, right = text.split("^", 1)
+        return left.strip(), right.strip()
+    if "-" in text:
+        left, right = text.split("-", 1)
+        if " " not in left.strip() and " " in right.strip():
+            return left.strip(), right.strip()
+    return "", text.strip()
 
 
 def _split_code_display(text: str) -> tuple[str, str]:
@@ -213,16 +236,19 @@ def build_transformer_xml(
         mapped_sd_series = _str_series(df, mapped_sd_col) if mapped_sd_col else pd.Series([""] * len(df))
         std_desc_series = _str_series(df, std_desc_col) if std_desc_col else pd.Series([""] * len(df))
         subdef_series = _str_series(df, subdef_col) if subdef_col else pd.Series([""] * len(df))
+        def_col = col_map.get("DEFINITION")
+        def_series = _str_series(df, def_col) if def_col else pd.Series([""] * len(df))
 
         code_map: Dict[tuple[str, str], dict] = {}
         code_order_keys: List[tuple[str, str]] = []
-        for lc, ld, sc, mapped_sd, std_desc, subdef in zip(
+        for lc, ld, sc, mapped_sd, std_desc, subdef, definition in zip(
             code_series,
             display_series,
             std_code_series,
             mapped_sd_series,
             std_desc_series,
             subdef_series,
+            def_series,
         ):
             lc = (lc or "").strip()
             ld = (ld or "").strip()
@@ -232,25 +258,35 @@ def build_transformer_xml(
             mapped_sd = (mapped_sd or "").strip()
             std_desc = (std_desc or "").strip()
             subdef = (subdef or "").strip()
-
+            definition = (definition or "").strip()
             sd = ""
             mapped_code = ""
             if mapped_sd:
                 mapped_code, sd = _split_code_display(mapped_sd)
             if not sd and std_desc:
                 sd = std_desc
+            def_code = ""
+            def_desc = ""
+            if definition:
+                def_code, def_desc = _split_code_display(definition)
+                if not sd:
+                    sd = def_desc
 
             if std_desc and sd and std_desc == sd and sc:
                 final_sc = sc
+            elif def_desc and sd and def_desc == sd and def_code:
+                final_sc = def_code
             else:
-                final_sc = mapped_code or sc
+                final_sc = mapped_code or def_code or sc
 
             if (not final_sc or not sd) and subdef:
                 sc2, sd2 = _split_code_display(subdef)
-                if not final_sc and sc2:
-                    final_sc = sc2
-                if not sd and sd2:
+                if sd2 and not sd:
                     sd = sd2
+                if sd2 == sd and sc2:
+                    final_sc = sc2
+                elif not final_sc and sc2:
+                    final_sc = sc2
             key = (lc, ld)
             if key in code_map:
                 existing = code_map[key]

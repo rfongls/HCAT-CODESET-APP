@@ -192,6 +192,25 @@ def test_mapped_std_description_preference():
     assert codes[2].get("StandardCode") == "X"
 
 
+def test_definition_overrides_mismatched_standard_code():
+    df = pd.DataFrame(
+        {
+            "Code": ["UNKNOWN", "01"],
+            "Display Value": ["Unknown", "Accident/Medical Coverage"],
+            "Definition": ["U^Unknown accident nature", "U^Unknown accident nature"],
+            "Mapped_STD_DESCRIPTION": ["Unknown accident nature", "Unknown accident nature"],
+            "Standard Code": ["P", "T"],
+            "Standard Description": ["Accident on public road", "Occupational accident"],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_ACCIDENT_CODE": df})
+    root = ET.fromstring(xml_str)
+    codes = root.findall("./Codesets/Codeset[@Name='CS_ACCIDENT_CODE']/Code")
+    assert len(codes) == 2
+    assert codes[0].get("StandardCode") == "U"
+    assert codes[1].get("StandardCode") == "U"
+
+
 def test_mapped_std_description_with_hyphen():
     df = pd.DataFrame(
         {
