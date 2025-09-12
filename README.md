@@ -144,10 +144,10 @@ To distribute the application without requiring Python, you can bundle it with [
 
    ```bash
    pyinstaller codeset_ui_app/app.py --onefile --name codeset_app ^
-     --add-data "codeset_ui_app/assets;codeset_ui_app/assets" ^
-     --add-data "codeset_ui_app/templates;codeset_ui_app/templates" ^
-     --hidden-import codeset_ui_app.utils.xlsx_sanitizer
-   ```
+    --add-data "codeset_ui_app/assets;assets" ^
+    --add-data "codeset_ui_app/templates;templates" ^
+    --hidden-import codeset_ui_app.utils.xlsx_sanitizer
+  ```
    Adjust the `^` line continuations for your shell if not using `cmd.exe` and
    replace the semicolons with colons on macOS or Linux.
 
