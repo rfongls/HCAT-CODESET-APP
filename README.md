@@ -13,7 +13,7 @@ pip install -r requirements.txt
 python codeset_ui_app/app.py
 ```
 
-On Windows, a convenience script `run.ui.bat` is included at the project root. Double‑clicking it starts the Flask server and opens your default browser to the app.
+On Windows, a convenience script `run-ui.bat` is included at the project root. Double‑clicking it starts the Flask server and opens your default browser to the app.
 
 The development server runs with the Flask reloader disabled to avoid an
 initial connection reset when loading workbooks. You can also run
@@ -145,7 +145,7 @@ To distribute the application without requiring Python, you can bundle it with [
      --add-data "codeset_ui_app/assets;codeset_ui_app/assets" ^
      --add-data "codeset_ui_app/templates;codeset_ui_app/templates"
    ```
-
-   Adjust the `^` line continuations for your shell if not using `cmd.exe`.
+   Adjust the `^` line continuations for your shell if not using `cmd.exe` and
+   replace the semicolons with colons on macOS or Linux.
 
 Double-clicking the resulting executable launches the Flask app just like `python app.py`.
