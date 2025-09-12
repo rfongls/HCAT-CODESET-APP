@@ -137,13 +137,16 @@ To distribute the application without requiring Python, you can bundle it with [
    ```
 
    The executable will be created in the `dist` directory as `codeset_app.exe`.
+   The script includes required hidden imports so modules loaded dynamically
+   (such as `codeset_ui_app.utils.xlsx_sanitizer`) are bundled correctly.
 
 3. Alternatively, invoke PyInstaller directly:
 
    ```bash
    pyinstaller codeset_ui_app/app.py --onefile --name codeset_app ^
      --add-data "codeset_ui_app/assets;codeset_ui_app/assets" ^
-     --add-data "codeset_ui_app/templates;codeset_ui_app/templates"
+     --add-data "codeset_ui_app/templates;codeset_ui_app/templates" ^
+     --hidden-import codeset_ui_app.utils.xlsx_sanitizer
    ```
    Adjust the `^` line continuations for your shell if not using `cmd.exe` and
    replace the semicolons with colons on macOS or Linux.
