@@ -32,6 +32,8 @@ def main() -> None:
         f"{assets_dir}{os.pathsep}codeset_ui_app/assets",
         "--add-data",
         f"{templates_dir}{os.pathsep}codeset_ui_app/templates",
+        "--hidden-import",
+        "codeset_ui_app.utils.xlsx_sanitizer",
     ])
 
 
