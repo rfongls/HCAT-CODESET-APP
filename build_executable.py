@@ -29,9 +29,11 @@ def main() -> None:
         "--name",
         "codeset_app",
         "--add-data",
-        f"{assets_dir}{os.pathsep}codeset_ui_app/assets",
+        f"{assets_dir}{os.pathsep}assets",
         "--add-data",
-        f"{templates_dir}{os.pathsep}codeset_ui_app/templates",
+        f"{templates_dir}{os.pathsep}templates",
+        "--hidden-import",
+        "codeset_ui_app.utils.xlsx_sanitizer",
     ])
 
 

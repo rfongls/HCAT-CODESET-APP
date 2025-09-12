@@ -13,6 +13,8 @@ pip install -r requirements.txt
 python codeset_ui_app/app.py
 ```
 
+On Windows, a convenience script `run-ui.bat` is included at the project root. Double‑clicking it starts the Flask server and opens your default browser to the app.
+
 The development server runs with the Flask reloader disabled to avoid an
 initial connection reset when loading workbooks. You can also run
 `utils/dependency_setup.py` to install the packages individually when network
@@ -117,3 +119,36 @@ After installing the dependencies, run the full test suite with:
 ```bash
 pytest
 ```
+
+## Packaging with PyInstaller
+
+To distribute the application without requiring Python, you can bundle it with [PyInstaller](https://pyinstaller.org/).
+
+1. Install dependencies and PyInstaller:
+
+   ```bash
+   pip install -r requirements.txt pyinstaller
+   ```
+
+2. Run the provided build script to create a single-file executable:
+
+   ```bash
+   python build_executable.py
+   ```
+
+   The executable will be created in the `dist` directory as `codeset_app.exe`.
+   The script includes required hidden imports so modules loaded dynamically
+   (such as `codeset_ui_app.utils.xlsx_sanitizer`) are bundled correctly.
+
+3. Alternatively, invoke PyInstaller directly:
+
+   ```bash
+   pyinstaller codeset_ui_app/app.py --onefile --name codeset_app ^
+    --add-data "codeset_ui_app/assets;assets" ^
+    --add-data "codeset_ui_app/templates;templates" ^
+    --hidden-import codeset_ui_app.utils.xlsx_sanitizer
+  ```
+   Adjust the `^` line continuations for your shell if not using `cmd.exe` and
+   replace the semicolons with colons on macOS or Linux.
+
+Double-clicking the resulting executable launches the Flask app just like `python app.py`.
