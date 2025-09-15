@@ -103,6 +103,15 @@ def build_pyinstaller_args(
     else:
         args.append("--onedir")
 
+    mac_onedir_bundle = target_platform == "mac" and bundle_mode == "onedir"
+
+    if mac_onedir_bundle:
+        # ``--windowed`` tells PyInstaller to emit a ``.app`` bundle instead of a
+        # console executable when building on macOS.  This keeps the generated
+        # output aligned with the README instructions so the Finder shows a
+        # clickable application bundle in ``dist/codeset_app.app``.
+        args.append("--windowed")
+
     if target_platform == "mac" and target_arch:
         args.extend(["--target-arch", target_arch])
     elif target_arch:
