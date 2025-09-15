@@ -169,8 +169,9 @@ Macs).
 
 ### No Mac? Build on GitHub Actions
 
-If you do not have local access to a Mac, you can still produce the Finder-ready
-bundle through the hosted macOS runners that GitHub Actions provides:
+Yes—GitHub Actions can build the macOS bundle for you. The repository includes a
+manual workflow that drives `build_executable.py` on GitHub's hosted macOS
+runners:
 
 1. Push your branch to GitHub.
 2. Open the **Actions** tab in your repository and run the **Build macOS App
@@ -180,6 +181,17 @@ bundle through the hosted macOS runners that GitHub Actions provides:
    binaries).
 4. Once the workflow finishes, download the `codeset_app-macos.zip` artifact and
    extract it locally. The `.app` bundle inside can be distributed as-is.
+
+Prefer to trigger the workflow from the command line? Install the
+[GitHub CLI](https://cli.github.com/) and run:
+
+```bash
+gh workflow run "Build macOS App Bundle" --field target_arch=auto
+```
+
+Replace `auto` with a specific architecture when needed. When the run completes,
+use `gh run download` (or visit the Actions tab) to grab the
+`codeset_app-macos.zip` artifact.
 
 The workflow runs the same `build_executable.py` helper on a macOS machine, so
 the resulting bundle matches what you would generate locally.

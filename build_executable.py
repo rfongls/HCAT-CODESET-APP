@@ -87,9 +87,9 @@ def build_pyinstaller_args(
     templates_dir = root / "codeset_ui_app" / "templates"
 
     args = [
-        str(app_path),
         "--name",
         "codeset_app",
+        "--noconfirm",
         "--add-data",
         f"{assets_dir}{os.pathsep}assets",
         "--add-data",
@@ -116,7 +116,7 @@ def build_pyinstaller_args(
         args.extend(["--target-arch", target_arch])
     elif target_arch:
         raise SystemExit("--target-arch is only valid when building on macOS")
-
+    args.append(str(app_path))
     return args
 
 
