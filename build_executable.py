@@ -116,9 +116,7 @@ def build_pyinstaller_args(
         args.extend(["--target-arch", target_arch])
     elif target_arch:
         raise SystemExit("--target-arch is only valid when building on macOS")
-
     args.append(str(app_path))
-
     return args
 
 
