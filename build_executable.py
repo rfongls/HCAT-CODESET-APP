@@ -131,7 +131,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     if target_platform != current_platform:
         raise SystemExit(
             "PyInstaller cannot cross-compile. Rerun this script on a "
-            f"{target_platform} machine to build for that platform."
+            f"{target_platform} machine or trigger the GitHub Actions workflow "
+            "documented in the README to build for that platform."
         )
 
     pyinstaller_args = build_pyinstaller_args(

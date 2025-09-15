@@ -167,6 +167,23 @@ Use `--bundle-mode onefile` if you prefer a command-line binary rather than a
 build for the host architecture (`arm64` on Apple Silicon, `x86_64` on Intel
 Macs).
 
+### No Mac? Build on GitHub Actions
+
+If you do not have local access to a Mac, you can still produce the Finder-ready
+bundle through the hosted macOS runners that GitHub Actions provides:
+
+1. Push your branch to GitHub.
+2. Open the **Actions** tab in your repository and run the **Build macOS App
+   Bundle** workflow (it is configured for manual `workflow_dispatch` runs).
+3. Leave the default architecture selection of **auto** or choose a specific
+   option (for example `universal2` when you need both Apple Silicon and Intel
+   binaries).
+4. Once the workflow finishes, download the `codeset_app-macos.zip` artifact and
+   extract it locally. The `.app` bundle inside can be distributed as-is.
+
+The workflow runs the same `build_executable.py` helper on a macOS machine, so
+the resulting bundle matches what you would generate locally.
+
 ### Running PyInstaller manually
 
 You can still invoke PyInstaller directly when you need finer control:
