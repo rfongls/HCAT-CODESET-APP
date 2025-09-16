@@ -1,0 +1,46 @@
+name: Build macOS App Bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_arch:
+        description: "PyInstaller --target-arch value (leave as auto for host arch)"
+        default: auto
+        type: choice
+        options:
+          - auto
+          - arm64
+          - x86_64
+          - universal2
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build macOS app bundle
+        run: |
+          TARGET_ARCH="${{ github.event.inputs.target_arch }}"
+          if [ -z "$TARGET_ARCH" ] || [ "$TARGET_ARCH" = "auto" ]; then
+            python build_executable.py --bundle-mode onedir --archive codeset_app-macos
+          else
+            python build_executable.py --bundle-mode onedir --archive codeset_app-macos --target-arch "$TARGET_ARCH"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: codeset_app-macos
+          path: dist/codeset_app-macos.zip

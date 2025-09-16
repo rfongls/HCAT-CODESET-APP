@@ -122,33 +122,80 @@ pytest
 
 ## Packaging with PyInstaller
 
-To distribute the application without requiring Python, you can bundle it with [PyInstaller](https://pyinstaller.org/).
+To distribute the application without requiring Python, you can bundle it with [PyInstaller](https://pyinstaller.org/). The `build_executable.py` helper now picks a sensible default bundle for the current operating system and exposes switches for the less common cases.
 
-1. Install dependencies and PyInstaller:
+### Install the build dependencies
 
-   ```bash
-   pip install -r requirements.txt pyinstaller
-   ```
+```bash
+pip install -r requirements.txt pyinstaller
+```
 
-2. Run the provided build script to create a single-file executable:
+### Build with the helper script
 
-   ```bash
-   python build_executable.py
-   ```
+Run the build script without arguments from a terminal in the project root:
 
-   The executable will be created in the `dist` directory as `codeset_app.exe`.
-   The script includes required hidden imports so modules loaded dynamically
-   (such as `codeset_ui_app.utils.xlsx_sanitizer`) are bundled correctly.
+```bash
+python build_executable.py
+```
 
-3. Alternatively, invoke PyInstaller directly:
+The default `--bundle-mode auto` chooses the most typical output for the host platform:
 
-   ```bash
-   pyinstaller codeset_ui_app/app.py --onefile --name codeset_app ^
-    --add-data "codeset_ui_app/assets;assets" ^
-    --add-data "codeset_ui_app/templates;templates" ^
-    --hidden-import codeset_ui_app.utils.xlsx_sanitizer
-  ```
-   Adjust the `^` line continuations for your shell if not using `cmd.exe` and
-   replace the semicolons with colons on macOS or Linux.
+- **Windows / Linux:** single-file executable at `dist/codeset_app.exe` (Windows) or `dist/codeset_app` (Linux).
+- **macOS:** Finder-ready `.app` bundle at `dist/codeset_app.app`.
+
+The bundle already includes the templates, static assets, and hidden imports (such as `codeset_ui_app.utils.xlsx_sanitizer`) that PyInstaller needs to discover manually.
+
+Use `--bundle-mode onefile` or `--bundle-mode onedir` to override the default. When you request `onedir` on macOS the helper automatically adds PyInstaller's `--windowed` option so the output is a clickable `.app` bundle instead of a console binary. On Windows or Linux, `onedir` produces a folder containing the platform-native executable.
+
+### macOS-specific options
+
+Run the script on a macOS machine; PyInstaller cannot cross-compile for macOS. Optional arguments tailor the bundle further:
+
+```bash
+# Create a universal binary for macOS 11+
+python build_executable.py --bundle-mode onedir --target-arch universal2
+
+# Zip the generated .app bundle for easier sharing
+python build_executable.py --bundle-mode onedir --archive codeset_app-macos
+```
+
+Launch the `.app` via Finder or with `open dist/codeset_app.app`. If you need logs, run the binary nested inside the bundle:
+
+```bash
+./dist/codeset_app.app/Contents/MacOS/codeset_app
+```
+
+### No Mac? Build on GitHub Actions
+
+GitHub-hosted macOS runners can build the `.app` bundle for you—no self-hosted hardware required. The repository includes a manual workflow that runs `build_executable.py` remotely:
+
+1. Push your branch to GitHub and ensure Actions are enabled for the repository.
+2. In the **Actions** tab, trigger **Build macOS App Bundle**.
+3. Accept the default architecture of **auto** or choose a specific option such as `universal2` when you need both Apple Silicon and Intel binaries.
+4. Download the `codeset_app-macos.zip` artifact once the workflow finishes and extract it locally to retrieve the `.app` bundle.
+
+Prefer the command line? Install the [GitHub CLI](https://cli.github.com/) and run:
+
+```bash
+gh workflow run "Build macOS App Bundle" --field target_arch=auto
+```
+
+Replace `auto` with a specific architecture when needed. After the workflow completes, use `gh run download` (or revisit the Actions tab) to fetch the `codeset_app-macos.zip` artifact. If your organisation disables GitHub-hosted macOS runners you will need to supply a Mac (locally or as a self-hosted runner) to build the bundle.
+
+### Running PyInstaller manually
+
+You can still invoke PyInstaller directly when you need finer control:
+
+```bash
+pyinstaller codeset_ui_app/app.py --onefile --name codeset_app ^
+ --add-data "codeset_ui_app/assets;assets" ^
+ --add-data "codeset_ui_app/templates;templates" ^
+ --hidden-import codeset_ui_app.utils.xlsx_sanitizer
+```
+
+Adjust the `^` line continuations for your shell if not using `cmd.exe` and
+replace the semicolons with colons on macOS or Linux. When building on macOS and
+you want a `.app` bundle, add `--windowed` and drop `--onefile` so PyInstaller
+creates `dist/codeset_app.app` instead of a single console executable.
 
 Double-clicking the resulting executable launches the Flask app just like `python app.py`.
