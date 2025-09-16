@@ -16,14 +16,12 @@ must be installed before running this script.
 """
 
 from __future__ import annotations
-
 import argparse
 import os
 import shutil
 import sys
 from pathlib import Path
 from typing import Sequence
-
 import PyInstaller.__main__
 
 
@@ -128,9 +126,7 @@ def build_pyinstaller_args(
         args.extend(["--target-arch", target_arch])
     elif target_arch:
         raise SystemExit("--target-arch is only valid when building on macOS")
-
     args.append(str(app_path))
-
     return args
 
 
@@ -148,7 +144,6 @@ def main(argv: Sequence[str] | None = None) -> None:
             f"{target_platform} machine or trigger the GitHub Actions workflow "
             "documented in the README to build for that platform."
         )
-
     bundle_mode = args.bundle_mode
     if bundle_mode == "auto":
         bundle_mode = "onedir" if target_platform == "mac" else "onefile"
@@ -233,7 +228,6 @@ def create_archive(
     )
 
     return Path(created)
-
 
 if __name__ == "__main__":
     main()
