@@ -122,8 +122,7 @@ pytest
 
 ## Packaging with PyInstaller
 
-To distribute the application without requiring Python, you can bundle it with [PyInstaller](https://pyinstaller.org/). The
-`build_executable.py` helper now accepts a few options so the same script can be run on Windows or macOS.
+To distribute the application without requiring Python, you can bundle it with [PyInstaller](https://pyinstaller.org/). The `build_executable.py` helper now picks a sensible default bundle for the current operating system and exposes switches for the less common cases.
 
 ### Install the build dependencies
 
@@ -131,70 +130,57 @@ To distribute the application without requiring Python, you can bundle it with [
 pip install -r requirements.txt pyinstaller
 ```
 
-### Windows: single-file executable
+### Build with the helper script
 
-Run the build script with no arguments to generate `dist/codeset_app.exe`:
+Run the build script without arguments from a terminal in the project root:
 
 ```bash
 python build_executable.py
 ```
 
-The single-file bundle includes the templates, static assets, and hidden imports (such as `codeset_ui_app.utils.xlsx_sanitizer`) that PyInstaller needs to discover manually.
+The default `--bundle-mode auto` chooses the most typical output for the host platform:
 
-### macOS: `.app` bundle or CLI binary
+- **Windows / Linux:** single-file executable at `dist/codeset_app.exe` (Windows) or `dist/codeset_app` (Linux).
+- **macOS:** Finder-ready `.app` bundle at `dist/codeset_app.app`.
 
-Run the script on a macOS machine. PyInstaller cannot cross-compile, so the build must happen on the same operating system that you are targeting. Choose the output style with `--bundle-mode`:
+The bundle already includes the templates, static assets, and hidden imports (such as `codeset_ui_app.utils.xlsx_sanitizer`) that PyInstaller needs to discover manually.
+
+Use `--bundle-mode onefile` or `--bundle-mode onedir` to override the default. When you request `onedir` on macOS the helper automatically adds PyInstaller's `--windowed` option so the output is a clickable `.app` bundle instead of a console binary. On Windows or Linux, `onedir` produces a folder containing the platform-native executable.
+
+### macOS-specific options
+
+Run the script on a macOS machine; PyInstaller cannot cross-compile for macOS. Optional arguments tailor the bundle further:
 
 ```bash
-# Create a Finder-friendly .app inside dist/codeset_app.app
-python build_executable.py --bundle-mode onedir
-
-# Optionally request a universal binary when running on macOS 11+
+# Create a universal binary for macOS 11+
 python build_executable.py --bundle-mode onedir --target-arch universal2
+
+# Zip the generated .app bundle for easier sharing
+python build_executable.py --bundle-mode onedir --archive codeset_app-macos
 ```
 
-The helper automatically adds PyInstaller's `--windowed` flag for macOS `onedir`
-builds so the output is a clickable `.app` bundle rather than a console binary.
-Launch it from Finder or with `open dist/codeset_app.app`. If you need to see
-the Flask server logs, run the binary inside the bundle from a terminal:
+Launch the `.app` via Finder or with `open dist/codeset_app.app`. If you need logs, run the binary nested inside the bundle:
 
 ```bash
 ./dist/codeset_app.app/Contents/MacOS/codeset_app
 ```
 
-Use `--bundle-mode onefile` if you prefer a command-line binary rather than a
-`.app` bundle. Supplying `--target-arch` is optional; omit it to let PyInstaller
-build for the host architecture (`arm64` on Apple Silicon, `x86_64` on Intel
-Macs).
-
 ### No Mac? Build on GitHub Actions
 
-Yes—GitHub Actions can build the macOS bundle for you. The repository includes a
-manual workflow that drives `build_executable.py` on GitHub's hosted macOS
-runners:
+GitHub-hosted macOS runners can build the `.app` bundle for you—no self-hosted hardware required. The repository includes a manual workflow that runs `build_executable.py` remotely:
 
-1. Push your branch to GitHub.
-2. Open the **Actions** tab in your repository and run the **Build macOS App
-   Bundle** workflow (it is configured for manual `workflow_dispatch` runs).
-3. Leave the default architecture selection of **auto** or choose a specific
-   option (for example `universal2` when you need both Apple Silicon and Intel
-   binaries).
-4. Once the workflow finishes, download the `codeset_app-macos.zip` artifact and
-   extract it locally. The `.app` bundle inside can be distributed as-is.
+1. Push your branch to GitHub and ensure Actions are enabled for the repository.
+2. In the **Actions** tab, trigger **Build macOS App Bundle**.
+3. Accept the default architecture of **auto** or choose a specific option such as `universal2` when you need both Apple Silicon and Intel binaries.
+4. Download the `codeset_app-macos.zip` artifact once the workflow finishes and extract it locally to retrieve the `.app` bundle.
 
-Prefer to trigger the workflow from the command line? Install the
-[GitHub CLI](https://cli.github.com/) and run:
+Prefer the command line? Install the [GitHub CLI](https://cli.github.com/) and run:
 
 ```bash
 gh workflow run "Build macOS App Bundle" --field target_arch=auto
 ```
 
-Replace `auto` with a specific architecture when needed. When the run completes,
-use `gh run download` (or visit the Actions tab) to grab the
-`codeset_app-macos.zip` artifact.
-
-The workflow runs the same `build_executable.py` helper on a macOS machine, so
-the resulting bundle matches what you would generate locally.
+Replace `auto` with a specific architecture when needed. After the workflow completes, use `gh run download` (or revisit the Actions tab) to fetch the `codeset_app-macos.zip` artifact. If your organisation disables GitHub-hosted macOS runners you will need to supply a Mac (locally or as a self-hosted runner) to build the bundle.
 
 ### Running PyInstaller manually
 
