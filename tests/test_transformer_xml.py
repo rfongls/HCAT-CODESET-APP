@@ -91,6 +91,38 @@ def test_export_transformer_respects_freetext(tmp_path):
     app_module.comparison_path = None
 
 
+def test_export_transformer_rejects_validation_errors():
+    app_module = importlib.import_module("codeset_ui_app.app")
+    app_module.workbook_data = {
+        "CS_DUP": pd.DataFrame(
+            {
+                "CODE": ["A", "A"],
+                "DISPLAY VALUE": ["Alpha", "Alpha"],
+                "MAPPED_STD_DESCRIPTION": ["", ""],
+                "STANDARD_CODE": ["", ""],
+                "STANDARD_DESCRIPTION": ["", ""],
+            }
+        )
+    }
+    app_module.mapping_data = {
+        "CS_DUP": {
+            "code_col": "CODE",
+            "display_col": "DISPLAY VALUE",
+            "mapped_col": "MAPPED_STD_DESCRIPTION",
+            "std_col": "STANDARD_DESCRIPTION",
+            "std_code_col": "STANDARD_CODE",
+        }
+    }
+    with app.test_client() as c:
+        resp = c.get('/transformer')
+        assert resp.status_code == 400
+        data = resp.get_json()
+        assert data is not None and data.get('errors')
+        assert any('duplicate CODE' in e for e in data['errors'])
+    app_module.workbook_data.clear()
+    app_module.mapping_data.clear()
+
+
 def test_alignment_of_fields_and_codes():
     path = Path('Samples/Generic Codeset V4/(Health System) Codeset Template (Nexus Engine v4) (1).xlsx')
     with path.open('rb') as fh:
@@ -129,7 +161,7 @@ def test_alignment_of_fields_and_codes():
             assert len({l.index('StandardDisplay=') for l in cls if 'StandardDisplay=' in l}) == 1
 
 
-def test_duplicate_codes_use_populated_standard_code():
+def test_duplicate_codes_without_mapping_do_not_generate_standard_fields():
     df = pd.DataFrame(
         {
             "Code": ["UNK", "UNK"],
@@ -143,7 +175,29 @@ def test_duplicate_codes_use_populated_standard_code():
     codes = root.findall("./Codesets/Codeset[@Name='CS_ADMIN_GENDER']/Code")
     assert len(codes) == 1
     code = codes[0]
-    assert code.get("StandardCode") == "UNK"
+    assert code.get("StandardCode") is None
+    assert code.get("StandardDisplay") is None
+
+
+def test_blank_mapping_columns_do_not_generate_standard_fields():
+    df = pd.DataFrame(
+        {
+            "Code": ["IND"],
+            "Display Value": ["Industrial"],
+            "Mapped_STD_DESCRIPTION": [""],
+            "Subdefinition": [""],
+            "Standard Code": ["ALL"],
+            "Standard Description": ["Allergy Clinic"],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_ADMIT_SERVICE": df})
+    root = ET.fromstring(xml_str)
+    code = root.find("./Codesets/Codeset[@Name='CS_ADMIT_SERVICE']/Code")
+    assert code is not None
+    assert code.get("LocalCode") == "IND"
+    assert code.get("LocalDisplay") == "Industrial"
+    assert code.get("StandardCode") is None
+    assert code.get("StandardDisplay") is None
 
 
 def test_subdefinition_fills_missing_standard_fields():

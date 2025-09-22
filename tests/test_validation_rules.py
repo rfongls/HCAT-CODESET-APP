@@ -91,3 +91,34 @@ def test_validation_rules_mapped_std_code():
     assert any("MAPPED_STD_CODE required" in e for e in errors)
     assert any("CODE required when MAPPED_STD_CODE is provided" in e for e in errors)
     assert any("DISPLAY VALUE required when MAPPED_STD_CODE is provided" in e for e in errors)
+
+
+def test_na_standard_values_do_not_require_mapping():
+    df = pd.DataFrame([
+        {
+            "CODE": "A",
+            "DISPLAY VALUE": "Alpha",
+            "STANDARD_CODE": "NA",
+            "STANDARD_DESCRIPTION": "NA",
+            "MAPPED_STD_DESCRIPTION": "",
+        },
+        {
+            "CODE": "B",
+            "DISPLAY VALUE": "Beta",
+            "STANDARD_CODE": "",
+            "STANDARD_DESCRIPTION": "",
+            "MAPPED_STD_DESCRIPTION": "",
+        },
+    ])
+    sheets = {"Sheet1": df}
+    mapping = {
+        "Sheet1": {
+            "code_col": "CODE",
+            "display_col": "DISPLAY VALUE",
+            "mapped_col": "MAPPED_STD_DESCRIPTION",
+            "std_col": "STANDARD_DESCRIPTION",
+            "std_code_col": "STANDARD_CODE",
+        }
+    }
+    errors = validate_workbook(sheets, mapping)
+    assert errors == []

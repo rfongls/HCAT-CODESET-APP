@@ -541,6 +541,10 @@ def export_transformer():
     if not workbook_data:
         return "No workbook loaded", 400
 
+    errors = validate_workbook(workbook_data, mapping_data)
+    if errors:
+        return jsonify({"errors": errors}), 400
+
     free_param = request.args.get("freetext")
     free_map = {}
     if free_param:
