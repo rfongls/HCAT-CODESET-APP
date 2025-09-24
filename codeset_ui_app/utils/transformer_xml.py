@@ -220,6 +220,9 @@ def build_transformer_xml(
 
         code_map: Dict[tuple[str, str], dict] = {}
         code_order_keys: List[tuple[str, str]] = []
+        has_mapped_col = mapped_sd_col is not None
+        has_subdef_col = subdef_col is not None
+
         for lc, ld, sc, mapped_sd, std_desc, subdef, definition in zip(
             code_series,
             display_series,
@@ -238,47 +241,52 @@ def build_transformer_xml(
             std_desc = (std_desc or "").strip()
             subdef = (subdef or "").strip()
             definition = (definition or "").strip()
-            sd = ""
-            mapped_code = ""
+            mapping_selected = False
             if mapped_sd:
-                mapped_code, sd = _split_code_display(mapped_sd)
-            if not sd and std_desc:
-                sd = std_desc
+                mapping_selected = True
+            elif subdef:
+                mapping_selected = True
+            elif not (has_mapped_col or has_subdef_col):
+                mapping_selected = bool(definition)
+            sd = ""
+            final_sc = ""
+            mapped_code = ""
             def_code = ""
             def_desc = ""
-            if definition:
-                def_code, def_desc = _split_code_display(definition)
-                if not sd:
-                    sd = def_desc
-            final_sc = ""
-            if sd and std_desc == sd and sc:
-                final_sc = sc
-            elif sd and def_desc == sd and def_code:
-                final_sc = def_code
-            elif mapped_code:
-                final_sc = mapped_code
-            elif def_code:
-                final_sc = def_code
-            elif sc and not std_desc:
-                final_sc = sc
-            if (not final_sc or not sd) and subdef:
-                sc2, sd2 = _split_code_display(subdef)
-                if sd2 and not sd:
-                    sd = sd2
-                if sd2 == sd and sc2:
-                    final_sc = sc2
-                elif not final_sc and sc2:
-                    final_sc = sc2
-            if sd and not final_sc:
-                matches = std_desc_series[std_desc_series == sd]
-                if not matches.empty:
-                    idx = matches.index[0]
-                    sc_lookup = std_code_series.iloc[idx].strip()
-                    if sc_lookup:
-                        final_sc = sc_lookup
-
-            if not sd:
-                continue
+            if mapping_selected:
+                if mapped_sd:
+                    mapped_code, sd = _split_code_display(mapped_sd)
+                if not sd and std_desc:
+                    sd = std_desc
+                if definition:
+                    def_code, def_desc = _split_code_display(definition)
+                    if not sd:
+                        sd = def_desc
+                if sd and std_desc == sd and sc:
+                    final_sc = sc
+                elif sd and def_desc == sd and def_code:
+                    final_sc = def_code
+                elif mapped_code:
+                    final_sc = mapped_code
+                elif def_code:
+                    final_sc = def_code
+                elif sc and not std_desc:
+                    final_sc = sc
+                if (not final_sc or not sd) and subdef:
+                    sc2, sd2 = _split_code_display(subdef)
+                    if sd2 and not sd:
+                        sd = sd2
+                    if sd2 == sd and sc2:
+                        final_sc = sc2
+                    elif not final_sc and sc2:
+                        final_sc = sc2
+                if sd and not final_sc:
+                    matches = std_desc_series[std_desc_series == sd]
+                    if not matches.empty:
+                        idx = matches.index[0]
+                        sc_lookup = std_code_series.iloc[idx].strip()
+                        if sc_lookup:
+                            final_sc = sc_lookup
             key = (lc, ld)
             if key in code_map:
                 existing = code_map[key]

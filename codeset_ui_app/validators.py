@@ -3,10 +3,19 @@ from typing import Dict, List, Any
 import pandas as pd
 
 
+_PLACEHOLDER_VALUES = {"NA", "N/A"}
+
+
 def _norm(val: Any) -> str:
     if val is None:
         return ""
     return str(val).strip()
+
+
+def _empty_if_placeholder(val: str) -> str:
+    if val and val.upper() in _PLACEHOLDER_VALUES:
+        return ""
+    return val
 
 
 def validate_workbook(sheets: Dict[str, pd.DataFrame], mapping: Dict[str, Dict[str, Any]]) -> List[str]:
@@ -36,8 +45,8 @@ def validate_workbook(sheets: Dict[str, pd.DataFrame], mapping: Dict[str, Dict[s
             code = _norm(row.get(code_col)) if code_col else ""
             display = _norm(row.get(display_col)) if display_col else ""
             mapped = _norm(row.get(mapped_col)) if mapped_col else ""
-            std_code = _norm(row.get(std_code_col)) if std_code_col else ""
-            std_desc = _norm(row.get(std_col)) if std_col else ""
+            std_code = _empty_if_placeholder(_norm(row.get(std_code_col))) if std_code_col else ""
+            std_desc = _empty_if_placeholder(_norm(row.get(std_col))) if std_col else ""
             if code and not display:
                 errors.append(f"{sheet} row {row_num}: DISPLAY VALUE required when CODE is provided")
             if display and not code:
