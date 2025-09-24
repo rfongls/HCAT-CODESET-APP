@@ -200,6 +200,44 @@ def test_blank_mapping_columns_do_not_generate_standard_fields():
     assert code.get("StandardDisplay") is None
 
 
+def test_definition_values_without_mapping_are_ignored():
+    df = pd.DataFrame(
+        {
+            "Code": ["IND"],
+            "Display Value": ["Industrial"],
+            "Mapped_STD_DESCRIPTION": [""],
+            "Subdefinition": [""],
+            "Definition": ["ALL^Allergy Clinic"],
+            "Standard Code": ["ALL"],
+            "Standard Description": ["Allergy Clinic"],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_ADMIT_SERVICE": df})
+    root = ET.fromstring(xml_str)
+    code = root.find("./Codesets/Codeset[@Name='CS_ADMIT_SERVICE']/Code")
+    assert code is not None
+    assert code.get("StandardCode") is None
+    assert code.get("StandardDisplay") is None
+
+
+def test_definition_used_when_mapping_columns_absent():
+    df = pd.DataFrame(
+        {
+            "Code": ["IND"],
+            "Display": ["Industrial"],
+            "Definition": ["ALL^Allergy Clinic"],
+            "Standard Code": ["ALL"],
+            "Standard Description": ["Allergy Clinic"],
+        }
+    )
+    xml_str = build_transformer_xml({"CS_ADMIT_SERVICE": df})
+    root = ET.fromstring(xml_str)
+    code = root.find("./Codesets/Codeset[@Name='CS_ADMIT_SERVICE']/Code")
+    assert code is not None
+    assert code.get("StandardCode") == "ALL"
+    assert code.get("StandardDisplay") == "Allergy Clinic"
+
+
 def test_subdefinition_fills_missing_standard_fields():
     df = pd.DataFrame(
         {

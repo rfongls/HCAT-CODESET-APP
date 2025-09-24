@@ -220,6 +220,9 @@ def build_transformer_xml(
 
         code_map: Dict[tuple[str, str], dict] = {}
         code_order_keys: List[tuple[str, str]] = []
+        has_mapped_col = mapped_sd_col is not None
+        has_subdef_col = subdef_col is not None
+
         for lc, ld, sc, mapped_sd, std_desc, subdef, definition in zip(
             code_series,
             display_series,
@@ -238,13 +241,19 @@ def build_transformer_xml(
             std_desc = (std_desc or "").strip()
             subdef = (subdef or "").strip()
             definition = (definition or "").strip()
-            has_mapping_source = bool(mapped_sd or subdef or definition)
+            mapping_selected = False
+            if mapped_sd:
+                mapping_selected = True
+            elif subdef:
+                mapping_selected = True
+            elif not (has_mapped_col or has_subdef_col):
+                mapping_selected = bool(definition)
             sd = ""
             final_sc = ""
             mapped_code = ""
             def_code = ""
             def_desc = ""
-            if has_mapping_source:
+            if mapping_selected:
                 if mapped_sd:
                     mapped_code, sd = _split_code_display(mapped_sd)
                 if not sd and std_desc:
