@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 import importlib
 import json
 import re
+from typing import List
 import pandas as pd
 from codeset_ui_app.components.file_parser import load_workbook
 from codeset_ui_app.utils.transformer_xml import build_transformer_xml
@@ -29,22 +30,20 @@ def test_build_transformer_xml_generates_codeset():
     )
     # Ensure output is indented with each code on its own line
     normalized = xml_str.replace('\r\n', '\n')
-    assert '\n  <Fields>' in normalized
     assert '\n  <Codesets>' in normalized
     assert '\n    <Codeset' in normalized
     assert '\n      <Code ' in normalized
 
 
-def test_build_transformer_xml_disables_freetext():
+def test_build_transformer_xml_ignores_freetext():
     path = Path('Samples/Generic Codeset V4/(Health System) Codeset Template (Nexus Engine v4) (1).xlsx')
     with path.open('rb') as fh:
         data, _ = load_workbook(fh)
     xml_str = build_transformer_xml(data, {'CS_RACE': True})
     root = ET.fromstring(xml_str)
-    field = root.find("./Fields/Field[@Codeset='CS_RACE']")
-    assert field is not None and field.get('Enabled') == 'False'
-    other = root.find("./Fields/Field[@Codeset='CS_LANGUAGE']")
-    assert other is not None and other.get('Enabled') == 'True'
+    assert root.find('./Fields') is None
+    cs = root.find("./Codesets/Codeset[@Name='CS_RACE']")
+    assert cs is not None
 
 
 def test_export_transformer_endpoint(tmp_path):
@@ -69,15 +68,15 @@ def test_export_transformer_endpoint(tmp_path):
     app_module.comparison_path = None
 
 
-def test_export_transformer_respects_freetext(tmp_path):
+def test_export_transformer_ignores_freetext(tmp_path):
     path = Path('Samples/Generic Codeset V4/(Health System) Codeset Template (Nexus Engine v4) (1).xlsx')
     _load_workbook_path(path, path.name)
     with app.test_client() as c:
         resp = c.get('/transformer', query_string={'freetext': json.dumps({'CS_RACE': True})})
         assert resp.status_code == 200
         root = ET.fromstring(resp.data)
-        field = root.find("./Fields/Field[@Codeset='CS_RACE']")
-        assert field is not None and field.get('Enabled') == 'False'
+        assert root.find('./Fields') is None
+        assert root.find("./Codesets/Codeset[@Name='CS_RACE']") is not None
     app_module = importlib.import_module("codeset_ui_app.app")
     app_module.workbook_data.clear()
     app_module.dropdown_data.clear()
@@ -123,18 +122,12 @@ def test_export_transformer_rejects_validation_errors():
     app_module.mapping_data.clear()
 
 
-def test_alignment_of_fields_and_codes():
+def test_alignment_of_codes():
     path = Path('Samples/Generic Codeset V4/(Health System) Codeset Template (Nexus Engine v4) (1).xlsx')
     with path.open('rb') as fh:
         data, _ = load_workbook(fh)
     xml_str = build_transformer_xml(data)
     lines = xml_str.split('\r\n')
-
-    field_lines = [l for l in lines if l.strip().startswith('<Field ')]
-    assert len({l.index('Codeset=') for l in field_lines}) == 1
-    assert len({l.index('OutputType=') for l in field_lines}) == 1
-    assert len({l.index('Enabled=') for l in field_lines}) == 1
-    assert len({l.index('Description=') for l in field_lines}) == 1
 
     # Ensure code attribute columns are consistent within each codeset
     codeset_code_lines: List[List[str]] = []
@@ -198,6 +191,23 @@ def test_blank_mapping_columns_do_not_generate_standard_fields():
     assert code.get("LocalDisplay") == "Industrial"
     assert code.get("StandardCode") is None
     assert code.get("StandardDisplay") is None
+
+
+def test_extra_tabs_without_mapping_are_ignored():
+    df = pd.DataFrame(
+        {
+            "Code": ["M"],
+            "Display": ["Male"],
+            "Standard Code": ["M"],
+            "Standard Description": ["Male"],
+        }
+    )
+    extra = pd.DataFrame({"Notes": ["Keep"], "Owner": ["Team"]})
+    xml_str = build_transformer_xml({"CS_ADMIN_GENDER": df, "README": extra})
+    root = ET.fromstring(xml_str)
+    codeset = root.find("./Codesets/Codeset[@Name='CS_ADMIN_GENDER']")
+    assert codeset is not None
+    assert root.find("./Codesets/Codeset[@Name='README']") is None
 
 
 def test_definition_values_without_mapping_are_ignored():
