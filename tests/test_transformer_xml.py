@@ -4,6 +4,7 @@ import importlib
 import json
 import re
 from typing import List
+import pytest
 import pandas as pd
 from codeset_ui_app.components.file_parser import load_workbook
 from codeset_ui_app.utils.transformer_xml import build_transformer_xml
@@ -154,7 +155,7 @@ def test_alignment_of_codes():
             assert len({l.index('StandardDisplay=') for l in cls if 'StandardDisplay=' in l}) == 1
 
 
-def test_duplicate_codes_without_mapping_do_not_generate_standard_fields():
+def test_duplicate_codes_raise_error():
     df = pd.DataFrame(
         {
             "Code": ["UNK", "UNK"],
@@ -163,13 +164,9 @@ def test_duplicate_codes_without_mapping_do_not_generate_standard_fields():
             "Standard Description": ["", "Unknown"],
         }
     )
-    xml_str = build_transformer_xml({"CS_ADMIN_GENDER": df})
-    root = ET.fromstring(xml_str)
-    codes = root.findall("./Codesets/Codeset[@Name='CS_ADMIN_GENDER']/Code")
-    assert len(codes) == 1
-    code = codes[0]
-    assert code.get("StandardCode") is None
-    assert code.get("StandardDisplay") is None
+    with pytest.raises(ValueError) as exc:
+        build_transformer_xml({"CS_ADMIN_GENDER": df})
+    assert "duplicate CODE" in str(exc.value)
 
 
 def test_blank_mapping_columns_do_not_generate_standard_fields():

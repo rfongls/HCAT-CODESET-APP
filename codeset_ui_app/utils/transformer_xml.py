@@ -106,6 +106,18 @@ def build_transformer_xml(
         def_col = col_map.get("DEFINITION")
         def_series = _str_series(df, def_col) if def_col else pd.Series([""] * len(df))
 
+        if code_col:
+            dup_counts = code_series[code_series != ""].value_counts()
+            dup_codes = dup_counts[dup_counts > 1].index.tolist()
+            if dup_codes:
+                dup_msgs: List[str] = []
+                for dup_code in dup_codes:
+                    rows = [str(idx + 2) for idx, val in code_series.items() if val == dup_code]
+                    dup_msgs.append(
+                        f"{sheet} rows {', '.join(rows)} have duplicate CODE '{dup_code}'"
+                    )
+                raise ValueError("; ".join(dup_msgs))
+
         code_map: Dict[tuple[str, str], dict] = {}
         code_order_keys: List[tuple[str, str]] = []
         has_mapped_col = mapped_sd_col is not None
