@@ -34,90 +34,6 @@ def _split_code_display(text: str) -> tuple[str, str]:
             return left.strip(), right.strip()
     return "", text.strip()
 
-# Static field configuration copied from the generic transformer template.  The
-# application does not derive these from the workbook; every exported
-# transformer should include this same set of ``Field`` definitions.
-DEFAULT_FIELDS: List[dict] = [
-    {"Name": "PID:8", "Codeset": "CS_ADMIN_GENDER", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Gender"},
-    {"Name": "PID:10", "Codeset": "CS_RACE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Race"},
-    {"Name": "PID:15", "Codeset": "CS_LANGUAGE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Language"},
-    {"Name": "PID:16", "Codeset": "CS_MARITAL_STATUS", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Marital Status"},
-    {"Name": "PID:17", "Codeset": "CS_RELIGION", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Religion"},
-    {"Name": "PID:22", "Codeset": "CS_ETHNIC_GROUP", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Ethnic Group"},
-    {"Name": "PID:26", "Codeset": "CS_CITIZENSHIP", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Citizenship"},
-    {"Name": "PID:28", "Codeset": "CS_NATIONALITY", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Nationality"},
-    {"Name": "PD1:5", "Codeset": "CS_STUDENT", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Student Indicator"},
-    {"Name": "PD1:7", "Codeset": "CS_LIVING_WILL", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Living Will"},
-    {"Name": "PD1:12", "Codeset": "CS_PROTECTION_IND", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Protection Indicator"},
-    {"Name": "NK1:3", "Codeset": "CS_REL_TO_PERSON", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Next of Kin Relationship to Patient"},
-    {"Name": "NK1:14", "Codeset": "CS_MARITAL_STATUS", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Marital Status"},
-    {"Name": "NK1:15", "Codeset": "CS_ADMIN_GENDER", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Gender"},
-    {"Name": "NK1:19", "Codeset": "CS_CITIZENSHIP", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Citizenship"},
-    {"Name": "NK1:20", "Codeset": "CS_LANGUAGE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Primary Language"},
-    {"Name": "NK1:23", "Codeset": "CS_PROTECTION_IND", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Protection Indicator"},
-    {"Name": "NK1:24", "Codeset": "CS_STUDENT", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Student Indicator"},
-    {"Name": "NK1:27", "Codeset": "CS_NATIONALITY", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Nationality"},
-    {"Name": "NK1:35", "Codeset": "CS_RACE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Race"},
-    {"Name": "PV1:2", "Codeset": "CS_ENCOUNTER_CLASS", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Patient Class"},
-    {"Name": "PV1:4", "Codeset": "CS_ADMIT_TYPE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Admission Type"},
-    {"Name": "PV1:10", "Codeset": "CS_ADMIT_SERVICE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Hospital Service"},
-    {"Name": "PV1:14", "Codeset": "CS_ADMIT_SOURCE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Admission Source"},
-    {"Name": "PV1:16", "Codeset": "CS_VIP_IND", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "VIP Indicator"},
-    {"Name": "PV1:18", "Codeset": "CS_ENCOUNTER_TYPE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Patient Type"},
-    {"Name": "PV1:20", "Codeset": "CS_FINANCIAL_CLASS", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Financial Class"},
-    {"Name": "PV1:36", "Codeset": "CS_DISCHARGE_DISPOSITION", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Discharge Disposition"},
-    {"Name": "PV1:39", "Codeset": "CS_SERVICING_FACILITY", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Servicing Facility"},
-    {"Name": "PV2:2", "Codeset": "CS_ACCOMODATION", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Accommodation Code"},
-    {"Name": "PV2:22", "Codeset": "CS_PROTECTION_IND", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Visit Protection Indicator"},
-    {"Name": "AL1:2", "Codeset": "CS_ALLERGEN_TYPE_CODE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Allergen Type Code"},
-    {"Name": "AL1:4", "Codeset": "CS_ALLERGY_SEVERITY_CODE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Allergy Severity"},
-    {"Name": "AL1:5", "Codeset": "CS_ALLERGY_REACTION_CODE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Allergy Reaction"},
-    {"Name": "IAM:2", "Codeset": "CS_ALLERGEN_TYPE_CODE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Allergen Type Code"},
-    {"Name": "IAM:4", "Codeset": "CS_ALLERGY_SEVERITY_CODE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Allergy Severity"},
-    {"Name": "IAM:5", "Codeset": "CS_ALLERGY_REACTION_CODE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Allergy Reaction"},
-    {"Name": "DG1:2", "Codeset": "CS_DIAGNOSIS_CODE_METHOD", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Diagnosis Coding Method"},
-    {"Name": "DG1:6", "Codeset": "CS_DIAGNOSIS_TYPE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Diagnosis Type"},
-    {"Name": "DG1:18", "Codeset": "CS_PROTECCTION_IND", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Confidential Indicator"},
-    {"Name": "GT1:9", "Codeset": "CS_ADMIN_GENDER", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Gender"},
-    {"Name": "GT1:11", "Codeset": "CS_REL_TO_PERSON", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Guarantor Relationship"},
-    {"Name": "GT1:30", "Codeset": "CS_MARITAL_STATUS", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Marital Status Code"},
-    {"Name": "GT1:35", "Codeset": "CS_CITIZENSHIP", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Citizenship"},
-    {"Name": "GT1:36", "Codeset": "CS_LANGUAGE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Language"},
-    {"Name": "GT1:39", "Codeset": "CS_PROTECTION_IND", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Protection Indicator"},
-    {"Name": "GT1:40", "Codeset": "CS_STUDENT", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Student Indicator"},
-    {"Name": "GT1:41", "Codeset": "CS_RELIGION", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Religion"},
-    {"Name": "GT1:43", "Codeset": "CS_NATIONALITY", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Nationality"},
-    {"Name": "GT1:55", "Codeset": "CS_RACE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Race"},
-    {"Name": "IN1:17", "Codeset": "CS_REL_TO_PERSON", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Relationship To Patient"},
-    {"Name": "IN1:43", "Codeset": "CS_ADMIN_GENDER", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Gender"},
-    {"Name": "IN2:33", "Codeset": "CS_CITIZENSHIP", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Citizenship"},
-    {"Name": "IN2:34", "Codeset": "CS_LANGUAGE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Language"},
-    {"Name": "IN2:37", "Codeset": "CS_PROTECTION_IND", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Protection Indicator"},
-    {"Name": "IN2:38", "Codeset": "CS_STUDENT", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Student Indicator"},
-    {"Name": "IN2:39", "Codeset": "CS_RELIGION", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Religion"},
-    {"Name": "IN2:41", "Codeset": "CS_NATIONALITY", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Nationality"},
-    {"Name": "IN2:42", "Codeset": "CS_ETHNIC_GROUP", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Ethnic Group"},
-    {"Name": "IN2:43", "Codeset": "CS_MARITAL_STATUS", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Marital Status"},
-    {"Name": "ACC:2", "Codeset": "CS_ACCIDENT_CODE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Accident Code"},
-    {"Name": "ORC:28", "Codeset": "CS_CONFIDENTIALITY_CODE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Confidential Code"},
-    {"Name": "OBR:5", "Codeset": "CS_ORDERING_PRIORITY", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Priority"},
-    {"Name": "PR1:6", "Codeset": "CS_PROCEDURE_FUNCTIONAL_TYPE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Procedure Type"},
-    {"Name": "PR1:3.3", "Codeset": "CS_PROCEDURE_CODING_SYSTEM", "OutputType": "DisplayOnly", "Enabled": "True", "Description": "Procedure Coding System"},
-    {"Name": "OBR:15.1", "Codeset": "CS_SPECIMEN_TYPE_CODE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Specimen Type Code"},
-    {"Name": "OBR:15.3", "Codeset": "CS_SPECIMEN_COLLECTION_METHOD", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Specimen Collection Method"},
-    {"Name": "OBR:15.4", "Codeset": "CS_SPECIMEN_BODY_SITE_CODE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Specimen Body Site"},
-    {"Name": "OBR:24", "Codeset": "CS_DIAGNOSTIC_SERVICE_SECTION", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Diagnostic Service Section"},
-    {"Name": "OBR:25", "Codeset": "CS_RESULT_STATUS", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Result Status"},
-    {"Name": "OBR:27.6", "Codeset": "CS_ORDERING_PRIORITY", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Priority"},
-    {"Name": "OBX:8", "Codeset": "CS_ABNORMAL_FLAG", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Abnormal Flag"},
-    {"Name": "OBX:11", "Codeset": "CS_RESULT_STATUS", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Result Status"},
-    {"Name": "TXA:2.3.2", "Codeset": "CS_DIAGNOSTIC_SERVICE_SECTION", "OutputType": "DisplayOnly", "Enabled": "True", "Description": "Diagnostic Service Section"},
-    {"Name": "TXA:17", "Codeset": "CS_COMPLETION_STATUS", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Completion Status"},
-    {"Name": "TXA:18", "Codeset": "CS_CONFIDENTIALITY_CODE", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Confidentiality Status"},
-    {"Name": "TXA:19", "Codeset": "CS_AVAILABILITY_STATUS", "OutputType": "LocalCodeFirst", "Enabled": "True", "Description": "Availability Status"},
-]
-
-
 def build_transformer_xml(
     data: Dict[str, pd.DataFrame],
     freetext: Dict[str, bool] | None = None,
@@ -130,38 +46,10 @@ def build_transformer_xml(
         Mapping of sheet name to DataFrame representing the codeset workbook.
     freetext:
         Optional mapping of codeset name to a boolean indicating whether the
-        field should allow free text (``True`` disables the field in the
-        transformer ``Fields`` section).
+        field should allow free text.  The argument is retained for backwards
+        compatibility but is currently ignored because the generated
+        transformers omit the ``Fields`` section.
     """
-
-    free_map = {k: v for k, v in (freetext or {}).items() if v}
-
-    # Build fields data with optional free text overrides
-    field_dicts: List[dict] = []
-    for f in DEFAULT_FIELDS:
-        attrs = f.copy()
-        if free_map.get(attrs["Codeset"]):
-            attrs["Enabled"] = "False"
-        field_dicts.append(attrs)
-
-    # Determine column widths for field attributes to align output
-    field_order = ["Name", "Codeset", "OutputType", "Enabled", "Description"]
-    field_attr_strings = [
-        [f"{k}={quoteattr(d[k])}" for k in field_order]
-        for d in field_dicts
-    ]
-    field_widths = [
-        max(len(attrs[i]) for attrs in field_attr_strings) + 2
-        for i in range(len(field_order) - 1)
-    ]
-
-    field_lines: List[str] = []
-    for attrs in field_attr_strings:
-        parts = [attrs[0].ljust(field_widths[0])]
-        for i in range(1, len(field_order) - 1):
-            parts.append(attrs[i].ljust(field_widths[i]))
-        parts.append(attrs[-1])
-        field_lines.append("    <Field " + "".join(parts).rstrip() + " />")
 
     # Collect codeset information from workbook data
     codesets: List[dict] = []
@@ -217,6 +105,18 @@ def build_transformer_xml(
         subdef_series = _str_series(df, subdef_col) if subdef_col else pd.Series([""] * len(df))
         def_col = col_map.get("DEFINITION")
         def_series = _str_series(df, def_col) if def_col else pd.Series([""] * len(df))
+
+        if code_col:
+            dup_counts = code_series[code_series != ""].value_counts()
+            dup_codes = dup_counts[dup_counts > 1].index.tolist()
+            if dup_codes:
+                dup_msgs: List[str] = []
+                for dup_code in dup_codes:
+                    rows = [str(idx + 2) for idx, val in code_series.items() if val == dup_code]
+                    dup_msgs.append(
+                        f"{sheet} rows {', '.join(rows)} have duplicate CODE '{dup_code}'"
+                    )
+                raise ValueError("; ".join(dup_msgs))
 
         code_map: Dict[tuple[str, str], dict] = {}
         code_order_keys: List[tuple[str, str]] = []
@@ -343,9 +243,6 @@ def build_transformer_xml(
 
     lines = [
         "<Configuration>",
-        "  <Fields>",
-        *field_lines,
-        "  </Fields>",
         "  <Codesets>",
         *codeset_lines,
         "  </Codesets>",
