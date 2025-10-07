@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Iterable
 import pandas as pd
 
 
@@ -18,9 +18,14 @@ def _empty_if_placeholder(val: str) -> str:
     return val
 
 
-def validate_workbook(sheets: Dict[str, pd.DataFrame], mapping: Dict[str, Dict[str, Any]]) -> List[str]:
+def validate_workbook(
+    sheets: Dict[str, pd.DataFrame],
+    mapping: Dict[str, Dict[str, Any]],
+    skip_mapped_requirement_sheets: Iterable[str] | None = None,
+) -> List[str]:
     """Return a list of validation error messages for the workbook."""
     errors: List[str] = []
+    skip_mapped_requirement = set(skip_mapped_requirement_sheets or [])
     for sheet, df in sheets.items():
         info = mapping.get(sheet, {})
         code_col = info.get("code_col")
@@ -52,7 +57,12 @@ def validate_workbook(sheets: Dict[str, pd.DataFrame], mapping: Dict[str, Dict[s
             if display and not code:
                 errors.append(f"{sheet} row {row_num}: CODE required when DISPLAY VALUE is provided")
             mapped_label = mapped_col or "MAPPED_STD_DESCRIPTION"
-            if (code or display) and (std_code or std_desc) and not mapped:
+            if (
+                sheet not in skip_mapped_requirement
+                and (code or display)
+                and (std_code or std_desc)
+                and not mapped
+            ):
                 errors.append(
                     f"{sheet} row {row_num}: {mapped_label} required when standard code/description present"
                 )
