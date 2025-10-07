@@ -37,6 +37,33 @@ last_error: str | None = None
 comparison_data: Dict[str, "pd.DataFrame"] = {}
 comparison_path: Path | None = None
 
+TRANSFORMER_REQUIRE_MAPPED = {
+    "CS_ABNORMAL_FLAG",
+    "CS_ADMIN_GENDER",
+    "CS_ADMIT_SERVICE",
+    "CS_ADMIT_SOURCE",
+    "CS_ADMIT_TYPE",
+    "CS_ALLERGY_REACTION_CODE",
+    "CS_ALLERGY_SEVERITY_CODE",
+    "CS_COMPLETION_STATUS",
+    "CS_CONFIDENTIALITY_CODE",
+    "CS_DIAGNOSIS_CODE_METHOD",
+    "CS_DIAGNOSIS_TYPE",
+    "CS_DIAGNOSTIC_SERVICE_SECTION",
+    "CS_ENCOUNTER_CLASS",
+    "CS_ETHNIC_GROUP",
+    "CS_LANGUAGE",
+    "CS_MARITAL_STATUS",
+    "CS_ORDERING_PRIORITY",
+    "CS_ORDER_STATUS",
+    "CS_PROTECTION_IND",
+    "CS_RACE",
+    "CS_REL_TO_PERSON",
+    "CS_RESULT_STATUS",
+    "CS_RX_COMPONENT_TYPE",
+    "CS_VIP_IND",
+}
+
 # File storing the user's preferred repository base path
 CONFIG_FILE = Path(__file__).resolve().parent / "repo_base.txt"
 
@@ -541,7 +568,16 @@ def export_transformer():
     if not workbook_data:
         return "No workbook loaded", 400
 
-    errors = validate_workbook(workbook_data, mapping_data)
+    skip_mapped_requirement = {
+        sheet
+        for sheet in workbook_data
+        if sheet not in TRANSFORMER_REQUIRE_MAPPED
+    }
+    errors = validate_workbook(
+        workbook_data,
+        mapping_data,
+        skip_mapped_requirement_sheets=skip_mapped_requirement,
+    )
     if errors:
         return jsonify({"errors": errors}), 400
 

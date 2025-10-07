@@ -122,3 +122,37 @@ def test_na_standard_values_do_not_require_mapping():
     }
     errors = validate_workbook(sheets, mapping)
     assert errors == []
+
+
+def test_only_selected_sheets_require_mapped_values():
+    df = pd.DataFrame([
+        {
+            "CODE": "A",
+            "DISPLAY VALUE": "Alpha",
+            "STANDARD_CODE": "1",
+            "STANDARD_DESCRIPTION": "One",
+            "MAPPED_STD_DESCRIPTION": "",
+        }
+    ])
+    mapping = {
+        "Sheet": {
+            "code_col": "CODE",
+            "display_col": "DISPLAY VALUE",
+            "mapped_col": "MAPPED_STD_DESCRIPTION",
+            "std_col": "STANDARD_DESCRIPTION",
+            "std_code_col": "STANDARD_CODE",
+        }
+    }
+
+    required_errors = validate_workbook(
+        {"RequiredSheet": df},
+        {"RequiredSheet": mapping["Sheet"]},
+    )
+    assert any("MAPPED_STD_DESCRIPTION required" in e for e in required_errors)
+
+    skipped_errors = validate_workbook(
+        {"OptionalSheet": df},
+        {"OptionalSheet": mapping["Sheet"]},
+        skip_mapped_requirement_sheets={"OptionalSheet"},
+    )
+    assert skipped_errors == []
