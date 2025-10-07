@@ -1,0 +1,204 @@
+Codeset Automation App - Billable Hours Breakdown
+
+Executive Summary
+Total Estimated Hours: 156–220 hours
+This breakdown organizes work by functional features , providing a clearer picture of deliverables for billing purposes.
+
+1. Core Application Framework & UI Foundation
+PRs: #1–21, #37
+Estimated Hours: 58–85
+Work Completed:
+	• Initial application architecture setup (Streamlit → Flask migration)
+	• Bootstrap responsive UI implementation
+	• Workbook upload and file handling infrastructure
+	• Sheet selection interface and navigation
+	• Excel parsing engine with formula preservation
+	• Dropdown option extraction and display
+	• VLOOKUP mapping support
+	• Sub-definition mapping logic
+	• Column restriction and data validation foundation
+	• Performance optimization for large workbooks
+Key Deliverables:
+	• Functional Flask/Bootstrap web application
+	• Workbook ingestion with formula preservation
+	• Dynamic sheet selector
+	• Editable data grid with mapping controls
+	• Sample directory structure and initial documentation
+
+2. Codex Integration & Validation System
+PRs: #22–31, #42, #47–51, #57–58, #167–170
+Estimated Hours: 16–24
+Work Completed:
+	• Codex spreadsheet definition and context agent
+	• Real-time validation engine with error highlighting
+	• Sidebar guidance system with requirements and errors
+	• Code/display pair validation
+	• Mapped description enforcement
+	• Standard code validation before transformer export
+	• Duplicate code detection and prevention
+Key Deliverables:
+	• Context-aware validation system
+	• Live error feedback in sidebar
+	• Visual error highlighting in data grid
+	• Export guardrails to prevent invalid data
+	• Codex reference documentation integration
+
+3. Workbook Import/Export & Data Persistence
+PRs: #31–36, #38–41, #43, #69–78
+Estimated Hours: 22–32
+Work Completed:
+	• Workbook export functionality with in-place overwriting
+	• Original filename preservation
+	• Blank column retention during load/save cycles
+	• Sheet protection toggle (global and per-sheet)
+	• Repository-based save location
+	• Error report export capability
+	• Persistent repository base path selection
+	• Directory picker for repository folder selection
+Key Deliverables:
+	• Export to Excel with formula/format preservation
+	• Configurable sheet protection
+	• Repository-aware file management
+	• Folder picker for repository base path
+	• Error reporting output
+
+4. Repository Management & Nested Discovery
+PRs: #35–36, #38, #73–97, #121–122
+Estimated Hours: 24–34
+Work Completed:
+	• Repository scanner for Codeset workbooks
+	• Cached repository listing for performance
+	• Workbook filtering and discovery
+	• Repository folder selection UI
+	• Path normalization and absolute path detection
+	• Directory picker integration (18 PRs of refinement)
+	• Nested repository scanning support
+	• Repository base path persistence
+Key Deliverables:
+	• Automatic Codeset workbook discovery
+	• Repository folder browser
+	• Nested repository support
+	• Persistent repository configuration
+	• Filtered workbook listings
+
+5. Codeset Comparison Feature
+PRs: #44–46, #52–56, #59–61, #100, #107
+Estimated Hours: 12–18
+Work Completed:
+	• Side-by-side comparison view implementation
+	• Read-only comparison columns
+	• Difference highlighting with color-coded cells
+	• Comparison selection interface
+	• Codeset reference display for each sheet
+	• UTF-8 decoding for reference data
+	• Compare button toggle functionality
+	• Dark theme comparison color adjustments
+Key Deliverables:
+	• Visual diff tool for codesets
+	• Comparison dropdown selectors
+	• Highlight colors for added/removed/changed rows
+	• Clearable comparison selection
+	• Sheet-specific codeset reference display
+
+6. Theme System & UI Polish
+PRs: #54, #58, #67, #98–117
+Estimated Hours: 22–32
+Work Completed:
+	• Theme selector with multiple color schemes
+	• Dark mode support (multiple themes)
+	• Overlay close button styling (multiple iterations)
+	• Repository folder input highlighting
+	• Upload button alignment and styling (7 PRs)
+	• Button hover effects with color inversion
+	• Comparison dropdown highlighting
+	• Sheet lock status visibility in dark themes
+	• Control panel card layouts
+	• Upload field width matching
+Key Deliverables:
+	• Multi-theme support (light and dark variants)
+	• Consistent button styling across app
+	• Accessible contrast in all themes
+	• Polished hover states and interactions
+	• Hamburger menu with theme selector
+
+7. Transformer XML Export System
+PRs: #132–147, #148–157, #169–170
+Estimated Hours: 32–42
+Work Completed:
+	• Codeset transformer export endpoint
+	• Nested XML structure generation (field → codeset hierarchy)
+	• Flattened transformer output format
+	• Standard attribute inclusion (code, display, definition)
+	• Codeset tab name preservation
+	• Free-text codeset toggle and selective export
+	• Standard code derivation logic (6 PRs of refinement): 
+		○ Subdefinition-based derivation
+		○ Mapped description matching
+		○ Definition column parsing
+		○ Hyphenated description handling
+		○ Duplicate row resolution with blank handling
+	• CRLF newline formatting
+	• Validation enforcement before export
+	• Duplicate code prevention
+Key Deliverables:
+	• XML transformer export for Nexus Engine integration
+	• Configurable free-text codeset inclusion
+	• Robust standard code mapping
+	• Validated output preventing downstream errors
+	• Properly formatted nested/flattened XML structures
+
+8. V3/V4 Codeset Format Support
+PRs: #123–131, #143
+Estimated Hours: 10–14
+Work Completed:
+	• V3 codeset header parsing
+	• Font-family sanitizer for malformed workbooks
+	• Definition column mapping for V3 format
+	• Column serialization preservation
+	• Duplicate column handling by position
+	• Non-empty duplicate column preference
+	• V3 definition dropdown option preservation
+	• V4 repository naming convention support
+Key Deliverables:
+	• Backward compatibility with V3 codesets
+	• Forward compatibility with V4 naming
+	• Robust duplicate column resolution
+	• Sanitized font parsing for legacy files
+
+9. Packaging & Distribution Automation
+PRs: #120, #145, #158–166
+Estimated Hours: 12–16
+Work Completed:
+	• PyInstaller build script creation
+	• Windows launcher batch script
+	• Hidden import configuration for dependencies
+	• Template path resolution for packaged builds
+	• macOS .app bundle generation
+	• GitHub Actions CI workflow for macOS builds
+	• Build directory organization
+	• Cross-platform packaging documentation
+Key Deliverables:
+	• Standalone Windows executable
+	• macOS application bundle
+	• PyInstaller configuration and instructions
+	• Automated CI/CD build pipeline
+	• Distribution-ready packages (no Python required)
+
+10. Documentation & Handoff Materials
+PRs: #6, #25, #52, #62, #64, #159, #164–165
+Estimated Hours: 6–9
+Work Completed:
+	• README expansion with feature documentation
+	• Repository directory structure explanation
+	• Field comment rendering in sidebar
+	• Windows launcher naming and packaging clarity
+	• macOS build documentation
+	• PyInstaller instructions and troubleshooting
+	• Runtime expectations and usage patterns
+	• Codex handoff notes
+Key Deliverables:
+	• Comprehensive README
+	• Developer handoff documentation
+	• Packaging and deployment guides
+	• Directory structure documentation
+	• Inline field guidance
