@@ -1,5 +1,5 @@
 @echo off
-setlocal EnableDelayedExpansion
+setlocal
 
 set "PORT=5000"
 
@@ -7,11 +7,13 @@ rem Launch Codeset UI server
 cd /d "%~dp0\codeset_ui_app" || exit /b 1
 start "Codeset UI Server" cmd /c "python app.py"
 
+cd /d "%~dp0" || exit /b 1
+
 echo Waiting for Codeset UI server to start...
-for /l %%I in (1,1,20) do (
+for /l %%I in (1,1,40) do (
     timeout /t 1 /nobreak >nul
     powershell -NoProfile -Command "try { $client = New-Object System.Net.Sockets.TcpClient('127.0.0.1',%PORT%); if ($client.Connected) { $client.Dispose(); exit 0 } else { exit 1 } } catch { exit 1 }"
-    if !errorlevel! EQU 0 goto resolve_ip
+    if not errorlevel 1 goto resolve_ip
 )
 echo Unable to confirm server availability; continuing to open the browser.
 
@@ -22,6 +24,6 @@ set "HOST_IP=%HOST_IP: =%"
 set "SERVER_URL=http://%HOST_IP%:%PORT%/"
 
 echo Opening %SERVER_URL%
-start "" "%SERVER_URL%"
+powershell -NoProfile -Command "Start-Process '%SERVER_URL%'" || start "" "%SERVER_URL%"
 
 endlocal
