@@ -793,14 +793,15 @@
         }
       }
 
-      const TARGET_COLUMN_NAMES = new Set(['CODE', 'DISPLAY VALUE', 'SUBDEFINITION', 'MAPPED STD DESCRIPTION']);
+      const TARGET_COLUMNS = ['CODE', 'DISPLAY VALUE', 'SUBDEFINITION', 'MAPPED STD DESCRIPTION'];
+      const TARGET_COLUMN_SET = new Set(TARGET_COLUMNS);
 
-      function normalizeHeaderName(name) {
-        return String(name || '').replace(/_/g, ' ').trim().toUpperCase();
+      function norm(value) {
+        return String(value || '').replace(/_/g, ' ').trim().toUpperCase();
       }
 
-      function isTargetColumn(name) {
-        return TARGET_COLUMN_NAMES.has(normalizeHeaderName(name));
+      function isTargetCol(header) {
+        return TARGET_COLUMN_SET.has(norm(header));
       }
 
       const escapeHeaderSelector = (value) => {
@@ -811,7 +812,7 @@
       };
 
       function getTargetHeaders(sheet) {
-        return (renderHeaders[sheet] || []).filter(isTargetColumn);
+        return (renderHeaders[sheet] || []).filter(isTargetCol);
       }
 
       function rowHasTargetValues(sheet, rowObj, tr) {
@@ -830,7 +831,7 @@
         });
       }
 
-      function clearTargetFieldsInRow(sheet, rowObj) {
+      function clearTargetsInRow(sheet, rowObj) {
         if (!rowObj) return false;
         const headers = getTargetHeaders(sheet);
         if (!headers.length) return false;
@@ -844,9 +845,26 @@
         return changed;
       }
 
-      function clearTargetInputsInRow(tr, sheet) {
+      function sheetHasTargetValues(sheet) {
         const headers = getTargetHeaders(sheet);
-        if (!tr || !headers.length) return false;
+        if (!headers.length) return false;
+        const baseRows = workbook[sheet] || [];
+        const hasStored = baseRows.some(row => {
+          if (!row) return false;
+          return headers.some(header => normalizeValue(row[header]) !== '');
+        });
+        if (hasStored) return true;
+        const table = document.querySelector('#table-wrapper table');
+        if (table && table.tBodies[0]) {
+          return Array.from(table.tBodies[0].rows).some(tr => rowHasTargetValues(sheet, null, tr));
+        }
+        return false;
+      }
+
+      function clearTargetsInDOMRow(tr, sheet) {
+        if (!tr) return false;
+        const headers = getTargetHeaders(sheet);
+        if (!headers.length) return false;
         let changed = false;
         headers.forEach(header => {
           const cell = tr.querySelector(`td[data-col="${escapeHeaderSelector(header)}"]`);
@@ -875,22 +893,6 @@
         return changed;
       }
 
-      function sheetHasTargetValues(sheet) {
-        const headers = getTargetHeaders(sheet);
-        if (!headers.length) return false;
-        const baseRows = workbook[sheet] || [];
-        const hasStored = baseRows.some(row => {
-          if (!row) return false;
-          return headers.some(header => normalizeValue(row[header]) !== '');
-        });
-        if (hasStored) return true;
-        const table = document.querySelector('#table-wrapper table');
-        if (table && table.tBodies[0]) {
-          return Array.from(table.tBodies[0].rows).some(tr => rowHasTargetValues(sheet, null, tr));
-        }
-        return false;
-      }
-
       function clearAllRowsValues(sheet) {
         const headers = getTargetHeaders(sheet);
         if (!headers.length) return false;
@@ -910,30 +912,9 @@
         const table = document.querySelector('#table-wrapper table');
         if (table && table.tBodies[0]) {
           Array.from(table.tBodies[0].rows).forEach(tr => {
-            headers.forEach(header => {
-              const cell = tr.querySelector(`td[data-col="${escapeHeaderSelector(header)}"]`);
-              if (!cell) return;
-              const control = cell.querySelector('input, select, textarea');
-              if (control) {
-                const prevValue = control.value;
-                if (prevValue !== '') {
-                  if (control.tagName === 'SELECT') {
-                    control.selectedIndex = 0;
-                  } else {
-                    control.value = '';
-                  }
-                  control.dispatchEvent(new Event('input', { bubbles: true }));
-                  control.dispatchEvent(new Event('change', { bubbles: true }));
-                  changed = true;
-                }
-              } else {
-                const prev = cell.textContent || '';
-                if (normalizeValue(prev) !== '') {
-                  cell.textContent = '';
-                  changed = true;
-                }
-              }
-            });
+            if (clearTargetsInDOMRow(tr, sheet)) {
+              changed = true;
+            }
           });
         }
 
@@ -1275,8 +1256,8 @@
                 }
                 pushUndoSnapshot(sheet);
                 if (undoBtn) undoBtn.disabled = false;
-                clearTargetFieldsInRow(sheet, baseRowData);
-                clearTargetInputsInRow(rowEl, sheet);
+                clearTargetsInRow(sheet, baseRowData);
+                clearTargetsInDOMRow(rowEl, sheet);
                 const isCurrentSheet = currentSheet === sheet;
                 const tableEl = rowEl.closest('table');
                 if (isCurrentSheet) {
@@ -1301,7 +1282,7 @@
 
               const deleteBtn = document.createElement('button');
               deleteBtn.type = 'button';
-              deleteBtn.className = 'btn btn-outline-danger btn-sm delete-row-btn';
+              deleteBtn.className = 'btn btn-outline-danger btn-sm ms-1 delete-row-btn';
               deleteBtn.setAttribute('aria-label', 'Delete row');
               deleteBtn.textContent = '−';
               deleteBtn.addEventListener('click', () => {
