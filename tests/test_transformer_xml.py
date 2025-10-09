@@ -118,7 +118,7 @@ def test_export_transformer_rejects_validation_errors():
         assert resp.status_code == 400
         data = resp.get_json()
         assert data is not None and data.get('errors')
-        assert any('duplicate CODE' in e for e in data['errors'])
+        assert any('duplicates row' in e for e in data['errors'])
     app_module.workbook_data.clear()
     app_module.mapping_data.clear()
 

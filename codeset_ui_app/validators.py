@@ -6,6 +6,16 @@ import pandas as pd
 _PLACEHOLDER_VALUES = {"NA", "N/A"}
 
 
+def _format_error(sheet: str, row: int | str, detail: str) -> str:
+    """Return a standardized validation message."""
+
+    if isinstance(row, int):
+        row_label = f"Row {row}"
+    else:
+        row_label = str(row)
+    return f'Tab "{sheet}" - {row_label} - {detail}'
+
+
 def _norm(val: Any) -> str:
     if val is None:
         return ""
@@ -42,8 +52,18 @@ def validate_workbook(
             dup_vals = codes[codes != ""].value_counts()
             dup_vals = dup_vals[dup_vals > 1]
             for code_val in dup_vals.index:
-                rows = [str(i + 2) for i, v in codes.items() if v == code_val]
-                errors.append(f"{sheet} rows {', '.join(rows)} have duplicate CODE '{code_val}'")
+                dup_rows = [i + 2 for i, v in codes.items() if v == code_val]
+                for row_num in dup_rows:
+                    others = [str(r) for r in dup_rows if r != row_num]
+                    if not others:
+                        continue
+                    if len(others) == 1:
+                        detail = f"Code '{code_val}' duplicates row {others[0]}"
+                    else:
+                        detail = (
+                            f"Code '{code_val}' duplicates rows {', '.join(others)}"
+                        )
+                    errors.append(_format_error(sheet, row_num, detail))
         # Row-wise validations
         for idx, row in df.iterrows():
             row_num = idx + 2  # account for header row
@@ -53,9 +73,21 @@ def validate_workbook(
             std_code = _empty_if_placeholder(_norm(row.get(std_code_col))) if std_code_col else ""
             std_desc = _empty_if_placeholder(_norm(row.get(std_col))) if std_col else ""
             if code and not display:
-                errors.append(f"{sheet} row {row_num}: DISPLAY VALUE required when CODE is provided")
+                errors.append(
+                    _format_error(
+                        sheet,
+                        row_num,
+                        f"Code '{code}' is missing a display value",
+                    )
+                )
             if display and not code:
-                errors.append(f"{sheet} row {row_num}: CODE required when DISPLAY VALUE is provided")
+                errors.append(
+                    _format_error(
+                        sheet,
+                        row_num,
+                        f"Display value '{display}' is missing a code",
+                    )
+                )
             mapped_label = mapped_col or "MAPPED_STD_DESCRIPTION"
             if (
                 sheet not in skip_mapped_requirement
@@ -63,15 +95,26 @@ def validate_workbook(
                 and (std_code or std_desc)
                 and not mapped
             ):
-                errors.append(
-                    f"{sheet} row {row_num}: {mapped_label} required when standard code/description present"
+                detail = (
+                    f"{mapped_label.replace('_', ' ')} is required when a standard code/description is present"
                 )
+                if code:
+                    detail += f" for code '{code}'"
+                errors.append(_format_error(sheet, row_num, detail))
             if mapped and not code:
                 errors.append(
-                    f"{sheet} row {row_num}: CODE required when {mapped_label} is provided"
+                    _format_error(
+                        sheet,
+                        row_num,
+                        f"Mapped standard description '{mapped}' is missing a code",
+                    )
                 )
-            if mapped and not display:
+            if mapped and not display and not code:
                 errors.append(
-                    f"{sheet} row {row_num}: DISPLAY VALUE required when {mapped_label} is provided"
+                    _format_error(
+                        sheet,
+                        row_num,
+                        f"Mapped standard description '{mapped}' is missing a display value",
+                    )
                 )
     return errors
