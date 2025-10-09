@@ -817,6 +817,65 @@
         return (renderHeaders[sheet] || []).filter(isTargetCol);
       }
 
+      /* --- helpers to set a cell's UI value without re-rendering --- */
+      function setCellUiValueByHeader(tr, header, value) {
+        const cell = tr?.querySelector(`td[data-col="${escapeHeaderSelector(header)}"]`);
+        if (!cell) return;
+        const control = cell.querySelector('input, select, textarea');
+        if (control) {
+          if (control.tagName === 'SELECT') {
+            // best-effort select: choose matching option else fallback to index 0
+            const idx = Array.from(control.options).findIndex(o => o.value === value || o.text === value);
+            control.selectedIndex = idx >= 0 ? idx : 0;
+          } else {
+            control.value = value ?? '';
+          }
+          control.dispatchEvent(new Event('input', { bubbles: true }));
+          control.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
+          cell.textContent = value ?? '';
+        }
+      }
+
+      /* --- core: compact target columns downward starting at rowIndex --- */
+      function compactTargetColumnsFromRow(sheet, rowIndex) {
+        const headers = getTargetHeaders(sheet);
+        if (!headers.length) return false;
+        const baseRows = workbook[sheet] || [];
+        if (!baseRows.length || rowIndex < 0 || rowIndex >= baseRows.length) return false;
+
+        let changed = false;
+        // Build new column arrays -> shift up -> write back
+        headers.forEach(header => {
+          const colVals = baseRows.map(r => (r?.[header] ?? ''));
+          // remove the clicked row's value and push an empty at end
+          colVals.splice(rowIndex, 1);
+          colVals.push('');
+          // write back into the model
+          for (let i = 0; i < baseRows.length; i++) {
+            if (baseRows[i][header] !== colVals[i]) {
+              baseRows[i][header] = colVals[i];
+              changed = true;
+            }
+          }
+        });
+
+        // Update DOM in-place (avoid a full re-render / scroll jump)
+        const table = document.querySelector('#table-wrapper table');
+        const tbody = table?.tBodies?.[0];
+        if (tbody) {
+          const rows = Array.from(tbody.rows);
+          headers.forEach(header => {
+            // recompute from model to avoid redoing the splice logic
+            for (let i = 0; i < rows.length; i++) {
+              const v = (baseRows[i]?.[header] ?? '');
+              setCellUiValueByHeader(rows[i], header, v);
+            }
+          });
+        }
+        return changed;
+      }
+
       function rowHasTargetValues(sheet, rowObj, tr) {
         const headers = getTargetHeaders(sheet);
         if (!headers.length) return false;
@@ -1232,40 +1291,30 @@
               const clearBtn = document.createElement('button');
               clearBtn.type = 'button';
               clearBtn.className = 'clear-row-btn';
-              clearBtn.setAttribute('aria-label', 'Delete row');
+              clearBtn.setAttribute('aria-label', 'Clear values & shift up');
+              clearBtn.title = 'Clear values & shift up';
               clearBtn.textContent = '×';
               clearBtn.addEventListener('click', () => {
                 if (sheetLock) return;
-                const rowEl = tr;
-                if (!rowEl) return;
-                const baseRowData = baseRows[rowIndex] || baseRow || {};
-                const hasValues = rowHasTargetValues(sheet, baseRowData, rowEl);
-                if (!hasValues) {
-                  const isCurrentSheet = currentSheet === sheet;
-                  const tableEl = rowEl.closest('table');
-                  if (isCurrentSheet) {
+                // column-wise compaction: clear/shift only target columns
+                pushUndoSnapshot(sheet);
+                if (undoBtn) undoBtn.disabled = false;
+                const changed = compactTargetColumnsFromRow(sheet, rowIndex);
+                if (changed) {
+                  // keep currentSheet in sync and re-validate
+                  if (currentSheet === sheet) {
                     syncCurrentSheet();
                     validateSheet(currentSheet);
-                  } else if (tableEl) {
-                    const data = readSheet(tableEl, sheet);
-                    workbook[sheet] = data.baseRows;
-                    comparisonData[sheet] = data.compRows;
-                    validateSheet(sheet);
                   } else {
                     validateSheet(sheet);
                   }
-                  return;
                 }
-                pushUndoSnapshot(sheet);
-                if (undoBtn) undoBtn.disabled = false;
-                baseRows.splice(rowIndex, 1);
-                compRows.splice(rowIndex, 1);
-                if (!baseRows.length) {
-                  baseRows.push(createEmptyBaseRow(sheet));
-                  compRows.push(createEmptyComparisonRow(sheet));
+              });
+              clearBtn.addEventListener('keydown', ev => {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                  ev.preventDefault();
+                  clearBtn.click();
                 }
-                renderSheet(sheet);
-                validateSheet(sheet);
               });
               clearBtn.addEventListener('keydown', ev => {
                 if (ev.key === 'Enter' || ev.key === ' ') {
