@@ -861,25 +861,6 @@
             errs.push(formatClientError(sheet, rowNum, `Mapped standard description '${mapped}' is missing a display value`));
             if (rowEl && displayIdx > -1) rowEl.children[displayIdx].classList.add('error-cell');
           }
-
-          if (mapped && !display && !(code && !display)) {
-            errs.push(formatClientError(sheet, rowNum, `Mapped standard description '${mapped}' is missing a display value`));
-            if (rowEl && displayIdx > -1) rowEl.children[displayIdx].classList.add('error-cell');
-          }
-        });
-
-        Object.entries(codeToRows).forEach(([code, indexes]) => {
-          if (!indexes || indexes.length < 2) return;
-          indexes.forEach((rowIdx, pos) => {
-            const others = indexes.filter((_, i) => i !== pos).map(i => i + 2);
-            const detail = others.length === 1
-              ? `Code '${code}' duplicates row ${others[0]}`
-              : `Code '${code}' duplicates rows ${others.join(', ')}`;
-            errs.push(formatClientError(sheet, rowIdx + 2, detail));
-            if (tbody && codeIdx > -1 && tbody.rows[rowIdx]) {
-              tbody.rows[rowIdx].children[codeIdx].classList.add('error-cell');
-            }
-          });
         });
 
         Object.entries(codeToRows).forEach(([code, indexes]) => {
@@ -1151,6 +1132,36 @@
         undoBtn.textContent = 'Undo';
         undoBtn.addEventListener('click', () => {
           if (!sheetLock) restoreUndoState();
+        });
+        buttons.appendChild(undoBtn);
+
+        const clearAllBtn = document.createElement('button');
+        clearAllBtn.className = 'btn btn-outline-danger';
+        clearAllBtn.textContent = 'Clear All Rows';
+        clearAllBtn.addEventListener('click', () => {
+          if (sheetLock) return;
+          if (!baseRows.length) return;
+          pushUndoSnapshot(sheet);
+          workbook[sheet] = [createEmptyBaseRow(sheet)];
+          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
+          renderSheet(sheet);
+          validateSheet(sheet);
+        });
+        buttons.appendChild(clearAllBtn);
+
+        const undoBtn = document.createElement('button');
+        undoBtn.className = 'btn btn-outline-secondary';
+        undoBtn.textContent = 'Undo';
+        undoBtn.disabled = !getUndoStack(sheet).length;
+        undoBtn.addEventListener('click', () => {
+          if (sheetLock) return;
+          const stack = getUndoStack(sheet);
+          if (!stack.length) return;
+          const snapshot = stack.pop();
+          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
+          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
+          renderSheet(sheet);
+          validateSheet(sheet);
         });
         buttons.appendChild(undoBtn);
 
