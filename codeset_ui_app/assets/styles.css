@@ -244,6 +244,7 @@ header {
 .table-wrapper {
     position: relative;
     padding-left: 56px;
+    overflow-x: auto;
 }
 
 .table-scroll {
@@ -353,7 +354,7 @@ header {
 
 .codeset-table {
     border-collapse: collapse;
-    width: 100%;
+    width: max-content;
     white-space: nowrap;
 }
 
