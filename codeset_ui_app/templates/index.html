@@ -1010,7 +1010,7 @@
           const existingComp = (comparisonData[sheet] || [])[rowIdx] || {};
           const baseObj = { ...existingBase }, compObj = { ...existingComp };
           allHeaders.forEach((h, idx) => {
-            const cell = tr.children[idx];
+            const cell = tr.children[idx + 1];
             const input = cell.querySelector('input, select');
             const val = input ? input.value : cell.textContent;
             if (h.endsWith('_COMPARE')) compObj[h] = val; else baseObj[h] = val;
@@ -1115,6 +1115,26 @@
         });
         table.appendChild(tbody);
         container.appendChild(table);
+
+        const clearAllBtn = document.createElement('button');
+        clearAllBtn.type = 'button';
+        clearAllBtn.className = 'btn btn-outline-danger';
+        clearAllBtn.textContent = 'Clear All Rows';
+        clearAllBtn.disabled = sheetLock || rows.length === 0;
+        clearAllBtn.addEventListener('click', () => {
+          if (sheetLock) return;
+          syncCurrentSheet();
+          const sheetRows = workbook[sheet] || [];
+          const compRows = comparisonData[sheet] || [];
+          if (!sheetRows.length && !compRows.length) return;
+          pushUndoState();
+          workbook[sheet] = [];
+          comparisonData[sheet] = [];
+          currentSheet = sheet;
+          renderSheet(sheet);
+          validateSheet(sheet);
+          renderFieldNote(sheet);
+        });
 
         const clearAllBtn = document.createElement('button');
         clearAllBtn.type = 'button';
