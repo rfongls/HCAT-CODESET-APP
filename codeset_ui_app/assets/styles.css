@@ -466,8 +466,7 @@ header {
     background: #f8f9fa;
 }
 
-/* NOTE: removed repeated .clear-row-btn/.clearable-cell duplicates to avoid drift */
-
+/* canonical definitions for cell inputs/selects/text */
 .codeset-table td > .cell-input,
 .codeset-table td > .cell-select,
 .codeset-table td > .cell-text {
@@ -504,119 +503,15 @@ header {
     padding: 6px 8px;
     vertical-align: middle;
     background-clip: padding-box;
-}
-
-.codeset-table td > .cell-input,
-.codeset-table td > .cell-select,
-.codeset-table td > .cell-text {
-    display: block;
-    width: 100%;
-    min-height: 32px;
-    padding: 4px 6px;
-    border-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    background-color: inherit;
-    color: var(--text-color);
-    box-sizing: border-box;
-}
-
-.codeset-table td > .cell-input:disabled,
-.codeset-table td > .cell-select:disabled {
-    background-color: rgba(0, 0, 0, 0.05);
-    color: rgba(0, 0, 0, 0.6);
-}
-
-.codeset-table td > .cell-text {
-    display: block;
-    padding-top: 6px;
-    padding-bottom: 6px;
-}
-
-#table-wrapper thead th {
-    position: sticky;
-    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
-    z-index: 1020;
-}
-
-.codeset-table td {
-    padding: 6px 8px;
-    vertical-align: middle;
-    background-clip: padding-box;
-}
-
-.codeset-table td > .cell-input,
-.codeset-table td > .cell-select,
-.codeset-table td > .cell-text {
-    display: block;
-    width: 100%;
-    min-height: 32px;
-    padding: 4px 6px;
-    border-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    background-color: inherit;
-    color: var(--text-color);
-    box-sizing: border-box;
-}
-
-.codeset-table td > .cell-input:disabled,
-.codeset-table td > .cell-select:disabled {
-    background-color: rgba(0, 0, 0, 0.05);
-    color: rgba(0, 0, 0, 0.6);
-}
-
-.codeset-table td > .cell-text {
-    display: block;
-    padding-top: 6px;
-    padding-bottom: 6px;
-}
-
-#table-wrapper thead th {
-    position: sticky;
-    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
-    z-index: 1020;
-}
-
-.codeset-table td {
-    padding: 6px 8px;
-    vertical-align: middle;
-    background-clip: padding-box;
-}
-
-.codeset-table td > .cell-input,
-.codeset-table td > .cell-select,
-.codeset-table td > .cell-text {
-    display: block;
-    width: 100%;
-    min-height: 32px;
-    padding: 4px 6px;
-    border-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    background-color: inherit;
-    color: var(--text-color);
-    box-sizing: border-box;
-}
-
-.codeset-table td > .cell-input:disabled,
-.codeset-table td > .cell-select:disabled {
-    background-color: rgba(0, 0, 0, 0.05);
-    color: rgba(0, 0, 0, 0.6);
-}
-
-.codeset-table td > .cell-text {
-    display: block;
-    padding-top: 6px;
-    padding-bottom: 6px;
-}
-
-#table-wrapper thead th {
-    position: sticky;
-    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
-    z-index: 1020;
 }
 
 .codeset-table tr:nth-child(even) {
     background-color: var(--table-even-color);
 }
+
+/* NOTE: removed repeated .clear-row-btn/.clearable-cell and
+   .cell-input/.cell-select/.cell-text duplicates to avoid drift */
+
 
 .codeset-table td.compare-col,
 .codeset-table tr:nth-child(even) td.compare-col {

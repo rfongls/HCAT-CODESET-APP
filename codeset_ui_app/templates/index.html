@@ -417,13 +417,15 @@
     let sheetLock = false;
     let currentSheet = initialSheet;
 
-    /* --- runtime sizing for sticky offsets (optional but helpful) --- */
-    (function setHeaderHeights() {
+    /* --- runtime sizing for sticky offsets --- */
+    function setHeaderHeights() {
       const headerEl = document.querySelector('header');
       const height = headerEl ? headerEl.offsetHeight : 0;
       document.documentElement.style.setProperty('--app-header-height', `${height}px`);
       document.documentElement.style.setProperty('--header-height', `${height}px`);
-    })();
+    }
+    setHeaderHeights();
+    window.addEventListener('resize', setHeaderHeights);
 
     /* ---------- shared controls wiring (inline & overlay) ---------- */
     function wireControls(scope){
@@ -1208,12 +1210,14 @@
         undoBtn.addEventListener('click', () => {
           if (sheetLock) return;
           const stack = getUndoStack(sheet);
+          undoBtn.disabled = !stack.length;
           if (!stack.length) return;
           const snapshot = stack.pop();
           workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
           comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
           renderSheet(sheet);
           validateSheet(sheet);
+          undoBtn.disabled = !getUndoStack(sheet).length;
         });
         buttons.appendChild(undoBtn);
 
