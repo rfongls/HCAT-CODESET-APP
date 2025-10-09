@@ -417,6 +417,14 @@
     let sheetLock = false;
     let currentSheet = initialSheet;
 
+    /* --- runtime sizing for sticky offsets (optional but helpful) --- */
+    (function setHeaderHeights() {
+      const headerEl = document.querySelector('header');
+      const height = headerEl ? headerEl.offsetHeight : 0;
+      document.documentElement.style.setProperty('--app-header-height', `${height}px`);
+      document.documentElement.style.setProperty('--header-height', `${height}px`);
+    })();
+
     /* ---------- shared controls wiring (inline & overlay) ---------- */
     function wireControls(scope){
       if (!scope) return;
@@ -647,6 +655,8 @@
         const toolbarHeight = toolbarEl ? toolbarEl.offsetHeight : 0;
         rootEl.style.setProperty('--app-header-height', `${headerHeight}px`);
         rootEl.style.setProperty('--sheet-toolbar-height', `${toolbarHeight}px`);
+        rootEl.style.setProperty('--header-height', `${headerHeight}px`);
+        rootEl.style.setProperty('--active-toolbar-offset', `${toolbarHeight}px`);
       }
 
       wireControls(document.getElementById('inline-controls'));

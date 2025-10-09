@@ -11,6 +11,7 @@
     --error-bg: #f8d7da;
     --app-header-height: 0;
     --sheet-toolbar-height: 0;
+    /* used by sticky active-sheet toolbar */
     --header-height: 0;
     --active-toolbar-offset: 0;
 }
@@ -294,66 +295,6 @@ header {
     margin-bottom: 0 !important;
 }
 
-.sheet-toolbar {
-    position: sticky;
-    top: calc(var(--app-header-height) + 1rem);
-    z-index: 1050;
-    background: var(--background-color);
-    padding: .75rem .75rem 1rem;
-    margin: -.75rem -.75rem 1rem;
-    border-radius: .75rem;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
-}
-
-.sheet-toolbar .row {
-    margin-bottom: 0 !important;
-}
-
-.sheet-toolbar {
-    position: sticky;
-    top: calc(var(--app-header-height) + 1rem);
-    z-index: 1050;
-    background: var(--background-color);
-    padding: .75rem .75rem 1rem;
-    margin: -.75rem -.75rem 1rem;
-    border-radius: .75rem;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
-}
-
-.sheet-toolbar .row {
-    margin-bottom: 0 !important;
-}
-
-.sheet-toolbar {
-    position: sticky;
-    top: calc(var(--app-header-height) + 1rem);
-    z-index: 1050;
-    background: var(--background-color);
-    padding: .75rem .75rem 1rem;
-    margin: -.75rem -.75rem 1rem;
-    border-radius: .75rem;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
-}
-
-.sheet-toolbar .row {
-    margin-bottom: 0 !important;
-}
-
-.sheet-toolbar {
-    position: sticky;
-    top: calc(var(--app-header-height) + 1rem);
-    z-index: 1050;
-    background: var(--background-color);
-    padding: .75rem .75rem 1rem;
-    margin: -.75rem -.75rem 1rem;
-    border-radius: .75rem;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
-}
-
-.sheet-toolbar .row {
-    margin-bottom: 0 !important;
-}
-
 .codeset-table {
     border-collapse: collapse;
     width: max-content;
@@ -493,6 +434,7 @@ header {
 }
 
 .codeset-table td.clearable-cell {
+    /* ensure button space on left */
     position: relative;
     padding-left: 64px;
 }
@@ -523,6 +465,8 @@ header {
 .clear-row-btn:focus {
     background: #f8f9fa;
 }
+
+/* NOTE: removed repeated .clear-row-btn/.clearable-cell duplicates to avoid drift */
 
 .codeset-table td > .cell-input,
 .codeset-table td > .cell-select,
