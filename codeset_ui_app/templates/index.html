@@ -399,6 +399,7 @@
     const fieldNotes = {{ field_notes|tojson }};
     const sheetNames = {{ sheet_names|tojson }};
     const initialSheet = {{ initial_sheet|tojson }};
+    const initialErrors = {{ initial_errors|tojson }};
     const workbook = {};
     if (initialSheet) {
       workbook[initialSheet] = {{ base_records|tojson }};
@@ -428,6 +429,7 @@
 
       const repoBase = scope.querySelector('.js-repo-base');
       const repoBrowse = scope.querySelector('.js-repo-browse');
+      const repoLoad = scope.querySelector('.js-repo-load');
       const repoSave = scope.querySelector('.js-repo-save');
       const fileInput = scope.querySelector('.js-file-input');
       const fileLabel = scope.querySelector('.js-file-label');
@@ -577,9 +579,11 @@
         return p;
       };
       const enableRepoButtons = () => {
-        if (!repoBase || !repoSave) return;
+        if (!repoBase || !repoSave || !repoLoad) return;
         const val = (repoBase.value || '').trim();
-        repoSave.disabled = !isAbsolutePath(val);
+        const ok = isAbsolutePath(val);
+        repoSave.disabled = !ok;
+        repoLoad.disabled = !ok;
       };
       const cacheRootsIfAbsolute = () => {
         if (!repoBase) return;
@@ -801,8 +805,6 @@
         const codeCol = info.code_col;
         const displayCol = info.display_col;
         const mappedCol = info.mapped_col;
-        const stdCodeCol = info.std_code_col;
-        const stdDescCol = info.std_col;
         const rows = workbook[sheet] || [];
         const errs = [];
         const table = document.querySelector('#table-wrapper table');
@@ -859,6 +861,25 @@
             errs.push(formatClientError(sheet, rowNum, `Mapped standard description '${mapped}' is missing a display value`));
             if (rowEl && displayIdx > -1) rowEl.children[displayIdx].classList.add('error-cell');
           }
+
+          if (mapped && !display && !(code && !display)) {
+            errs.push(formatClientError(sheet, rowNum, `Mapped standard description '${mapped}' is missing a display value`));
+            if (rowEl && displayIdx > -1) rowEl.children[displayIdx].classList.add('error-cell');
+          }
+        });
+
+        Object.entries(codeToRows).forEach(([code, indexes]) => {
+          if (!indexes || indexes.length < 2) return;
+          indexes.forEach((rowIdx, pos) => {
+            const others = indexes.filter((_, i) => i !== pos).map(i => i + 2);
+            const detail = others.length === 1
+              ? `Code '${code}' duplicates row ${others[0]}`
+              : `Code '${code}' duplicates rows ${others.join(', ')}`;
+            errs.push(formatClientError(sheet, rowIdx + 2, detail));
+            if (tbody && codeIdx > -1 && tbody.rows[rowIdx]) {
+              tbody.rows[rowIdx].children[codeIdx].classList.add('error-cell');
+            }
+          });
         });
 
         Object.entries(codeToRows).forEach(([code, indexes]) => {
@@ -937,7 +958,7 @@
           const existingComp = (comparisonData[sheet] || [])[rowIdx] || {};
           const baseObj = { ...existingBase }, compObj = { ...existingComp };
           allHeaders.forEach((h, idx) => {
-            const cell = tr.children[idx];
+            const cell = tr.children[idx + 1];
             const input = cell.querySelector('input, select');
             const val = input ? input.value : cell.textContent;
             if (h.endsWith('_COMPARE')) compObj[h] = val; else baseObj[h] = val;
@@ -1121,6 +1142,77 @@
           validateSheet(sheet);
         });
         buttons.appendChild(addBtn);
+        buttons.appendChild(clearAllBtn);
+
+        const undoBtn = document.createElement('button');
+        undoBtn.type = 'button';
+        undoBtn.id = 'undo-button';
+        undoBtn.className = 'btn btn-outline-secondary';
+        undoBtn.textContent = 'Undo';
+        undoBtn.addEventListener('click', () => {
+          if (!sheetLock) restoreUndoState();
+        });
+        buttons.appendChild(undoBtn);
+
+        const clearAllBtn = document.createElement('button');
+        clearAllBtn.className = 'btn btn-outline-danger';
+        clearAllBtn.textContent = 'Clear All Rows';
+        clearAllBtn.addEventListener('click', () => {
+          if (sheetLock) return;
+          if (!baseRows.length) return;
+          pushUndoSnapshot(sheet);
+          workbook[sheet] = [createEmptyBaseRow(sheet)];
+          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
+          renderSheet(sheet);
+          validateSheet(sheet);
+        });
+        buttons.appendChild(clearAllBtn);
+
+        const undoBtn = document.createElement('button');
+        undoBtn.className = 'btn btn-outline-secondary';
+        undoBtn.textContent = 'Undo';
+        undoBtn.disabled = !getUndoStack(sheet).length;
+        undoBtn.addEventListener('click', () => {
+          if (sheetLock) return;
+          const stack = getUndoStack(sheet);
+          if (!stack.length) return;
+          const snapshot = stack.pop();
+          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
+          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
+          renderSheet(sheet);
+          validateSheet(sheet);
+        });
+        buttons.appendChild(undoBtn);
+
+        const clearAllBtn = document.createElement('button');
+        clearAllBtn.className = 'btn btn-outline-danger';
+        clearAllBtn.textContent = 'Clear All Rows';
+        clearAllBtn.addEventListener('click', () => {
+          if (sheetLock) return;
+          if (!baseRows.length) return;
+          pushUndoSnapshot(sheet);
+          workbook[sheet] = [createEmptyBaseRow(sheet)];
+          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
+          renderSheet(sheet);
+          validateSheet(sheet);
+        });
+        buttons.appendChild(clearAllBtn);
+
+        const undoBtn = document.createElement('button');
+        undoBtn.className = 'btn btn-outline-secondary';
+        undoBtn.textContent = 'Undo';
+        undoBtn.disabled = !getUndoStack(sheet).length;
+        undoBtn.addEventListener('click', () => {
+          if (sheetLock) return;
+          const stack = getUndoStack(sheet);
+          if (!stack.length) return;
+          const snapshot = stack.pop();
+          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
+          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
+          renderSheet(sheet);
+          validateSheet(sheet);
+        });
+        buttons.appendChild(undoBtn);
 
         const clearAllBtn = document.createElement('button');
         clearAllBtn.className = 'btn btn-outline-danger';

@@ -249,6 +249,76 @@ header {
 .table-scroll {
     overflow: auto;
     max-height: 70vh;
+    position: relative;
+    padding-left: 44px;
+}
+
+#active-sheet-card {
+    position: relative;
+}
+
+.active-sheet-toolbar {
+    position: sticky;
+    top: calc(var(--header-height) + var(--active-toolbar-offset));
+    z-index: 1030;
+    background: var(--background-color);
+    padding-bottom: .75rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 6px 12px rgba(75, 0, 130, 0.08);
+    border-bottom: 1px solid #e6e6f0;
+}
+
+.active-sheet-toolbar .section-title {
+    margin-bottom: .75rem;
+}
+
+.active-sheet-toolbar .row {
+    margin-bottom: 0 !important;
+}
+
+.sheet-toolbar {
+    position: sticky;
+    top: calc(var(--app-header-height) + 1rem);
+    z-index: 1050;
+    background: var(--background-color);
+    padding: .75rem .75rem 1rem;
+    margin: -.75rem -.75rem 1rem;
+    border-radius: .75rem;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.sheet-toolbar .row {
+    margin-bottom: 0 !important;
+}
+
+.sheet-toolbar {
+    position: sticky;
+    top: calc(var(--app-header-height) + 1rem);
+    z-index: 1050;
+    background: var(--background-color);
+    padding: .75rem .75rem 1rem;
+    margin: -.75rem -.75rem 1rem;
+    border-radius: .75rem;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.sheet-toolbar .row {
+    margin-bottom: 0 !important;
+}
+
+.sheet-toolbar {
+    position: sticky;
+    top: calc(var(--app-header-height) + 1rem);
+    z-index: 1050;
+    background: var(--background-color);
+    padding: .75rem .75rem 1rem;
+    margin: -.75rem -.75rem 1rem;
+    border-radius: .75rem;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.sheet-toolbar .row {
+    margin-bottom: 0 !important;
 }
 
 .sheet-toolbar {
@@ -268,7 +338,7 @@ header {
 
 .codeset-table {
     border-collapse: collapse;
-    width: max-content;
+    width: 100%;
     white-space: nowrap;
 }
 
@@ -281,6 +351,257 @@ header {
     padding: 6px 8px;
     background-color: var(--primary-color);
     color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.codeset-table td {
+    padding: 0;
+    position: relative;
+}
+
+.codeset-table td.code-with-clear {
+    padding-left: 12px;
+}
+
+.codeset-table td.code-with-clear > .row-clear-btn {
+    position: absolute;
+    top: 50%;
+    left: -36px;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.codeset-table td.code-with-clear > .row-clear-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.codeset-table td > input[type="text"],
+.codeset-table td > select,
+.codeset-table td .code-input {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    background: #fff;
+    box-sizing: border-box;
+    color: inherit;
+}
+
+.codeset-table td > input[type="text"]:focus,
+.codeset-table td > select:focus,
+.codeset-table td .code-input:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 0;
+}
+
+.codeset-table td > input[type="text"]:disabled,
+.codeset-table td > select:disabled,
+.codeset-table td .code-input:disabled {
+    background-color: rgba(0, 0, 0, 0.04);
+    color: inherit;
+}
+
+.codeset-table td > span {
+    display: block;
+    padding: 4px 6px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    background: #fff;
+}
+
+.codeset-table th.column-highlight,
+.codeset-table td.column-highlight {
+    background-color: var(--highlight-color) !important;
+}
+
+.codeset-table td.column-highlight > input[type="text"],
+.codeset-table td.column-highlight > select,
+.codeset-table td.column-highlight .code-input,
+.codeset-table td.column-highlight > span {
+    background-color: var(--highlight-color);
+}
+
+.codeset-table td {
+    padding: 0;
+    vertical-align: middle;
+}
+
+.codeset-table td > input[type="text"],
+.codeset-table td > select {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 6px 8px;
+    border: none;
+    background-color: inherit;
+    color: var(--text-color);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+    box-sizing: border-box;
+}
+
+.codeset-table td > input[type="text"]:disabled,
+.codeset-table td > select:disabled {
+    background-color: #f0f0f4;
+    color: rgba(0, 0, 0, 0.65);
+}
+
+.codeset-table td > span {
+    display: block;
+    padding: 6px 8px;
+    background-color: inherit;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+    box-sizing: border-box;
+}
+
+#table-wrapper thead th {
+    position: sticky;
+    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
+    z-index: 1020;
+}
+
+.codeset-table td {
+    padding: 6px 8px;
+    vertical-align: middle;
+    background-clip: padding-box;
+}
+
+.codeset-table td.clearable-cell {
+    position: relative;
+    padding-left: 64px;
+}
+
+.clear-row-btn {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .375rem;
+    font-size: 1.25rem;
+    line-height: 1;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.15);
+    box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    color: inherit;
+    padding: 0;
+}
+
+.clear-row-btn:hover,
+.clear-row-btn:focus {
+    background: #f8f9fa;
+}
+
+.codeset-table td > .cell-input,
+.codeset-table td > .cell-select,
+.codeset-table td > .cell-text {
+    display: block;
+    width: 100%;
+    min-height: 32px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    background-color: inherit;
+    color: var(--text-color);
+    box-sizing: border-box;
+}
+
+.codeset-table td > .cell-input:disabled,
+.codeset-table td > .cell-select:disabled {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.codeset-table td > .cell-text {
+    display: block;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+#table-wrapper thead th {
+    position: sticky;
+    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
+    z-index: 1020;
+}
+
+.codeset-table td {
+    padding: 6px 8px;
+    vertical-align: middle;
+    background-clip: padding-box;
+}
+
+.codeset-table td.clearable-cell {
+    position: relative;
+    padding-left: 64px;
+}
+
+.clear-row-btn {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .375rem;
+    font-size: 1.25rem;
+    line-height: 1;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.15);
+    box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    color: inherit;
+    padding: 0;
+}
+
+.clear-row-btn:hover,
+.clear-row-btn:focus {
+    background: #f8f9fa;
+}
+
+.codeset-table td > .cell-input,
+.codeset-table td > .cell-select,
+.codeset-table td > .cell-text {
+    display: block;
+    width: 100%;
+    min-height: 32px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    background-color: inherit;
+    color: var(--text-color);
+    box-sizing: border-box;
+}
+
+.codeset-table td > .cell-input:disabled,
+.codeset-table td > .cell-select:disabled {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.codeset-table td > .cell-text {
+    display: block;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+#table-wrapper thead th {
+    position: sticky;
+    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
+    z-index: 1020;
 }
 
 .codeset-table td {
@@ -475,6 +796,8 @@ header {
     padding: 1rem;
     margin-bottom: 1rem;
     box-shadow: 0 2px 8px rgba(75, 0, 130, 0.06); /* faint indigo tint */
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .section-title {
