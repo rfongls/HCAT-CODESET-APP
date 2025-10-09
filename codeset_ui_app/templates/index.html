@@ -1025,6 +1025,8 @@
       function renderSheet(sheet) {
         const container = document.getElementById('table-wrapper');
         const buttons = document.getElementById('table-buttons');
+        if (!container || !buttons) return;
+        container.classList.add('table-wrapper');
         container.innerHTML = '';
         buttons.innerHTML = '';
 
@@ -1137,6 +1139,12 @@
                   validateSheet(sheet);
                 }
               });
+              clearBtn.addEventListener('keydown', ev => {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                  ev.preventDefault();
+                  clearBtn.click();
+                }
+              });
               td.appendChild(clearBtn);
             }
             if (input) {
@@ -1168,107 +1176,6 @@
           validateSheet(sheet);
         });
         buttons.appendChild(addBtn);
-        buttons.appendChild(clearAllBtn);
-
-        const undoBtn = document.createElement('button');
-        undoBtn.type = 'button';
-        undoBtn.id = 'undo-button';
-        undoBtn.className = 'btn btn-outline-secondary';
-        undoBtn.textContent = 'Undo';
-        undoBtn.addEventListener('click', () => {
-          if (!sheetLock) restoreUndoState();
-        });
-        buttons.appendChild(undoBtn);
-
-        const clearAllBtn = document.createElement('button');
-        clearAllBtn.className = 'btn btn-outline-danger';
-        clearAllBtn.textContent = 'Clear All Rows';
-        clearAllBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          if (!baseRows.length) return;
-          pushUndoSnapshot(sheet);
-          workbook[sheet] = [createEmptyBaseRow(sheet)];
-          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(clearAllBtn);
-
-        const undoBtn = document.createElement('button');
-        undoBtn.className = 'btn btn-outline-secondary';
-        undoBtn.textContent = 'Undo';
-        undoBtn.disabled = !getUndoStack(sheet).length;
-        undoBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          const stack = getUndoStack(sheet);
-          if (!stack.length) return;
-          const snapshot = stack.pop();
-          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
-          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(undoBtn);
-
-        const clearAllBtn = document.createElement('button');
-        clearAllBtn.className = 'btn btn-outline-danger';
-        clearAllBtn.textContent = 'Clear All Rows';
-        clearAllBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          if (!baseRows.length) return;
-          pushUndoSnapshot(sheet);
-          workbook[sheet] = [createEmptyBaseRow(sheet)];
-          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(clearAllBtn);
-
-        const undoBtn = document.createElement('button');
-        undoBtn.className = 'btn btn-outline-secondary';
-        undoBtn.textContent = 'Undo';
-        undoBtn.disabled = !getUndoStack(sheet).length;
-        undoBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          const stack = getUndoStack(sheet);
-          if (!stack.length) return;
-          const snapshot = stack.pop();
-          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
-          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(undoBtn);
-
-        const clearAllBtn = document.createElement('button');
-        clearAllBtn.className = 'btn btn-outline-danger';
-        clearAllBtn.textContent = 'Clear All Rows';
-        clearAllBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          if (!baseRows.length) return;
-          pushUndoSnapshot(sheet);
-          workbook[sheet] = [createEmptyBaseRow(sheet)];
-          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(clearAllBtn);
-
-        const undoBtn = document.createElement('button');
-        undoBtn.className = 'btn btn-outline-secondary';
-        undoBtn.textContent = 'Undo';
-        undoBtn.disabled = !getUndoStack(sheet).length;
-        undoBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          const stack = getUndoStack(sheet);
-          if (!stack.length) return;
-          const snapshot = stack.pop();
-          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
-          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(undoBtn);
 
         const clearAllBtn = document.createElement('button');
         clearAllBtn.className = 'btn btn-outline-danger';
