@@ -1234,6 +1234,26 @@
               clearBtn.textContent = '×';
               clearBtn.addEventListener('click', () => {
                 if (sheetLock) return;
+                const rowEl = tr;
+                if (!rowEl) return;
+                const baseRowData = baseRows[rowIndex] || baseRow || {};
+                const hasValues = rowHasTargetValues(sheet, baseRowData, rowEl);
+                if (!hasValues) {
+                  const isCurrentSheet = currentSheet === sheet;
+                  const tableEl = rowEl.closest('table');
+                  if (isCurrentSheet) {
+                    syncCurrentSheet();
+                    validateSheet(currentSheet);
+                  } else if (tableEl) {
+                    const data = readSheet(tableEl, sheet);
+                    workbook[sheet] = data.baseRows;
+                    comparisonData[sheet] = data.compRows;
+                    validateSheet(sheet);
+                  } else {
+                    validateSheet(sheet);
+                  }
+                  return;
+                }
                 pushUndoSnapshot(sheet);
                 if (undoBtn) undoBtn.disabled = false;
                 baseRows.splice(rowIndex, 1);
