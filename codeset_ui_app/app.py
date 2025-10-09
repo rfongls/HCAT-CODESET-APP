@@ -516,6 +516,13 @@ def index():
     except BuildError:
         transformer_url = None
 
+    initial_errors: list[str] = []
+    if workbook_data:
+        try:
+            initial_errors = validate_workbook(workbook_data, mapping_data)
+        except Exception:
+            initial_errors = []
+
     return render_template(
         "index.html",
         sheet_names=sheet_names,
@@ -544,6 +551,7 @@ def index():
         compare_mode=compare_mode,
         reopen_controls=reopen_controls,
         transformer_url=transformer_url,
+        initial_errors=initial_errors,
     )
 
 

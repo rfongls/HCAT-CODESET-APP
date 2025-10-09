@@ -400,6 +400,7 @@
     const fieldNotes = {{ field_notes|tojson }};
     const sheetNames = {{ sheet_names|tojson }};
     const initialSheet = {{ initial_sheet|tojson }};
+    const initialErrors = {{ initial_errors|tojson }};
     const workbook = {};
     workbook[initialSheet] = {{ base_records|tojson }};
     const comparisonData = {};
@@ -807,6 +808,20 @@
           errorList.innerHTML = '';
           exportErrorsBtn?.classList.add('d-none');
         }
+      }
+
+      if (Array.isArray(initialErrors) && initialErrors.length) {
+        const bucket = {};
+        initialErrors.forEach(msg => {
+          const match = typeof msg === 'string' ? msg.match(/^On tab "([^"]+)"/) : null;
+          const key = match ? match[1] : '_general';
+          if (!bucket[key]) bucket[key] = [];
+          bucket[key].push(msg);
+        });
+        Object.entries(bucket).forEach(([sheet, msgs]) => {
+          errorsPerSheet[sheet] = (errorsPerSheet[sheet] || []).concat(msgs);
+        });
+        renderErrors();
       }
       function renderFieldNote(sheet) {
         if (!fieldsBox || !fieldsText) return;
