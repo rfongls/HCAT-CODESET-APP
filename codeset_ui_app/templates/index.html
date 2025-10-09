@@ -813,10 +813,37 @@
       if (Array.isArray(initialErrors) && initialErrors.length) {
         const bucket = {};
         initialErrors.forEach(msg => {
-          const match = typeof msg === 'string' ? msg.match(/^On tab "([^"]+)"/) : null;
-          const key = match ? match[1] : '_general';
-          if (!bucket[key]) bucket[key] = [];
-          bucket[key].push(msg);
+          if (typeof msg !== 'string') return;
+
+          let sheetKey = '_general';
+          let formatted = msg;
+
+          const clientMatch = msg.match(/^On tab "([^"]+)"/);
+          if (clientMatch) {
+            sheetKey = clientMatch[1];
+          } else {
+            const colonMatch = msg.match(/^([^:]+?)\s+row(?:s)?\s+([^:]+):\s*(.+)$/i);
+            const rowMatch = colonMatch ? null : msg.match(/^([^:]+?)\s+row(?:s)?\s+([^:]+?)\s+(.*)$/i);
+            const sheetMatch = colonMatch || rowMatch;
+            if (sheetMatch) {
+              const [, sheet, rows, detail] = sheetMatch;
+              const normalizedRows = rows.trim();
+              const plural = /,|\band\b|\bto\b|\bthrough\b|-/i.test(normalizedRows) ? 'Rows' : 'Row';
+              sheetKey = sheet.trim() || '_general';
+              const detailText = (colonMatch ? sheetMatch[3] : detail || '').trim();
+              const suffix = detailText ? `: ${detailText}` : '';
+              formatted = `On tab "${sheetKey}" - ${plural} ${normalizedRows}${suffix}`;
+            } else {
+              const genericMatch = msg.match(/^([^:]+?):\s*(.+)$/);
+              if (genericMatch) {
+                sheetKey = genericMatch[1].trim();
+                formatted = `On tab "${sheetKey}" - ${genericMatch[2].trim()}`;
+              }
+            }
+          }
+
+          if (!bucket[sheetKey]) bucket[sheetKey] = [];
+          bucket[sheetKey].push(formatted);
         });
         Object.entries(bucket).forEach(([sheet, msgs]) => {
           errorsPerSheet[sheet] = (errorsPerSheet[sheet] || []).concat(msgs);
