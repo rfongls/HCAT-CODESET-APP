@@ -12,13 +12,14 @@ def render_sheet_tabs(workbook: Dict[str, pd.DataFrame]) -> None:
     """Render each workbook sheet in a separate tab with editable table."""
     sheet_names = list(workbook.keys())
     tabs = st.tabs(sheet_names)
+
+    lock_key = "workbook_protected"
+    if lock_key not in st.session_state:
+        st.session_state[lock_key] = False
+
     for idx, (sheet, df) in enumerate(workbook.items()):
         with tabs[idx]:
             st.subheader(sheet)
-
-            lock_key = f"{sheet}_protected"
-            if lock_key not in st.session_state:
-                st.session_state[lock_key] = False
 
             free_key = f"{sheet}_freetext"
             if free_key not in st.session_state:
@@ -26,14 +27,18 @@ def render_sheet_tabs(workbook: Dict[str, pd.DataFrame]) -> None:
 
             icon = "🔒" if st.session_state[lock_key] else "🔓"
             status_text = (
-                "Sheet Protected" if st.session_state[lock_key] else "Sheet Unprotected"
+                "Workbook Protected"
+                if st.session_state[lock_key]
+                else "Workbook Unprotected"
             )
 
             if st.button(icon, key=f"{sheet}_lock"):
                 st.session_state[lock_key] = not st.session_state[lock_key]
                 icon = "🔒" if st.session_state[lock_key] else "🔓"
                 status_text = (
-                    "Sheet Protected" if st.session_state[lock_key] else "Sheet Unprotected"
+                    "Workbook Protected"
+                    if st.session_state[lock_key]
+                    else "Workbook Unprotected"
                 )
 
             bg_color = "#42b0f5" if st.session_state[lock_key] else "#fff"
@@ -45,8 +50,6 @@ def render_sheet_tabs(workbook: Dict[str, pd.DataFrame]) -> None:
                 f"<span style='{style}'>{icon}</span> <span style='margin-left:0.5rem'>{status_text}</span>",
                 unsafe_allow_html=True,
             )
-
-            st.checkbox("Free Text", key=free_key)
 
             gb = GridOptionsBuilder.from_dataframe(df)
             gb.configure_default_column(editable=not st.session_state[lock_key], resizable=True)

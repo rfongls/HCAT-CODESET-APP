@@ -65,7 +65,6 @@
       <div id="headerMenu" class="menu-pop d-none" role="menu" aria-hidden="true">
         {% if selected_workbook %}
         <button id="menuOpenControls" class="menu-item" role="menuitem" type="button">Select Repository</button>
-        <button id="menuGenerateTransformer" class="menu-item" role="menuitem" type="button">Generate Codeset Transformer</button>
         {% endif %}
         <button id="menuOpenTheme" class="menu-item" role="menuitem" type="button">Theme</button>
       </div>
@@ -406,8 +405,6 @@
     const hasSelectedWorkbook = {{ 'true' if selected_workbook else 'false' }};
     let sheetLock = false;
     let currentSheet = initialSheet;
-    const freeTextFlags = {};
-    sheetNames.forEach(s => { freeTextFlags[s] = false; });
 
     /* ---------- shared controls wiring (inline & overlay) ---------- */
     function wireControls(scope){
@@ -515,14 +512,6 @@
       fileInput?.addEventListener('change', () => {
         const name = fileInput.files.length ? fileInput.files[0].name : 'Choose File';
         if (fileLabel) { fileLabel.textContent = name; fileLabel.title = name; }
-      });
-
-      // Clicking Upload without a file should open the picker instead of submitting
-      fileInput?.form?.addEventListener('submit', (e) => {
-        if (!fileInput.files.length) {
-          e.preventDefault();
-          fileInput.click();
-        }
       });
 
       // path helpers
@@ -642,7 +631,6 @@
       const hamburger = document.getElementById('hamburger');
       const menu = document.getElementById('headerMenu');
       const menuOpenControls = document.getElementById('menuOpenControls');
-      const menuGenerateTransformer = document.getElementById('menuGenerateTransformer');
       const menuOpenTheme = document.getElementById('menuOpenTheme');
       function closeMenu(){ menu?.classList.add('d-none'); hamburger?.setAttribute('aria-expanded','false'); menu?.setAttribute('aria-hidden','true'); }
       function openMenu(){ menu?.classList.remove('d-none'); hamburger?.setAttribute('aria-expanded','true'); menu?.setAttribute('aria-hidden','false'); }
@@ -668,63 +656,6 @@
         document.body.classList.remove('no-scroll');
       }
       menuOpenControls?.addEventListener('click', ()=>{ closeMenu(); openControlsOverlay(); });
-      const transformerUrl = {{ transformer_url|tojson }};
-      menuGenerateTransformer?.addEventListener('click', async () => {
-        closeMenu();
-        if (!transformerUrl) return;
-
-        syncCurrentSheet();
-        validateSheet(currentSheet);
-        delete errorsPerSheet._transformer;
-        renderErrors();
-
-        const localErrors = Object.values(errorsPerSheet).flat();
-        if (localErrors.length) {
-          const firstError = localErrors[0];
-          alert(`Cannot generate transformer. Please resolve the following issue first:\n${firstError}`);
-          return;
-        }
-
-        const selected = {};
-        Object.keys(freeTextFlags).forEach(k => { if (freeTextFlags[k]) selected[k] = true; });
-
-        try {
-          const url = new URL(transformerUrl, window.location.origin);
-          url.searchParams.set('freetext', JSON.stringify(selected));
-          const resp = await fetch(url.toString());
-          if (!resp.ok) {
-            let data = null;
-            try { data = await resp.json(); } catch (e) { data = null; }
-            if (data?.errors?.length) {
-              errorsPerSheet._transformer = data.errors;
-              renderErrors();
-              alert(`Cannot generate transformer. Please resolve the following issue first:\n${data.errors[0]}`);
-            } else {
-              alert('Failed to generate transformer.');
-            }
-            return;
-          }
-
-          delete errorsPerSheet._transformer;
-          renderErrors();
-
-          const blob = await resp.blob();
-          const disposition = resp.headers.get('Content-Disposition') || '';
-          let filename = 'CodesetTransformer.xml';
-          const match = disposition.match(/filename[^;=\n]*=("?)([^";]+)\1/);
-          if (match && match[2]) { filename = match[2]; }
-          const downloadUrl = URL.createObjectURL(blob);
-          const anchor = document.createElement('a');
-          anchor.href = downloadUrl;
-          anchor.download = filename;
-          document.body.appendChild(anchor);
-          anchor.click();
-          anchor.remove();
-          URL.revokeObjectURL(downloadUrl);
-        } catch (err) {
-          alert('Failed to generate transformer.');
-        }
-      });
       controlsOverlayClose?.addEventListener('click', closeControlsOverlay);
       controlsOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeControlsOverlay);
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && controlsOverlay?.classList.contains('open')) closeControlsOverlay(); });
@@ -773,16 +704,6 @@
       const fieldsText = document.getElementById('fields-text');
 
       const errorsPerSheet = {};
-      const STANDARD_PLACEHOLDERS = new Set(['NA', 'N/A']);
-
-      function normalizeValue(val) {
-        return String(val ?? '').trim();
-      }
-
-      function hasMeaningfulStandard(value) {
-        if (!value) return false;
-        return !STANDARD_PLACEHOLDERS.has(value.toUpperCase());
-      }
       function renderErrors() {
         if (!errorsBox || !errorList) return;
         const allErrors = Object.values(errorsPerSheet).flat();
@@ -807,8 +728,6 @@
         const codeCol = info.code_col;
         const displayCol = info.display_col;
         const mappedCol = info.mapped_col;
-        const stdCodeCol = info.std_code_col;
-        const stdDescCol = info.std_col;
         const rows = workbook[sheet] || [];
         const seenCodes = {};
         const errs = [];
@@ -819,16 +738,13 @@
         const mappedIdx = headerList.indexOf(mappedCol);
         if (table) table.querySelectorAll('td').forEach(td => td.classList.remove('error-cell'));
         rows.forEach((row, idx) => {
-          const code    = codeCol ? normalizeValue(row[codeCol]) : '';
-          const display = displayCol ? normalizeValue(row[displayCol]) : '';
-          const mapped  = mappedCol ? normalizeValue(row[mappedCol]) : '';
-          const stdCode = stdCodeCol ? normalizeValue(row[stdCodeCol]) : '';
-          const stdDesc = stdDescCol ? normalizeValue(row[stdDescCol]) : '';
-          const requiresMapping = (code || display) && (hasMeaningfulStandard(stdCode) || hasMeaningfulStandard(stdDesc));
+          const code    = String(row[codeCol] ?? '').trim();
+          const display = String(row[displayCol] ?? '').trim();
+          const mapped  = String(row[mappedCol] ?? '').trim();
           const tr = table ? table.tBodies[0].rows[idx] : null;
           if (code && !display) { errs.push(`On tab "${sheet}" - Code "${code}" does not have a display value`); if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell'); }
           if (display && !code) { errs.push(`On tab "${sheet}" - Display value "${display}" does not have a code`); if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell'); }
-          if (requiresMapping && !mapped) { errs.push(`On tab "${sheet}" - "${code || 'Row ' + (idx + 2)}" does not have a mapped standard description`); if (tr && mappedIdx !== -1) tr.children[mappedIdx].classList.add('error-cell'); }
+          if ((code || display) && !mapped) { errs.push(`On tab "${sheet}" - "${code || 'Row ' + (idx + 2)}" does not have a mapped standard description`); if (tr && mappedIdx !== -1) tr.children[mappedIdx].classList.add('error-cell'); }
           if (mapped && !code) { errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a code`); if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell'); }
           if (mapped && !display) { errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a display value`); if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell'); }
           if (code) {
@@ -895,16 +811,6 @@
         const lockBtn = document.createElement('button'); lockBtn.type='button'; lockBtn.className='btn btn-sm';
         const lockText = document.createElement('span'); lockText.className='ms-2';
         lockDiv.appendChild(lockBtn); lockDiv.appendChild(lockText); container.appendChild(lockDiv);
-
-        const ftDiv = document.createElement('div'); ftDiv.className='form-check form-switch mb-2';
-        const ftInput = document.createElement('input'); ftInput.type='checkbox'; ftInput.className='form-check-input';
-        ftInput.id = 'freetext-' + sheet;
-        ftInput.checked = !!freeTextFlags[sheet];
-        ftInput.addEventListener('change', () => { freeTextFlags[sheet] = ftInput.checked; });
-        const ftLabel = document.createElement('label'); ftLabel.className='form-check-label ms-2';
-        ftLabel.htmlFor = ftInput.id; ftLabel.textContent = 'Free Text';
-        ftDiv.appendChild(ftInput); ftDiv.appendChild(ftLabel);
-        container.appendChild(ftDiv);
 
         const table = document.createElement('table');
         table.className = 'table table-bordered table-sm codeset-table';
