@@ -643,7 +643,7 @@
     }
 
     /* ---------- App wiring ---------- */
-    document.addEventListener('DOMContentLoaded', () => {
+    const initApp = () => {
       const rootEl = document.documentElement;
       const headerEl = document.querySelector('header');
       const toolbarEl = document.getElementById('sheet-toolbar');
@@ -665,7 +665,11 @@
       const menuOpenTheme = document.getElementById('menuOpenTheme');
       function closeMenu(){ menu?.classList.add('d-none'); hamburger?.setAttribute('aria-expanded','false'); menu?.setAttribute('aria-hidden','true'); }
       function openMenu(){ menu?.classList.remove('d-none'); hamburger?.setAttribute('aria-expanded','true'); menu?.setAttribute('aria-hidden','false'); }
-      hamburger?.addEventListener('click', (e)=>{ e.stopPropagation(); menu.classList.contains('d-none') ? openMenu() : closeMenu(); });
+      hamburger?.addEventListener('click', (e)=>{
+        if (!menu) return;
+        e.stopPropagation();
+        menu.classList.contains('d-none') ? openMenu() : closeMenu();
+      });
       document.addEventListener('click', (e)=>{ if (!menu || menu.classList.contains('d-none')) return; if (e.target===hamburger || menu.contains(e.target)) return; closeMenu(); });
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') closeMenu(); });
 
@@ -1167,6 +1171,36 @@
         });
         buttons.appendChild(undoBtn);
 
+        const clearAllBtn = document.createElement('button');
+        clearAllBtn.className = 'btn btn-outline-danger';
+        clearAllBtn.textContent = 'Clear All Rows';
+        clearAllBtn.addEventListener('click', () => {
+          if (sheetLock) return;
+          if (!baseRows.length) return;
+          pushUndoSnapshot(sheet);
+          workbook[sheet] = [createEmptyBaseRow(sheet)];
+          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
+          renderSheet(sheet);
+          validateSheet(sheet);
+        });
+        buttons.appendChild(clearAllBtn);
+
+        const undoBtn = document.createElement('button');
+        undoBtn.className = 'btn btn-outline-secondary';
+        undoBtn.textContent = 'Undo';
+        undoBtn.disabled = !getUndoStack(sheet).length;
+        undoBtn.addEventListener('click', () => {
+          if (sheetLock) return;
+          const stack = getUndoStack(sheet);
+          if (!stack.length) return;
+          const snapshot = stack.pop();
+          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
+          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
+          renderSheet(sheet);
+          validateSheet(sheet);
+        });
+        buttons.appendChild(undoBtn);
+
         const saveBtn = document.createElement('button');
         saveBtn.id = 'export-workbook';
         saveBtn.className = 'btn btn-success';
@@ -1327,7 +1361,13 @@
       });
 
       publishLayoutMetrics();
-    });
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
   </script>
 </body>
 </html>
