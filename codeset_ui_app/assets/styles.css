@@ -9,6 +9,8 @@
     --highlight-color: #fff9c4;
     --table-even-color: #f5f5f5;
     --error-bg: #f8d7da;
+    --app-header-height: 0px;
+    --sheet-toolbar-height: 0px;
 }
 
 [data-theme="light-purple"] {
@@ -48,7 +50,7 @@
 [data-theme="dark-blue"] {
     --background-color: #121212;
     --text-color: #000000;
-	--menu-text-color: #f8f9fa;
+--menu-text-color: #f8f9fa;
     --primary-color: #0d6efd;
     --primary-hover: #0a58ca;
     --secondary-color: #0dcaf0;
@@ -151,6 +153,10 @@ header {
     padding: 20px;
     text-align: center;
     margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 1100;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
 #inline-controls,
@@ -234,9 +240,30 @@ header {
 }
 
 /* --- Tables / grid --- */
+
 .table-wrapper {
+    position: relative;
+    padding-left: 56px;
+}
+
+.table-scroll {
     overflow: auto;
     max-height: 70vh;
+}
+
+.sheet-toolbar {
+    position: sticky;
+    top: calc(var(--app-header-height) + 1rem);
+    z-index: 1050;
+    background: var(--background-color);
+    padding: .75rem .75rem 1rem;
+    margin: -.75rem -.75rem 1rem;
+    border-radius: .75rem;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.sheet-toolbar .row {
+    margin-bottom: 0 !important;
 }
 
 .codeset-table {
@@ -248,12 +275,80 @@ header {
 .codeset-table th,
 .codeset-table td {
     border: 1px solid #ddd;
-    padding: 6px 8px;
 }
 
 .codeset-table th {
+    padding: 6px 8px;
     background-color: var(--primary-color);
     color: #fff;
+}
+
+.codeset-table td {
+    padding: 6px 8px;
+    vertical-align: middle;
+    background-clip: padding-box;
+}
+
+.codeset-table td.clearable-cell {
+    position: relative;
+    padding-left: 64px;
+}
+
+.clear-row-btn {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .375rem;
+    font-size: 1.25rem;
+    line-height: 1;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.15);
+    box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    color: inherit;
+    padding: 0;
+}
+
+.clear-row-btn:hover,
+.clear-row-btn:focus {
+    background: #f8f9fa;
+}
+
+.codeset-table td > .cell-input,
+.codeset-table td > .cell-select,
+.codeset-table td > .cell-text {
+    display: block;
+    width: 100%;
+    min-height: 32px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    background-color: inherit;
+    color: var(--text-color);
+    box-sizing: border-box;
+}
+
+.codeset-table td > .cell-input:disabled,
+.codeset-table td > .cell-select:disabled {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.codeset-table td > .cell-text {
+    display: block;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+#table-wrapper thead th {
+    position: sticky;
+    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
+    z-index: 1020;
 }
 
 .codeset-table tr:nth-child(even) {
@@ -278,6 +373,11 @@ header {
 
 .error-cell {
     background-color: var(--error-bg) !important;
+}
+
+.codeset-table td.column-highlight:not(.error-cell),
+.codeset-table th.column-highlight {
+    background-color: var(--highlight-color) !important;
 }
 
 /* Base highlight tokens (kept for non-form controls) */
@@ -321,6 +421,20 @@ header {
 
 #errors-box {
     color: var(--text-color);
+}
+
+#fields-box p,
+#requirements-box ul,
+#requirements-box li,
+#errors-box ul,
+#errors-box li {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+#requirements-box ul,
+#errors-box ul {
+    padding-left: 1.25rem;
 }
 
 #fields-box .alert-heading,
