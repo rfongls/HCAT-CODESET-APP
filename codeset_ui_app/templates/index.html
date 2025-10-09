@@ -407,36 +407,21 @@
     const initialSheet = {{ initial_sheet|tojson }};
     const initialErrors = {{ initial_errors|tojson }};
     const workbook = {};
-    workbook[initialSheet] = {{ base_records|tojson }};
+    if (initialSheet) {
+      workbook[initialSheet] = {{ base_records|tojson }};
+    }
     const comparisonData = {};
-    comparisonData[initialSheet] = {{ compare_records|tojson }};
+    if (initialSheet) {
+      comparisonData[initialSheet] = {{ compare_records|tojson }};
+    }
     const originalFilename = {{ filename|tojson }};
     const hasSelectedWorkbook = {{ 'true' if selected_workbook else 'false' }};
+    const initialErrors = {{ initial_errors|tojson }};
+    const undoStacks = {};
+    const MAX_UNDO_ENTRIES = 20;
+    const STANDARD_PLACEHOLDERS = new Set(['NA', 'N/A']);
     let sheetLock = false;
     let currentSheet = initialSheet;
-
-    const UNDO_LIMIT = 25;
-    const undoStack = [];
-
-    function cloneState(source) {
-      return JSON.parse(JSON.stringify(source));
-    }
-
-    function updateUndoButtonState() {
-      const undoBtn = document.getElementById('undo-button');
-      if (undoBtn) undoBtn.disabled = sheetLock || undoStack.length === 0;
-    }
-
-    function pushUndoState() {
-      const snapshot = {
-        workbook: cloneState(workbook),
-        comparison: cloneState(comparisonData),
-        sheetLock
-      };
-      undoStack.push(snapshot);
-      if (undoStack.length > UNDO_LIMIT) undoStack.shift();
-      updateUndoButtonState();
-    }
 
     /* ---------- shared controls wiring (inline & overlay) ---------- */
     function wireControls(scope){
@@ -750,6 +735,40 @@
       const fieldsText = document.getElementById('fields-text');
 
       const errorsPerSheet = {};
+
+      function getUndoStack(sheet) {
+        if (!undoStacks[sheet]) {
+          undoStacks[sheet] = [];
+        }
+        return undoStacks[sheet];
+      }
+
+      function pushUndoSnapshot(sheet) {
+        if (!sheet) return;
+        const stack = getUndoStack(sheet);
+        const snapshot = {
+          workbook: JSON.parse(JSON.stringify(workbook[sheet] || [])),
+          comparison: JSON.parse(JSON.stringify(comparisonData[sheet] || [])),
+        };
+        stack.push(snapshot);
+        if (stack.length > MAX_UNDO_ENTRIES) {
+          stack.shift();
+        }
+      }
+
+      function normalizeValue(val) {
+        return String(val ?? '').trim();
+      }
+
+      function hasMeaningfulStandard(value) {
+        if (!value) return false;
+        return !STANDARD_PLACEHOLDERS.has(value.toUpperCase());
+      }
+
+      function formatClientError(sheet, rowLabel, detail) {
+        const label = typeof rowLabel === 'number' ? `Row ${rowLabel}` : rowLabel;
+        return `Tab "${sheet}" - ${label} - ${detail}`;
+      }
       function renderErrors() {
         if (!errorsBox || !errorList) return;
         const allErrors = Object.values(errorsPerSheet).flat();
@@ -764,41 +783,16 @@
         }
       }
 
-      if (Array.isArray(initialErrors) && initialErrors.length) {
-        const buckets = {};
-        const codeDisplayRows = new Set();
-        initialErrors.forEach(msg => {
-          if (typeof msg !== 'string') return;
-          const match = msg.match(/^Tab "([^"]+)" - Row (\d+) - (.+)$/);
-          let sheetKey = '_general';
-          let rowNumber = null;
-          let detail = msg;
-          if (match) {
-            sheetKey = match[1];
-            rowNumber = Number(match[2]);
-            detail = match[3];
+      if (Array.isArray(initialErrors)) {
+        initialErrors.forEach(message => {
+          if (typeof message !== 'string') return;
+          const match = message.match(/^Tab "(.+?)" - /);
+          const sheet = match ? match[1] : null;
+          if (!sheet) return;
+          const list = errorsPerSheet[sheet] || (errorsPerSheet[sheet] = []);
+          if (!list.includes(message)) {
+            list.push(message);
           }
-          const rowKey = rowNumber ? `${sheetKey}|${rowNumber}` : null;
-          if (
-            rowKey &&
-            detail.startsWith('Mapped standard description') &&
-            detail.includes('display value') &&
-            codeDisplayRows.has(rowKey)
-          ) {
-            return;
-          }
-          if (
-            rowKey &&
-            detail.startsWith('Code') &&
-            detail.includes('display value')
-          ) {
-            codeDisplayRows.add(rowKey);
-          }
-          if (!buckets[sheetKey]) buckets[sheetKey] = [];
-          buckets[sheetKey].push(match ? msg : detail);
-        });
-        Object.entries(buckets).forEach(([sheet, msgs]) => {
-          errorsPerSheet[sheet] = msgs;
         });
         renderErrors();
       }
@@ -814,76 +808,128 @@
         const displayCol = info.display_col;
         const mappedCol = info.mapped_col;
         const rows = workbook[sheet] || [];
-        const seenCodes = {};
-        const duplicateInfo = new Map();
         const errs = [];
         const table = document.querySelector('#table-wrapper table');
         const headerList = renderHeaders[sheet] || [];
-        const codeIdx = headerList.indexOf(codeCol);
-        const displayIdx = headerList.indexOf(displayCol);
-        const mappedIdx = headerList.indexOf(mappedCol);
-        const markCell = (rowEl, colIdx) => {
-          if (!rowEl || colIdx === -1) return;
-          const cell = rowEl.children[colIdx];
-          if (cell) cell.classList.add('error-cell');
-        };
-        if (table) table.querySelectorAll('td').forEach(td => td.classList.remove('error-cell'));
+        const codeIdx = codeCol ? headerList.indexOf(codeCol) : -1;
+        const displayIdx = displayCol ? headerList.indexOf(displayCol) : -1;
+        const mappedIdx = mappedCol ? headerList.indexOf(mappedCol) : -1;
+        const tbody = table ? table.tBodies[0] : null;
+        const codeToRows = {};
+
+        if (table) {
+          table.querySelectorAll('td').forEach(td => td.classList.remove('error-cell'));
+        }
+
         rows.forEach((row, idx) => {
-          const code    = String(row[codeCol] ?? '').trim();
-          const display = String(row[displayCol] ?? '').trim();
-          const mapped  = String(row[mappedCol] ?? '').trim();
-          const tr = table ? table.tBodies[0].rows[idx] : null;
-          if (code && !display) { errs.push(`On tab "${sheet}" - Code "${code}" does not have a display value`); if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell'); }
-          if (display && !code) { errs.push(`On tab "${sheet}" - Display value "${display}" does not have a code`); if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell'); }
-          if ((code || display) && !mapped) { errs.push(`On tab "${sheet}" - "${code || 'Row ' + (idx + 2)}" does not have a mapped standard description`); if (tr && mappedIdx !== -1) tr.children[mappedIdx].classList.add('error-cell'); }
-          if (mapped && !code) { errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a code`); if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell'); }
-          if (mapped && !display) { errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a display value`); if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell'); }
+          const rowNum = idx + 2;
+          const code = codeCol ? normalizeValue(row[codeCol]) : '';
+          const display = displayCol ? normalizeValue(row[displayCol]) : '';
+          const mapped = mappedCol ? normalizeValue(row[mappedCol]) : '';
+          const stdCode = stdCodeCol ? normalizeValue(row[stdCodeCol]) : '';
+          const stdDesc = stdDescCol ? normalizeValue(row[stdDescCol]) : '';
+          const hasStandard = hasMeaningfulStandard(stdCode) || hasMeaningfulStandard(stdDesc);
+          const rowEl = tbody && tbody.rows ? tbody.rows[idx] : null;
+
           if (code) {
-            if (Object.prototype.hasOwnProperty.call(seenCodes, code)) {
-              const firstIdx = seenCodes[code];
-              markCell(tr, codeIdx);
-              const other = table ? table.tBodies[0].rows[firstIdx] : null;
-              markCell(other, codeIdx);
-              const existing = duplicateInfo.get(code) || new Set([firstIdx]);
-              existing.add(idx);
-              duplicateInfo.set(code, existing);
-            } else {
-              seenCodes[code] = idx;
-            }
+            (codeToRows[code] = codeToRows[code] || []).push(idx);
+          }
+
+          if (code && !display) {
+            errs.push(formatClientError(sheet, rowNum, `Code '${code}' is missing a display value`));
+            if (rowEl && displayIdx > -1) rowEl.children[displayIdx].classList.add('error-cell');
+          }
+
+          if (display && !code) {
+            errs.push(formatClientError(sheet, rowNum, `Display value '${display}' is missing a code`));
+            if (rowEl && codeIdx > -1) rowEl.children[codeIdx].classList.add('error-cell');
+          }
+
+          if (hasStandard && (code || display) && !mapped) {
+            const mappedLabel = (mappedCol || 'MAPPED_STD_DESCRIPTION').replace(/_/g, ' ');
+            const detail = code
+              ? `${mappedLabel} is required when a standard code/description is present for code '${code}'`
+              : `${mappedLabel} is required when a standard code/description is present`;
+            errs.push(formatClientError(sheet, rowNum, detail));
+            if (rowEl && mappedIdx > -1) rowEl.children[mappedIdx].classList.add('error-cell');
+          }
+
+          if (mapped && !code) {
+            errs.push(formatClientError(sheet, rowNum, `Mapped standard description '${mapped}' is missing a code`));
+            if (rowEl && codeIdx > -1) rowEl.children[codeIdx].classList.add('error-cell');
+          }
+
+          if (mapped && !display && !(code && !display)) {
+            errs.push(formatClientError(sheet, rowNum, `Mapped standard description '${mapped}' is missing a display value`));
+            if (rowEl && displayIdx > -1) rowEl.children[displayIdx].classList.add('error-cell');
           }
         });
-        duplicateInfo.forEach((rowSet, code) => {
-          if (!(rowSet instanceof Set)) return;
-          const rowList = Array.from(rowSet).sort((a, b) => a - b);
-          rowList.forEach(rowIdx => {
-            const rowNumber = rowIdx + 2;
-            const others = rowList.filter(r => r !== rowIdx).map(r => r + 2);
-            if (!others.length) return;
+
+        Object.entries(codeToRows).forEach(([code, indexes]) => {
+          if (!indexes || indexes.length < 2) return;
+          indexes.forEach((rowIdx, pos) => {
+            const others = indexes.filter((_, i) => i !== pos).map(i => i + 2);
             const detail = others.length === 1
               ? `Code '${code}' duplicates row ${others[0]}`
               : `Code '${code}' duplicates rows ${others.join(', ')}`;
-            errs.push(formatErrorMessage(sheet, rowNumber, detail));
+            errs.push(formatClientError(sheet, rowIdx + 2, detail));
+            if (tbody && codeIdx > -1 && tbody.rows[rowIdx]) {
+              tbody.rows[rowIdx].children[codeIdx].classList.add('error-cell');
+            }
           });
         });
+
         errorsPerSheet[sheet] = errs;
         renderErrors();
       }
       function createInput(sheet, header, value = '') {
-        if (header.endsWith('_COMPARE')) { const s = document.createElement('span'); s.textContent = value || ''; return s; }
-        const key = header.toUpperCase().replace(/\s+/g, '_');
         const mapInfo = mappings[sheet] || {};
         const opts = dropdowns[sheet] && dropdowns[sheet][header];
+        if (header.endsWith('_COMPARE')) {
+          const span = document.createElement('span');
+          span.className = 'cell-text';
+          span.textContent = value || '';
+          return span;
+        }
+        const key = header.toUpperCase().replace(/\s+/g, '_');
         if (mapInfo.mapped_col && header === mapInfo.mapped_col && opts) {
           const sel = document.createElement('select');
-          sel.className = 'mapped-select'; sel.dataset.sheet = sheet; sel.dataset.col = header;
-          const blank = document.createElement('option'); blank.value = ''; blank.textContent = ''; if (!value) blank.selected = true;
+          sel.className = 'cell-select mapped-select';
+          sel.dataset.sheet = sheet;
+          sel.dataset.col = header;
+          const blank = document.createElement('option');
+          blank.value = '';
+          blank.textContent = '';
+          if (!value) blank.selected = true;
           sel.appendChild(blank);
-          opts.forEach(o => { const op = document.createElement('option'); op.value = o; op.textContent = o; if (o === value) op.selected = true; sel.appendChild(op); });
+          opts.forEach(optionValue => {
+            const option = document.createElement('option');
+            option.value = optionValue;
+            option.textContent = optionValue;
+            if (optionValue === value) option.selected = true;
+            sel.appendChild(option);
+          });
           return sel;
         }
-        if (key === 'CODE' || key === 'DISPLAY_VALUE') { const i = document.createElement('input'); i.type='text'; i.value=value || ''; return i; }
-        if (mapInfo.sub_col && header === mapInfo.sub_col) { const i = document.createElement('input'); i.type='text'; i.readOnly=true; i.value=value || ''; return i; }
-        const s = document.createElement('span'); s.textContent = value || ''; return s;
+        if (key === 'CODE' || key === 'DISPLAY_VALUE') {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = value || '';
+          input.className = 'cell-input';
+          return input;
+        }
+        if (mapInfo.sub_col && header === mapInfo.sub_col) {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.readOnly = true;
+          input.value = value || '';
+          input.className = 'cell-input';
+          return input;
+        }
+        const span = document.createElement('span');
+        span.className = 'cell-text';
+        span.textContent = value || '';
+        return span;
       }
       function readSheet(table, sheet) {
         const baseRows = [], compRows = [];
@@ -904,6 +950,42 @@
           baseRows.push(baseObj); compRows.push(compObj);
         });
         return {baseRows, compRows};
+      }
+
+      function createEmptyBaseRow(sheet) {
+        const baseRow = {};
+        (renderHeaders[sheet] || []).forEach(header => {
+          if (!header.endsWith('_COMPARE')) {
+            baseRow[header] = '';
+          }
+        });
+        const info = mappings[sheet] || {};
+        (info.hidden_cols || []).forEach(col => {
+          if (baseRow[col] === undefined) {
+            baseRow[col] = '';
+          }
+        });
+        return baseRow;
+      }
+
+      function createEmptyComparisonRow(sheet) {
+        const compRow = {};
+        (renderHeaders[sheet] || []).forEach(header => {
+          if (header.endsWith('_COMPARE')) {
+            compRow[header] = '';
+          }
+        });
+        return compRow;
+      }
+
+      function isSheetEmpty(sheet) {
+        const rows = workbook[sheet] || [];
+        if (!rows.length) {
+          return true;
+        }
+        return rows.every(row => {
+          return Object.values(row || {}).every(value => normalizeValue(value) === '');
+        });
       }
       function syncCurrentSheet() {
         const table = document.querySelector('#table-wrapper table');
@@ -938,12 +1020,32 @@
       function renderSheet(sheet) {
         const container = document.getElementById('table-wrapper');
         const buttons = document.getElementById('table-buttons');
-        container.innerHTML = ''; buttons.innerHTML = '';
+        container.innerHTML = '';
+        buttons.innerHTML = '';
 
-        const lockDiv = document.createElement('div'); lockDiv.className = 'mb-2';
-        const lockBtn = document.createElement('button'); lockBtn.type='button'; lockBtn.className='btn btn-sm';
-        const lockText = document.createElement('span'); lockText.className='ms-2';
-        lockDiv.appendChild(lockBtn); lockDiv.appendChild(lockText); container.appendChild(lockDiv);
+        if (!workbook[sheet]) workbook[sheet] = [];
+        if (!comparisonData[sheet]) comparisonData[sheet] = [];
+        const baseRows = workbook[sheet];
+        const compRows = comparisonData[sheet];
+
+        if (!baseRows.length) {
+          baseRows.push(createEmptyBaseRow(sheet));
+          compRows.push(createEmptyComparisonRow(sheet));
+        }
+
+        const lockDiv = document.createElement('div');
+        lockDiv.className = 'mb-2';
+        const lockBtn = document.createElement('button');
+        lockBtn.type = 'button';
+        lockBtn.className = 'btn btn-sm';
+        const lockText = document.createElement('span');
+        lockText.className = 'ms-2';
+        lockDiv.appendChild(lockBtn);
+        lockDiv.appendChild(lockText);
+        container.appendChild(lockDiv);
+
+        const scrollContainer = document.createElement('div');
+        scrollContainer.className = 'table-scroll';
 
         const table = document.createElement('table');
         table.className = 'table table-bordered table-sm codeset-table';
@@ -951,81 +1053,50 @@
 
         const thead = document.createElement('thead');
         const headRow = document.createElement('tr');
-        renderHeaders[sheet].forEach(h => {
+        renderHeaders[sheet].forEach(header => {
           const th = document.createElement('th');
-          th.textContent = h.replace(/_/g, ' ');
-          if (h.endsWith('_COMPARE')) th.classList.add('compare-col', 'compare-header');
+          th.textContent = header.replace(/_/g, ' ');
+          if (header.endsWith('_COMPARE')) {
+            th.classList.add('compare-col', 'compare-header');
+          }
           headRow.appendChild(th);
         });
         thead.appendChild(headRow);
         table.appendChild(thead);
 
         const tbody = document.createElement('tbody');
-        const mapInfo = mappings[sheet] || {};
-        const codeHeader = mapInfo.code_col || (renderHeaders[sheet][0] || '');
+        const codeColName = (mappings[sheet] || {}).code_col;
 
-        let highlightedColumn = -1;
-
-        function clearColumnHighlight() {
-          table.querySelectorAll('.column-highlight').forEach(cell => cell.classList.remove('column-highlight'));
-          highlightedColumn = -1;
-        }
-
-        function setColumnHighlight(index) {
-          if (index === highlightedColumn || index < 0) return;
-          clearColumnHighlight();
-          table.querySelectorAll('tr').forEach(row => {
-            const cell = row.children[index];
-            if (cell) cell.classList.add('column-highlight');
-          });
-          highlightedColumn = index;
-        }
-
-        function makeClearButton(rowEl) {
-          const clearBtn = document.createElement('button');
-          clearBtn.type = 'button';
-          clearBtn.className = 'hamburger-btn row-clear-btn';
-          clearBtn.setAttribute('aria-label', 'Clear row');
-          clearBtn.textContent = '×';
-          clearBtn.disabled = sheetLock;
-          clearBtn.addEventListener('click', () => {
-            if (sheetLock) return;
-            syncCurrentSheet();
-            const rowIndex = Array.from(tbody.children).indexOf(rowEl);
-            const sheetRows = workbook[sheet] || [];
-            const compRows = comparisonData[sheet] || [];
-            if (rowIndex < 0 || rowIndex >= sheetRows.length) return;
-            pushUndoState();
-            sheetRows.splice(rowIndex, 1);
-            if (rowIndex < compRows.length) compRows.splice(rowIndex, 1);
-            workbook[sheet] = sheetRows;
-            comparisonData[sheet] = compRows;
-            currentSheet = sheet;
-            renderSheet(sheet);
-            validateSheet(sheet);
-            renderFieldNote(sheet);
-          });
-          return clearBtn;
-        }
-
-        function buildRow(rowData = {}, compData = {}) {
+        function buildRow(baseRow, compRow, rowIndex) {
           const tr = document.createElement('tr');
-          renderHeaders[sheet].forEach(h => {
+          renderHeaders[sheet].forEach(header => {
             const td = document.createElement('td');
-            if (h.endsWith('_COMPARE')) td.classList.add('compare-col');
-            const value = h.endsWith('_COMPARE') ? compData[h] : rowData[h];
-            const input = createInput(sheet, h, value);
-            if (h === codeHeader && !h.endsWith('_COMPARE')) {
-              td.classList.add('code-with-clear');
-              if (input) {
-                if (input.tagName === 'INPUT') {
-                  input.classList.add('code-input');
-                }
-                td.appendChild(input);
-              }
-              const clearBtn = makeClearButton(tr);
+            td.dataset.col = header;
+            if (header.endsWith('_COMPARE')) {
+              td.classList.add('compare-col');
+            }
+            const value = header.endsWith('_COMPARE') ? (compRow ? compRow[header] : '') : (baseRow ? baseRow[header] : '');
+            const input = createInput(sheet, header, value);
+            if (!header.endsWith('_COMPARE') && header === codeColName) {
+              td.classList.add('clearable-cell');
+              const clearBtn = document.createElement('button');
+              clearBtn.type = 'button';
+              clearBtn.className = 'clear-row-btn';
+              clearBtn.setAttribute('aria-label', 'Clear row');
+              clearBtn.textContent = '×';
+              clearBtn.addEventListener('click', () => {
+                if (sheetLock) return;
+                pushUndoSnapshot(sheet);
+                baseRows.splice(rowIndex, 1);
+                compRows.splice(rowIndex, 1);
+                baseRows.push(createEmptyBaseRow(sheet));
+                compRows.push(createEmptyComparisonRow(sheet));
+                renderSheet(sheet);
+                validateSheet(sheet);
+              });
               td.appendChild(clearBtn);
-            } else if (input) {
+            }
+            if (input) {
               td.appendChild(input);
             }
             tr.appendChild(td);
@@ -1033,23 +1104,25 @@
           return tr;
         }
 
-        const rows = workbook[sheet] || [];
-        rows.forEach((row, idx) => {
-          const comp = (comparisonData[sheet] || [])[idx] || {};
-          const tr = buildRow(row, comp);
-          tbody.appendChild(tr);
+        baseRows.forEach((row, idx) => {
+          tbody.appendChild(buildRow(row, compRows[idx] || {}, idx));
         });
-        table.appendChild(tbody); container.appendChild(table);
+
+        table.appendChild(tbody);
+        scrollContainer.appendChild(table);
+        container.appendChild(scrollContainer);
         enableColumnHighlight(table);
 
         const addBtn = document.createElement('button');
-        addBtn.className = 'btn btn-primary'; addBtn.textContent = 'Add Row';
+        addBtn.className = 'btn btn-primary';
+        addBtn.textContent = 'Add Row';
         addBtn.addEventListener('click', () => {
-          const tr = buildRow();
-          tbody.appendChild(tr);
-          const newButton = tr.querySelector('.row-clear-btn');
-          if (newButton) newButton.disabled = sheetLock;
-          clearAllBtn.disabled = sheetLock;
+          if (sheetLock) return;
+          pushUndoSnapshot(sheet);
+          baseRows.push(createEmptyBaseRow(sheet));
+          compRows.push(createEmptyComparisonRow(sheet));
+          renderSheet(sheet);
+          validateSheet(sheet);
         });
         buttons.appendChild(addBtn);
         buttons.appendChild(clearAllBtn);
@@ -1064,45 +1137,112 @@
         });
         buttons.appendChild(undoBtn);
 
+        const clearAllBtn = document.createElement('button');
+        clearAllBtn.className = 'btn btn-outline-danger';
+        clearAllBtn.textContent = 'Clear All Rows';
+        clearAllBtn.addEventListener('click', () => {
+          if (sheetLock) return;
+          if (!baseRows.length) return;
+          pushUndoSnapshot(sheet);
+          workbook[sheet] = [createEmptyBaseRow(sheet)];
+          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
+          renderSheet(sheet);
+          validateSheet(sheet);
+        });
+        buttons.appendChild(clearAllBtn);
+
+        const undoBtn = document.createElement('button');
+        undoBtn.className = 'btn btn-outline-secondary';
+        undoBtn.textContent = 'Undo';
+        undoBtn.disabled = !getUndoStack(sheet).length;
+        undoBtn.addEventListener('click', () => {
+          if (sheetLock) return;
+          const stack = getUndoStack(sheet);
+          if (!stack.length) return;
+          const snapshot = stack.pop();
+          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
+          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
+          renderSheet(sheet);
+          validateSheet(sheet);
+        });
+        buttons.appendChild(undoBtn);
+
         const saveBtn = document.createElement('button');
-        saveBtn.id='export-workbook'; saveBtn.className='btn btn-success'; saveBtn.textContent='Export Workbook';
+        saveBtn.id = 'export-workbook';
+        saveBtn.className = 'btn btn-success';
+        saveBtn.textContent = 'Export Workbook';
         saveBtn.addEventListener('click', async () => {
-          syncCurrentSheet(); validateSheet(currentSheet);
-          const resp = await fetch('/export', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({data: workbook, locks: sheetLock}) });
-          if (resp.ok) { await resp.json().catch(()=>{}); renderErrors(); alert('Workbook saved to repository'); }
-          else {
+          syncCurrentSheet();
+          validateSheet(currentSheet);
+          const resp = await fetch('/export', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ data: workbook, locks: sheetLock })
+          });
+          if (resp.ok) {
+            await resp.json().catch(() => {});
+            renderErrors();
+            alert('Workbook saved to repository');
+          } else {
             try {
               const data = await resp.json();
-              if (data.errors) { errorsBox.classList.remove('d-none'); errorList.innerHTML = data.errors.map(e=>`<li>${e}</li>`).join(''); }
-              else { errorsBox.classList.remove('d-none'); errorList.innerHTML = '<li>Export failed</li>'; }
-            } catch { errorsBox.classList.remove('d-none'); errorList.innerHTML = '<li>Export failed</li>'; }
+              if (data.errors) {
+                errorsBox.classList.remove('d-none');
+                errorList.innerHTML = data.errors.map(e => `<li>${e}</li>`).join('');
+              } else {
+                errorsBox.classList.remove('d-none');
+                errorList.innerHTML = '<li>Export failed</li>';
+              }
+            } catch {
+              errorsBox.classList.remove('d-none');
+              errorList.innerHTML = '<li>Export failed</li>';
+            }
           }
         });
         buttons.appendChild(saveBtn);
 
-        const importInput = document.createElement('input'); importInput.type='file'; importInput.accept='.xlsx'; importInput.style.display='none';
-        const importBtn = document.createElement('button'); importBtn.type='button'; importBtn.className='btn btn-secondary'; importBtn.textContent='Import Workbook';
+        const importInput = document.createElement('input');
+        importInput.type = 'file';
+        importInput.accept = '.xlsx';
+        importInput.style.display = 'none';
+        const importBtn = document.createElement('button');
+        importBtn.type = 'button';
+        importBtn.className = 'btn btn-secondary';
+        importBtn.textContent = 'Import Workbook';
         importBtn.addEventListener('click', () => importInput.click());
         importInput.addEventListener('change', async () => {
           if (!importInput.files.length) return;
-          const fd = new FormData(); fd.append('workbook', importInput.files[0]);
-          const resp = await fetch('/import', { method:'POST', body: fd }); if (resp.ok) location.reload();
+          const fd = new FormData();
+          fd.append('workbook', importInput.files[0]);
+          const resp = await fetch('/import', { method: 'POST', body: fd });
+          if (resp.ok) location.reload();
         });
-        buttons.appendChild(importBtn); buttons.appendChild(importInput);
+        buttons.appendChild(importBtn);
+        buttons.appendChild(importInput);
 
-        function applyLockState(){
+        function applyLockState() {
           const locked = sheetLock;
           lockBtn.textContent = locked ? '🔒' : '🔓';
           lockBtn.className = `btn btn-sm ${locked ? 'btn-lock-protected' : 'btn-lock-unprotected'}`;
           lockBtn.setAttribute('aria-pressed', String(locked));
           lockText.textContent = locked ? 'Workbook Protected' : 'Workbook Unprotected';
-          table.querySelectorAll('input, select').forEach(el => { el.disabled = locked; });
+          table.querySelectorAll('input, select').forEach(el => {
+            el.disabled = locked;
+          });
           addBtn.disabled = locked;
-          clearAllBtn.disabled = locked || tbody.children.length === 0;
-          tbody.querySelectorAll('.row-clear-btn').forEach(btn => { btn.disabled = locked; });
-          updateUndoButtonState();
+          clearAllBtn.disabled = locked || isSheetEmpty(sheet);
+          undoBtn.disabled = locked || !getUndoStack(sheet).length;
+          table.querySelectorAll('.clear-row-btn').forEach(btn => {
+            btn.disabled = locked;
+          });
         }
-        lockBtn.addEventListener('click', () => { sheetLock = !sheetLock; applyLockState(); publishLayoutMetrics(); });
+
+        lockBtn.addEventListener('click', () => {
+          sheetLock = !sheetLock;
+          applyLockState();
+          publishLayoutMetrics();
+        });
+
         applyLockState();
         publishLayoutMetrics();
       }

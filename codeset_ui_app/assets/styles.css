@@ -240,7 +240,13 @@ header {
 }
 
 /* --- Tables / grid --- */
+
 .table-wrapper {
+    position: relative;
+    padding-left: 56px;
+}
+
+.table-scroll {
     overflow: auto;
     max-height: 70vh;
     position: relative;
@@ -267,6 +273,21 @@ header {
 }
 
 .active-sheet-toolbar .row {
+    margin-bottom: 0 !important;
+}
+
+.sheet-toolbar {
+    position: sticky;
+    top: calc(var(--app-header-height) + 1rem);
+    z-index: 1050;
+    background: var(--background-color);
+    padding: .75rem .75rem 1rem;
+    margin: -.75rem -.75rem 1rem;
+    border-radius: .75rem;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.sheet-toolbar .row {
     margin-bottom: 0 !important;
 }
 
@@ -409,6 +430,74 @@ header {
     background-color: inherit;
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
     box-sizing: border-box;
+}
+
+#table-wrapper thead th {
+    position: sticky;
+    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
+    z-index: 1020;
+}
+
+.codeset-table td {
+    padding: 6px 8px;
+    vertical-align: middle;
+    background-clip: padding-box;
+}
+
+.codeset-table td.clearable-cell {
+    position: relative;
+    padding-left: 64px;
+}
+
+.clear-row-btn {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .375rem;
+    font-size: 1.25rem;
+    line-height: 1;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.15);
+    box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    color: inherit;
+    padding: 0;
+}
+
+.clear-row-btn:hover,
+.clear-row-btn:focus {
+    background: #f8f9fa;
+}
+
+.codeset-table td > .cell-input,
+.codeset-table td > .cell-select,
+.codeset-table td > .cell-text {
+    display: block;
+    width: 100%;
+    min-height: 32px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    background-color: inherit;
+    color: var(--text-color);
+    box-sizing: border-box;
+}
+
+.codeset-table td > .cell-input:disabled,
+.codeset-table td > .cell-select:disabled {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.codeset-table td > .cell-text {
+    display: block;
+    padding-top: 6px;
+    padding-bottom: 6px;
 }
 
 #table-wrapper thead th {
