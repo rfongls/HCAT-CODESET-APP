@@ -1060,6 +1060,23 @@
         const mapInfo = mappings[sheet] || {};
         const codeHeader = mapInfo.code_col || (renderHeaders[sheet][0] || '');
 
+        let highlightedColumn = -1;
+
+        function clearColumnHighlight() {
+          table.querySelectorAll('.column-highlight').forEach(cell => cell.classList.remove('column-highlight'));
+          highlightedColumn = -1;
+        }
+
+        function setColumnHighlight(index) {
+          if (index === highlightedColumn || index < 0) return;
+          clearColumnHighlight();
+          table.querySelectorAll('tr').forEach(row => {
+            const cell = row.children[index];
+            if (cell) cell.classList.add('column-highlight');
+          });
+          highlightedColumn = index;
+        }
+
         function makeClearButton(rowEl) {
           const clearBtn = document.createElement('button');
           clearBtn.type = 'button';
@@ -1120,6 +1137,22 @@
         });
         table.appendChild(tbody);
         container.appendChild(table);
+
+        table.addEventListener('focusin', ev => {
+          const focusCell = ev.target.closest('td, th');
+          if (!focusCell || !table.contains(focusCell)) return;
+          setColumnHighlight(focusCell.cellIndex);
+        });
+
+        table.addEventListener('focusout', ev => {
+          const next = ev.relatedTarget;
+          if (next && table.contains(next)) return;
+          requestAnimationFrame(() => {
+            if (!table.contains(document.activeElement)) {
+              clearColumnHighlight();
+            }
+          });
+        });
 
         const clearAllBtn = document.createElement('button');
         clearAllBtn.type = 'button';

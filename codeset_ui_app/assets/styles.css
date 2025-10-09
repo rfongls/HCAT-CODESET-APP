@@ -244,6 +244,7 @@ header {
     overflow: auto;
     max-height: 70vh;
     position: relative;
+    padding-left: 44px;
 }
 
 #active-sheet-card {
@@ -291,17 +292,17 @@ header {
 
 .codeset-table td {
     padding: 0;
+    position: relative;
 }
 
 .codeset-table td.code-with-clear {
-    position: relative;
-    padding-left: 48px;
+    padding-left: 12px;
 }
 
 .codeset-table td.code-with-clear > .row-clear-btn {
     position: absolute;
     top: 50%;
-    left: 8px;
+    left: -36px;
     transform: translateY(-50%);
     width: 32px;
     height: 32px;
@@ -309,6 +310,9 @@ header {
     align-items: center;
     justify-content: center;
     font-size: 1.25rem;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .codeset-table td.code-with-clear > .row-clear-btn:disabled {
@@ -321,8 +325,8 @@ header {
 .codeset-table td .code-input {
     width: 100%;
     padding: 4px 6px;
-    border: none;
-    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    background: #fff;
     box-sizing: border-box;
     color: inherit;
 }
@@ -331,7 +335,7 @@ header {
 .codeset-table td > select:focus,
 .codeset-table td .code-input:focus {
     outline: 2px solid var(--primary-color);
-    outline-offset: -2px;
+    outline-offset: 0;
 }
 
 .codeset-table td > input[type="text"]:disabled,
@@ -344,6 +348,20 @@ header {
 .codeset-table td > span {
     display: block;
     padding: 4px 6px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    background: #fff;
+}
+
+.codeset-table th.column-highlight,
+.codeset-table td.column-highlight {
+    background-color: var(--highlight-color) !important;
+}
+
+.codeset-table td.column-highlight > input[type="text"],
+.codeset-table td.column-highlight > select,
+.codeset-table td.column-highlight .code-input,
+.codeset-table td.column-highlight > span {
+    background-color: var(--highlight-color);
 }
 
 .codeset-table tr:nth-child(even) {
