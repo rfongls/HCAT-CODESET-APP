@@ -421,12 +421,6 @@ header {
     box-sizing: border-box;
 }
 
-#table-wrapper thead th {
-    position: sticky;
-    top: 0;
-    z-index: 1020;
-}
-
 .codeset-table td {
     padding: 6px 8px;
     vertical-align: middle;
