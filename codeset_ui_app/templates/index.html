@@ -15,7 +15,7 @@
 
   <!-- Minimal extras for hamburger, menu, and overlay -->
   <style>
-    header { position: relative; }
+    header { position: sticky; top: 0; z-index: 1040; }
     .header-menu { position: absolute; top: 12px; right: 16px; }
 
     .hamburger-btn {
@@ -178,18 +178,20 @@
     <hr class="section-divider" aria-hidden="true">
 
     <div class="section-card" id="active-sheet-card">
-      <div class="section-title">Active Sheet</div>
+      <div class="active-sheet-toolbar">
+        <div class="section-title mb-3">Active Sheet</div>
 
-      <div class="row g-2 align-items-end mb-3">
-        <div class="col-12 col-md-8">
-          <select id="sheet-select" class="form-select">
-            {% for sheet in sheet_names %}
-            <option value="{{ sheet }}" {% if sheet == initial_sheet %}selected{% endif %}>{{ sheet }}</option>
-            {% endfor %}
-          </select>
+        <div class="row g-2 align-items-end">
+          <div class="col-12 col-md-8">
+            <select id="sheet-select" class="form-select">
+              {% for sheet in sheet_names %}
+              <option value="{{ sheet }}" {% if sheet == initial_sheet %}selected{% endif %}>{{ sheet }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="d-none d-md-block col-md-2"></div>
+          <div class="d-none d-md-block col-md-2"></div>
         </div>
-        <div class="d-none d-md-block col-md-2"></div>
-        <div class="d-none d-md-block col-md-2"></div>
       </div>
 
       <div class="row">
@@ -398,6 +400,7 @@
     const fieldNotes = {{ field_notes|tojson }};
     const sheetNames = {{ sheet_names|tojson }};
     const initialSheet = {{ initial_sheet|tojson }};
+    const initialErrors = {{ initial_errors|tojson }};
     const workbook = {};
     workbook[initialSheet] = {{ base_records|tojson }};
     const comparisonData = {};
@@ -408,6 +411,29 @@
     let currentSheet = initialSheet;
     const freeTextFlags = {};
     sheetNames.forEach(s => { freeTextFlags[s] = false; });
+
+    const UNDO_LIMIT = 25;
+    const undoStack = [];
+
+    function cloneState(source) {
+      return JSON.parse(JSON.stringify(source));
+    }
+
+    function updateUndoButtonState() {
+      const undoBtn = document.getElementById('undo-button');
+      if (undoBtn) undoBtn.disabled = sheetLock || undoStack.length === 0;
+    }
+
+    function pushUndoState() {
+      const snapshot = {
+        workbook: cloneState(workbook),
+        comparison: cloneState(comparisonData),
+        sheetLock
+      };
+      undoStack.push(snapshot);
+      if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+      updateUndoButtonState();
+    }
 
     /* ---------- shared controls wiring (inline & overlay) ---------- */
     function wireControls(scope){
@@ -635,6 +661,16 @@
 
     /* ---------- App wiring ---------- */
     document.addEventListener('DOMContentLoaded', () => {
+      const rootElement = document.documentElement;
+      const headerEl = document.querySelector('header');
+      const updateHeaderHeight = () => {
+        if (!headerEl) return;
+        const rect = headerEl.getBoundingClientRect();
+        rootElement.style.setProperty('--header-height', `${rect.height}px`);
+      };
+      updateHeaderHeight();
+      window.addEventListener('resize', updateHeaderHeight);
+
       wireControls(document.getElementById('inline-controls'));
       wireControls(document.getElementById('overlay-controls'));
 
@@ -775,6 +811,20 @@
       const errorsPerSheet = {};
       const STANDARD_PLACEHOLDERS = new Set(['NA', 'N/A']);
 
+      function restoreUndoState() {
+        if (!undoStack.length) return;
+        const snapshot = undoStack.pop();
+        Object.keys(workbook).forEach(k => delete workbook[k]);
+        Object.entries(snapshot.workbook || {}).forEach(([k, v]) => { workbook[k] = v; });
+        Object.keys(comparisonData).forEach(k => delete comparisonData[k]);
+        Object.entries(snapshot.comparison || {}).forEach(([k, v]) => { comparisonData[k] = v; });
+        sheetLock = snapshot.sheetLock;
+        renderSheet(currentSheet);
+        validateSheet(currentSheet);
+        renderFieldNote(currentSheet);
+        updateUndoButtonState();
+      }
+
       function normalizeValue(val) {
         return String(val ?? '').trim();
       }
@@ -795,6 +845,75 @@
           errorList.innerHTML = '';
           exportErrorsBtn?.classList.add('d-none');
         }
+      }
+
+      if (Array.isArray(initialErrors) && initialErrors.length) {
+        const bucket = {};
+        const normalizedMessages = [];
+        initialErrors.forEach(msg => {
+          if (typeof msg !== 'string') return;
+
+          let sheetKey = '_general';
+          let formatted = msg;
+          let rowKey = null;
+          let kind = null;
+
+          const clientMatch = msg.match(/^On tab "([^"]+)"/);
+          if (clientMatch) {
+            sheetKey = clientMatch[1];
+          } else {
+            const colonMatch = msg.match(/^([^:]+?)\s+row(?:s)?\s+([^:]+):\s*(.+)$/i);
+            const rowMatch = colonMatch ? null : msg.match(/^([^:]+?)\s+row(?:s)?\s+([^:]+?)\s+(.*)$/i);
+            const sheetMatch = colonMatch || rowMatch;
+            if (sheetMatch) {
+              const [, sheet, rows, detail] = sheetMatch;
+              const normalizedRows = rows.trim();
+              const plural = /,|\band\b|\bto\b|\bthrough\b|-/i.test(normalizedRows) ? 'Rows' : 'Row';
+              sheetKey = sheet.trim() || '_general';
+              const detailText = (colonMatch ? sheetMatch[3] : detail || '').trim();
+              const suffix = detailText ? `: ${detailText}` : '';
+              formatted = `On tab "${sheetKey}" - ${plural} ${normalizedRows}${suffix}`;
+              if (/^\d+$/.test(normalizedRows)) {
+                rowKey = `${sheetKey}|${normalizedRows}`;
+                const detailUpper = detailText.toUpperCase();
+                if (detailUpper === 'DISPLAY VALUE REQUIRED WHEN CODE IS PROVIDED') {
+                  kind = 'display-code';
+                } else if (detailUpper.startsWith('DISPLAY VALUE REQUIRED WHEN')) {
+                  if (detailUpper.includes('MAPPED')) {
+                    kind = 'display-mapped';
+                  }
+                }
+              }
+            } else {
+              const genericMatch = msg.match(/^([^:]+?):\s*(.+)$/);
+              if (genericMatch) {
+                sheetKey = genericMatch[1].trim();
+                formatted = `On tab "${sheetKey}" - ${genericMatch[2].trim()}`;
+              }
+            }
+          }
+
+          normalizedMessages.push({ sheet: sheetKey, formatted, rowKey, kind });
+        });
+
+        const displayCodeRows = new Set(
+          normalizedMessages
+            .filter(item => item.kind === 'display-code' && item.rowKey)
+            .map(item => item.rowKey)
+        );
+
+        normalizedMessages
+          .filter(item => !(item.kind === 'display-mapped' && item.rowKey && displayCodeRows.has(item.rowKey)))
+          .forEach(item => {
+            const { sheet, formatted } = item;
+            if (!bucket[sheet]) bucket[sheet] = [];
+            bucket[sheet].push(formatted);
+          });
+
+        Object.entries(bucket).forEach(([sheet, msgs]) => {
+          errorsPerSheet[sheet] = (errorsPerSheet[sheet] || []).concat(msgs);
+        });
+        renderErrors();
       }
       function renderFieldNote(sheet) {
         if (!fieldsBox || !fieldsText) return;
@@ -826,11 +945,18 @@
           const stdDesc = stdDescCol ? normalizeValue(row[stdDescCol]) : '';
           const requiresMapping = (code || display) && (hasMeaningfulStandard(stdCode) || hasMeaningfulStandard(stdDesc));
           const tr = table ? table.tBodies[0].rows[idx] : null;
-          if (code && !display) { errs.push(`On tab "${sheet}" - Code "${code}" does not have a display value`); if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell'); }
+          const missingDisplay = !display && displayIdx !== -1;
+          if (missingDisplay && code) {
+            errs.push(`On tab "${sheet}" - Code "${code}" does not have a display value`);
+            if (tr) tr.children[displayIdx].classList.add('error-cell');
+          }
           if (display && !code) { errs.push(`On tab "${sheet}" - Display value "${display}" does not have a code`); if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell'); }
           if (requiresMapping && !mapped) { errs.push(`On tab "${sheet}" - "${code || 'Row ' + (idx + 2)}" does not have a mapped standard description`); if (tr && mappedIdx !== -1) tr.children[mappedIdx].classList.add('error-cell'); }
           if (mapped && !code) { errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a code`); if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell'); }
-          if (mapped && !display) { errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a display value`); if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell'); }
+          if (missingDisplay && !code && mapped) {
+            errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a display value`);
+            if (tr) tr.children[displayIdx].classList.add('error-cell');
+          }
           if (code) {
             if (seenCodes[code] !== undefined) {
               errs.push(`On tab "${sheet}" - Code "${code}" is a duplicate code. All codes within a tab must be unique.`);
@@ -896,16 +1022,6 @@
         const lockText = document.createElement('span'); lockText.className='ms-2';
         lockDiv.appendChild(lockBtn); lockDiv.appendChild(lockText); container.appendChild(lockDiv);
 
-        const ftDiv = document.createElement('div'); ftDiv.className='form-check form-switch mb-2';
-        const ftInput = document.createElement('input'); ftInput.type='checkbox'; ftInput.className='form-check-input';
-        ftInput.id = 'freetext-' + sheet;
-        ftInput.checked = !!freeTextFlags[sheet];
-        ftInput.addEventListener('change', () => { freeTextFlags[sheet] = ftInput.checked; });
-        const ftLabel = document.createElement('label'); ftLabel.className='form-check-label ms-2';
-        ftLabel.htmlFor = ftInput.id; ftLabel.textContent = 'Free Text';
-        ftDiv.appendChild(ftInput); ftDiv.appendChild(ftLabel);
-        container.appendChild(ftDiv);
-
         const table = document.createElement('table');
         table.className = 'table table-bordered table-sm codeset-table';
         table.id = 'table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_');
@@ -915,9 +1031,43 @@
           const th = document.createElement('th'); th.textContent = h.replace(/_/g, ' ');
           if (h.endsWith('_COMPARE')) th.classList.add('compare-col', 'compare-header'); headRow.appendChild(th);
         });
+        const actionsTh = document.createElement('th');
+        actionsTh.textContent = 'Actions';
+        actionsTh.classList.add('actions-header');
+        headRow.appendChild(actionsTh);
         thead.appendChild(headRow); table.appendChild(thead);
 
         const tbody = document.createElement('tbody');
+
+        function appendActionCell(tr) {
+          const actionTd = document.createElement('td');
+          actionTd.className = 'actions-cell';
+          const clearBtn = document.createElement('button');
+          clearBtn.type = 'button';
+          clearBtn.className = 'btn btn-outline-danger btn-sm row-clear-btn';
+          clearBtn.textContent = 'Clear Row';
+          clearBtn.disabled = sheetLock;
+          clearBtn.addEventListener('click', () => {
+            if (sheetLock) return;
+            syncCurrentSheet();
+            const rowIndex = Array.from(tbody.children).indexOf(tr);
+            const sheetRows = workbook[sheet] || [];
+            const compRows = comparisonData[sheet] || [];
+            if (rowIndex < 0 || rowIndex >= sheetRows.length) return;
+            pushUndoState();
+            sheetRows.splice(rowIndex, 1);
+            if (rowIndex < compRows.length) compRows.splice(rowIndex, 1);
+            workbook[sheet] = sheetRows;
+            comparisonData[sheet] = compRows;
+            currentSheet = sheet;
+            renderSheet(sheet);
+            validateSheet(sheet);
+            renderFieldNote(sheet);
+          });
+          actionTd.appendChild(clearBtn);
+          tr.appendChild(actionTd);
+        }
+
         const rows = workbook[sheet] || [];
         rows.forEach((row, idx) => {
           const tr = document.createElement('tr');
@@ -929,9 +1079,30 @@
             const input = createInput(sheet, h, value);
             td.appendChild(input); tr.appendChild(td);
           });
+          appendActionCell(tr);
           tbody.appendChild(tr);
         });
         table.appendChild(tbody); container.appendChild(table);
+
+        const clearAllBtn = document.createElement('button');
+        clearAllBtn.type = 'button';
+        clearAllBtn.className = 'btn btn-outline-danger';
+        clearAllBtn.textContent = 'Clear All Rows';
+        clearAllBtn.disabled = sheetLock || rows.length === 0;
+        clearAllBtn.addEventListener('click', () => {
+          if (sheetLock) return;
+          syncCurrentSheet();
+          const sheetRows = workbook[sheet] || [];
+          const compRows = comparisonData[sheet] || [];
+          if (!sheetRows.length && !compRows.length) return;
+          pushUndoState();
+          workbook[sheet] = [];
+          comparisonData[sheet] = [];
+          currentSheet = sheet;
+          renderSheet(sheet);
+          validateSheet(sheet);
+          renderFieldNote(sheet);
+        });
 
         const addBtn = document.createElement('button');
         addBtn.className = 'btn btn-primary'; addBtn.textContent = 'Add Row';
@@ -942,9 +1113,22 @@
             if (h.endsWith('_COMPARE')) td.classList.add('compare-col');
             const input = createInput(sheet, h); td.appendChild(input); tr.appendChild(td);
           });
+          appendActionCell(tr);
           tbody.appendChild(tr);
+          clearAllBtn.disabled = sheetLock;
         });
         buttons.appendChild(addBtn);
+        buttons.appendChild(clearAllBtn);
+
+        const undoBtn = document.createElement('button');
+        undoBtn.type = 'button';
+        undoBtn.id = 'undo-button';
+        undoBtn.className = 'btn btn-outline-secondary';
+        undoBtn.textContent = 'Undo';
+        undoBtn.addEventListener('click', () => {
+          if (!sheetLock) restoreUndoState();
+        });
+        buttons.appendChild(undoBtn);
 
         const saveBtn = document.createElement('button');
         saveBtn.id='export-workbook'; saveBtn.className='btn btn-success'; saveBtn.textContent='Export Workbook';
@@ -977,12 +1161,16 @@
           lockBtn.textContent = locked ? '🔒' : '🔓';
           lockBtn.className = `btn btn-sm ${locked ? 'btn-lock-protected' : 'btn-lock-unprotected'}`;
           lockBtn.setAttribute('aria-pressed', String(locked));
-          lockText.textContent = locked ? 'Sheet Protected' : 'Sheet Unprotected';
+          lockText.textContent = locked ? 'Workbook Protected' : 'Workbook Unprotected';
           table.querySelectorAll('input, select').forEach(el => { el.disabled = locked; });
           addBtn.disabled = locked;
+          clearAllBtn.disabled = locked || tbody.children.length === 0;
+          tbody.querySelectorAll('.row-clear-btn').forEach(btn => { btn.disabled = locked; });
+          updateUndoButtonState();
         }
         lockBtn.addEventListener('click', () => { sheetLock = !sheetLock; applyLockState(); });
         applyLockState();
+        updateUndoButtonState();
       }
 
       async function ensureSheetLoaded(sheet) {
