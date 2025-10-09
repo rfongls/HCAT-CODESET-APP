@@ -293,6 +293,20 @@ header {
     padding: 0;
 }
 
+.codeset-table th.actions-header {
+    min-width: 110px;
+    text-align: center;
+}
+
+.codeset-table td.actions-cell {
+    padding: 4px;
+    text-align: center;
+}
+
+.codeset-table td.actions-cell .btn {
+    white-space: nowrap;
+}
+
 .codeset-table td > input[type="text"],
 .codeset-table td > select {
     width: 100%;
