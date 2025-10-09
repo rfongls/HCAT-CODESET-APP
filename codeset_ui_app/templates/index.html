@@ -15,7 +15,7 @@
 
   <!-- Minimal extras for hamburger, menu, and overlay -->
   <style>
-    header { position: relative; }
+    header { position: sticky; top: 0; z-index: 1040; }
     .header-menu { position: absolute; top: 12px; right: 16px; }
 
     .hamburger-btn {
@@ -178,18 +178,20 @@
     <hr class="section-divider" aria-hidden="true">
 
     <div class="section-card" id="active-sheet-card">
-      <div class="section-title">Active Sheet</div>
+      <div class="active-sheet-toolbar">
+        <div class="section-title mb-3">Active Sheet</div>
 
-      <div class="row g-2 align-items-end mb-3">
-        <div class="col-12 col-md-8">
-          <select id="sheet-select" class="form-select">
-            {% for sheet in sheet_names %}
-            <option value="{{ sheet }}" {% if sheet == initial_sheet %}selected{% endif %}>{{ sheet }}</option>
-            {% endfor %}
-          </select>
+        <div class="row g-2 align-items-end">
+          <div class="col-12 col-md-8">
+            <select id="sheet-select" class="form-select">
+              {% for sheet in sheet_names %}
+              <option value="{{ sheet }}" {% if sheet == initial_sheet %}selected{% endif %}>{{ sheet }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="d-none d-md-block col-md-2"></div>
+          <div class="d-none d-md-block col-md-2"></div>
         </div>
-        <div class="d-none d-md-block col-md-2"></div>
-        <div class="d-none d-md-block col-md-2"></div>
       </div>
 
       <div class="row">
@@ -635,6 +637,16 @@
 
     /* ---------- App wiring ---------- */
     document.addEventListener('DOMContentLoaded', () => {
+      const rootElement = document.documentElement;
+      const headerEl = document.querySelector('header');
+      const updateHeaderHeight = () => {
+        if (!headerEl) return;
+        const rect = headerEl.getBoundingClientRect();
+        rootElement.style.setProperty('--header-height', `${rect.height}px`);
+      };
+      updateHeaderHeight();
+      window.addEventListener('resize', updateHeaderHeight);
+
       wireControls(document.getElementById('inline-controls'));
       wireControls(document.getElementById('overlay-controls'));
 
