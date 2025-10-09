@@ -1230,7 +1230,7 @@
               const clearBtn = document.createElement('button');
               clearBtn.type = 'button';
               clearBtn.className = 'clear-row-btn';
-              clearBtn.setAttribute('aria-label', 'Clear row');
+              clearBtn.setAttribute('aria-label', 'Delete row');
               clearBtn.textContent = '×';
               clearBtn.addEventListener('click', () => {
                 if (sheetLock) return;
@@ -1256,39 +1256,6 @@
                 }
                 pushUndoSnapshot(sheet);
                 if (undoBtn) undoBtn.disabled = false;
-                clearTargetsInRow(sheet, baseRowData);
-                clearTargetsInDOMRow(rowEl, sheet);
-                const isCurrentSheet = currentSheet === sheet;
-                const tableEl = rowEl.closest('table');
-                if (isCurrentSheet) {
-                  syncCurrentSheet();
-                  validateSheet(currentSheet);
-                } else if (tableEl) {
-                  const data = readSheet(tableEl, sheet);
-                  workbook[sheet] = data.baseRows;
-                  comparisonData[sheet] = data.compRows;
-                  validateSheet(sheet);
-                } else {
-                  validateSheet(sheet);
-                }
-              });
-              clearBtn.addEventListener('keydown', ev => {
-                if (ev.key === 'Enter' || ev.key === ' ') {
-                  ev.preventDefault();
-                  clearBtn.click();
-                }
-              });
-              td.appendChild(clearBtn);
-
-              const deleteBtn = document.createElement('button');
-              deleteBtn.type = 'button';
-              deleteBtn.className = 'btn btn-outline-danger btn-sm ms-1 delete-row-btn';
-              deleteBtn.setAttribute('aria-label', 'Delete row');
-              deleteBtn.textContent = '−';
-              deleteBtn.addEventListener('click', () => {
-                if (sheetLock) return;
-                pushUndoSnapshot(sheet);
-                if (undoBtn) undoBtn.disabled = false;
                 baseRows.splice(rowIndex, 1);
                 compRows.splice(rowIndex, 1);
                 if (!baseRows.length) {
@@ -1298,13 +1265,13 @@
                 renderSheet(sheet);
                 validateSheet(sheet);
               });
-              deleteBtn.addEventListener('keydown', ev => {
+              clearBtn.addEventListener('keydown', ev => {
                 if (ev.key === 'Enter' || ev.key === ' ') {
                   ev.preventDefault();
-                  deleteBtn.click();
+                  clearBtn.click();
                 }
               });
-              td.appendChild(deleteBtn);
+              td.appendChild(clearBtn);
             }
             if (input) {
               td.appendChild(input);

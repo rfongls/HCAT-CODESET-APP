@@ -439,11 +439,7 @@ header {
     padding-left: 64px;
 }
 
-/* per-row delete button (sits next to clear) */
-.delete-row-btn {
-    margin-left: 6px;
-    cursor: pointer;
-}
+/* per-row delete button (× control in CODE column) */
 
 .clear-row-btn {
     position: absolute;
