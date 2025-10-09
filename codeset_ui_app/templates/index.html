@@ -812,11 +812,14 @@
 
       if (Array.isArray(initialErrors) && initialErrors.length) {
         const bucket = {};
+        const normalizedMessages = [];
         initialErrors.forEach(msg => {
           if (typeof msg !== 'string') return;
 
           let sheetKey = '_general';
           let formatted = msg;
+          let rowKey = null;
+          let kind = null;
 
           const clientMatch = msg.match(/^On tab "([^"]+)"/);
           if (clientMatch) {
@@ -833,6 +836,17 @@
               const detailText = (colonMatch ? sheetMatch[3] : detail || '').trim();
               const suffix = detailText ? `: ${detailText}` : '';
               formatted = `On tab "${sheetKey}" - ${plural} ${normalizedRows}${suffix}`;
+              if (/^\d+$/.test(normalizedRows)) {
+                rowKey = `${sheetKey}|${normalizedRows}`;
+                const detailUpper = detailText.toUpperCase();
+                if (detailUpper === 'DISPLAY VALUE REQUIRED WHEN CODE IS PROVIDED') {
+                  kind = 'display-code';
+                } else if (detailUpper.startsWith('DISPLAY VALUE REQUIRED WHEN')) {
+                  if (detailUpper.includes('MAPPED')) {
+                    kind = 'display-mapped';
+                  }
+                }
+              }
             } else {
               const genericMatch = msg.match(/^([^:]+?):\s*(.+)$/);
               if (genericMatch) {
@@ -842,9 +856,23 @@
             }
           }
 
-          if (!bucket[sheetKey]) bucket[sheetKey] = [];
-          bucket[sheetKey].push(formatted);
+          normalizedMessages.push({ sheet: sheetKey, formatted, rowKey, kind });
         });
+
+        const displayCodeRows = new Set(
+          normalizedMessages
+            .filter(item => item.kind === 'display-code' && item.rowKey)
+            .map(item => item.rowKey)
+        );
+
+        normalizedMessages
+          .filter(item => !(item.kind === 'display-mapped' && item.rowKey && displayCodeRows.has(item.rowKey)))
+          .forEach(item => {
+            const { sheet, formatted } = item;
+            if (!bucket[sheet]) bucket[sheet] = [];
+            bucket[sheet].push(formatted);
+          });
+
         Object.entries(bucket).forEach(([sheet, msgs]) => {
           errorsPerSheet[sheet] = (errorsPerSheet[sheet] || []).concat(msgs);
         });
@@ -880,11 +908,18 @@
           const stdDesc = stdDescCol ? normalizeValue(row[stdDescCol]) : '';
           const requiresMapping = (code || display) && (hasMeaningfulStandard(stdCode) || hasMeaningfulStandard(stdDesc));
           const tr = table ? table.tBodies[0].rows[idx] : null;
-          if (code && !display) { errs.push(`On tab "${sheet}" - Code "${code}" does not have a display value`); if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell'); }
+          const missingDisplay = !display && displayIdx !== -1;
+          if (missingDisplay && code) {
+            errs.push(`On tab "${sheet}" - Code "${code}" does not have a display value`);
+            if (tr) tr.children[displayIdx].classList.add('error-cell');
+          }
           if (display && !code) { errs.push(`On tab "${sheet}" - Display value "${display}" does not have a code`); if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell'); }
           if (requiresMapping && !mapped) { errs.push(`On tab "${sheet}" - "${code || 'Row ' + (idx + 2)}" does not have a mapped standard description`); if (tr && mappedIdx !== -1) tr.children[mappedIdx].classList.add('error-cell'); }
           if (mapped && !code) { errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a code`); if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell'); }
-          if (mapped && !display) { errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a display value`); if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell'); }
+          if (missingDisplay && !code && mapped) {
+            errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a display value`);
+            if (tr) tr.children[displayIdx].classList.add('error-cell');
+          }
           if (code) {
             if (seenCodes[code] !== undefined) {
               errs.push(`On tab "${sheet}" - Code "${code}" is a duplicate code. All codes within a tab must be unique.`);
