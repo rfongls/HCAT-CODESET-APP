@@ -1015,7 +1015,7 @@
           const existingComp = (comparisonData[sheet] || [])[rowIdx] || {};
           const baseObj = { ...existingBase }, compObj = { ...existingComp };
           allHeaders.forEach((h, idx) => {
-            const cell = tr.children[idx];
+            const cell = tr.children[idx + 1];
             const input = cell.querySelector('input, select');
             const val = input ? input.value : cell.textContent;
             if (h.endsWith('_COMPARE')) compObj[h] = val; else baseObj[h] = val;
