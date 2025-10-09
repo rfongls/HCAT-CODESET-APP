@@ -1047,6 +1047,10 @@
           if (h.endsWith('_COMPARE')) th.classList.add('compare-col', 'compare-header');
           headRow.appendChild(th);
         });
+        const actionsTh = document.createElement('th');
+        actionsTh.textContent = 'Actions';
+        actionsTh.classList.add('actions-header');
+        headRow.appendChild(actionsTh);
         thead.appendChild(headRow); table.appendChild(thead);
 
         const tbody = document.createElement('tbody');
