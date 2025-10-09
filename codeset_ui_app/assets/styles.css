@@ -9,8 +9,11 @@
     --highlight-color: #fff9c4;
     --table-even-color: #f5f5f5;
     --error-bg: #f8d7da;
-    --app-header-height: 0px;
-    --sheet-toolbar-height: 0px;
+    --app-header-height: 0;
+    --sheet-toolbar-height: 0;
+    /* used by sticky active-sheet toolbar */
+    --header-height: 0;
+    --active-toolbar-offset: 0;
 }
 
 [data-theme="light-purple"] {
@@ -244,6 +247,7 @@ header {
 .table-wrapper {
     position: relative;
     padding-left: 56px;
+    overflow-x: auto;
 }
 
 .table-scroll {
@@ -291,69 +295,9 @@ header {
     margin-bottom: 0 !important;
 }
 
-.sheet-toolbar {
-    position: sticky;
-    top: calc(var(--app-header-height) + 1rem);
-    z-index: 1050;
-    background: var(--background-color);
-    padding: .75rem .75rem 1rem;
-    margin: -.75rem -.75rem 1rem;
-    border-radius: .75rem;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
-}
-
-.sheet-toolbar .row {
-    margin-bottom: 0 !important;
-}
-
-.sheet-toolbar {
-    position: sticky;
-    top: calc(var(--app-header-height) + 1rem);
-    z-index: 1050;
-    background: var(--background-color);
-    padding: .75rem .75rem 1rem;
-    margin: -.75rem -.75rem 1rem;
-    border-radius: .75rem;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
-}
-
-.sheet-toolbar .row {
-    margin-bottom: 0 !important;
-}
-
-.sheet-toolbar {
-    position: sticky;
-    top: calc(var(--app-header-height) + 1rem);
-    z-index: 1050;
-    background: var(--background-color);
-    padding: .75rem .75rem 1rem;
-    margin: -.75rem -.75rem 1rem;
-    border-radius: .75rem;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
-}
-
-.sheet-toolbar .row {
-    margin-bottom: 0 !important;
-}
-
-.sheet-toolbar {
-    position: sticky;
-    top: calc(var(--app-header-height) + 1rem);
-    z-index: 1050;
-    background: var(--background-color);
-    padding: .75rem .75rem 1rem;
-    margin: -.75rem -.75rem 1rem;
-    border-radius: .75rem;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
-}
-
-.sheet-toolbar .row {
-    margin-bottom: 0 !important;
-}
-
 .codeset-table {
     border-collapse: collapse;
-    width: 100%;
+    width: max-content;
     white-space: nowrap;
 }
 
@@ -490,6 +434,7 @@ header {
 }
 
 .codeset-table td.clearable-cell {
+    /* ensure button space on left */
     position: relative;
     padding-left: 64px;
 }
@@ -512,6 +457,8 @@ header {
     box-shadow: 0 1px 2px rgba(0,0,0,.06);
     color: inherit;
     padding: 0;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
 }
 
 .clear-row-btn:hover,
@@ -519,6 +466,7 @@ header {
     background: #f8f9fa;
 }
 
+/* canonical definitions for cell inputs/selects/text */
 .codeset-table td > .cell-input,
 .codeset-table td > .cell-select,
 .codeset-table td > .cell-text {
@@ -555,209 +503,15 @@ header {
     padding: 6px 8px;
     vertical-align: middle;
     background-clip: padding-box;
-}
-
-.codeset-table td.clearable-cell {
-    position: relative;
-    padding-left: 64px;
-}
-
-.clear-row-btn {
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 36px;
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: .375rem;
-    font-size: 1.25rem;
-    line-height: 1;
-    background: #fff;
-    border: 1px solid rgba(0,0,0,.15);
-    box-shadow: 0 1px 2px rgba(0,0,0,.06);
-    color: inherit;
-    padding: 0;
-}
-
-.clear-row-btn:hover,
-.clear-row-btn:focus {
-    background: #f8f9fa;
-}
-
-.codeset-table td > .cell-input,
-.codeset-table td > .cell-select,
-.codeset-table td > .cell-text {
-    display: block;
-    width: 100%;
-    min-height: 32px;
-    padding: 4px 6px;
-    border-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    background-color: inherit;
-    color: var(--text-color);
-    box-sizing: border-box;
-}
-
-.codeset-table td > .cell-input:disabled,
-.codeset-table td > .cell-select:disabled {
-    background-color: rgba(0, 0, 0, 0.05);
-    color: rgba(0, 0, 0, 0.6);
-}
-
-.codeset-table td > .cell-text {
-    display: block;
-    padding-top: 6px;
-    padding-bottom: 6px;
-}
-
-#table-wrapper thead th {
-    position: sticky;
-    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
-    z-index: 1020;
-}
-
-.codeset-table td {
-    padding: 6px 8px;
-    vertical-align: middle;
-    background-clip: padding-box;
-}
-
-.codeset-table td.clearable-cell {
-    position: relative;
-    padding-left: 64px;
-}
-
-.clear-row-btn {
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 36px;
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: .375rem;
-    font-size: 1.25rem;
-    line-height: 1;
-    background: #fff;
-    border: 1px solid rgba(0,0,0,.15);
-    box-shadow: 0 1px 2px rgba(0,0,0,.06);
-    color: inherit;
-    padding: 0;
-}
-
-.clear-row-btn:hover,
-.clear-row-btn:focus {
-    background: #f8f9fa;
-}
-
-.codeset-table td > .cell-input,
-.codeset-table td > .cell-select,
-.codeset-table td > .cell-text {
-    display: block;
-    width: 100%;
-    min-height: 32px;
-    padding: 4px 6px;
-    border-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    background-color: inherit;
-    color: var(--text-color);
-    box-sizing: border-box;
-}
-
-.codeset-table td > .cell-input:disabled,
-.codeset-table td > .cell-select:disabled {
-    background-color: rgba(0, 0, 0, 0.05);
-    color: rgba(0, 0, 0, 0.6);
-}
-
-.codeset-table td > .cell-text {
-    display: block;
-    padding-top: 6px;
-    padding-bottom: 6px;
-}
-
-#table-wrapper thead th {
-    position: sticky;
-    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
-    z-index: 1020;
-}
-
-.codeset-table td {
-    padding: 6px 8px;
-    vertical-align: middle;
-    background-clip: padding-box;
-}
-
-.codeset-table td.clearable-cell {
-    position: relative;
-    padding-left: 64px;
-}
-
-.clear-row-btn {
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 36px;
-    height: 36px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: .375rem;
-    font-size: 1.25rem;
-    line-height: 1;
-    background: #fff;
-    border: 1px solid rgba(0,0,0,.15);
-    box-shadow: 0 1px 2px rgba(0,0,0,.06);
-    color: inherit;
-    padding: 0;
-}
-
-.clear-row-btn:hover,
-.clear-row-btn:focus {
-    background: #f8f9fa;
-}
-
-.codeset-table td > .cell-input,
-.codeset-table td > .cell-select,
-.codeset-table td > .cell-text {
-    display: block;
-    width: 100%;
-    min-height: 32px;
-    padding: 4px 6px;
-    border-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    background-color: inherit;
-    color: var(--text-color);
-    box-sizing: border-box;
-}
-
-.codeset-table td > .cell-input:disabled,
-.codeset-table td > .cell-select:disabled {
-    background-color: rgba(0, 0, 0, 0.05);
-    color: rgba(0, 0, 0, 0.6);
-}
-
-.codeset-table td > .cell-text {
-    display: block;
-    padding-top: 6px;
-    padding-bottom: 6px;
-}
-
-#table-wrapper thead th {
-    position: sticky;
-    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
-    z-index: 1020;
 }
 
 .codeset-table tr:nth-child(even) {
     background-color: var(--table-even-color);
 }
+
+/* NOTE: removed repeated .clear-row-btn/.clearable-cell and
+   .cell-input/.cell-select/.cell-text duplicates to avoid drift */
+
 
 .codeset-table td.compare-col,
 .codeset-table tr:nth-child(even) td.compare-col {
