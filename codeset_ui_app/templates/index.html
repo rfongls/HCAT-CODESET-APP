@@ -819,15 +819,15 @@
         const headers = getTargetHeaders(sheet);
         if (!headers.length) return false;
         return headers.some(header => {
-          if (rowObj && normalizeValue(rowObj[header]) !== '') return true;
+          if (rowObj && norm(rowObj[header]) !== '') return true;
           if (!tr) return false;
           const cell = tr.querySelector(`td[data-col="${escapeHeaderSelector(header)}"]`);
           if (!cell) return false;
           const control = cell.querySelector('input, select, textarea');
           if (control) {
-            return normalizeValue(control.value) !== '';
+            return norm(control.value) !== '';
           }
-          return normalizeValue(cell.textContent) !== '';
+          return norm(cell.textContent) !== '';
         });
       }
 
@@ -837,7 +837,7 @@
         if (!headers.length) return false;
         let changed = false;
         headers.forEach(header => {
-          if (normalizeValue(rowObj[header]) !== '') {
+          if (norm(rowObj[header]) !== '') {
             rowObj[header] = '';
             changed = true;
           }
@@ -851,7 +851,7 @@
         const baseRows = workbook[sheet] || [];
         const hasStored = baseRows.some(row => {
           if (!row) return false;
-          return headers.some(header => normalizeValue(row[header]) !== '');
+          return headers.some(header => norm(row[header]) !== '');
         });
         if (hasStored) return true;
         const table = document.querySelector('#table-wrapper table');
@@ -884,7 +884,7 @@
             }
           } else {
             const prev = cell.textContent || '';
-            if (normalizeValue(prev) !== '') {
+            if (norm(prev) !== '') {
               cell.textContent = '';
               changed = true;
             }
@@ -902,7 +902,7 @@
         baseRows.forEach(row => {
           if (!row) return;
           headers.forEach(header => {
-            if (normalizeValue(row[header]) !== '') {
+            if (norm(row[header]) !== '') {
               row[header] = '';
               changed = true;
             }
