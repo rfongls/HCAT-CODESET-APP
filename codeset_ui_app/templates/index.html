@@ -33,6 +33,14 @@
       min-width: 160px; padding: .25rem; box-shadow: 0 10px 25px rgba(0,0,0,.15);
       z-index: 1060;
     }
+    .menu-close {
+      position: absolute; top: 6px; right: 6px;
+      border: none; line-height: 1; font-size: 1.125rem;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+    .menu-close:hover { background: #f8f9fa; }
+    .menu-close:focus { outline: 2px solid rgba(0,0,0,.2); outline-offset: 2px; }
     .menu-item {
       display: block; width: 100%; padding: .5rem .75rem; text-align: left;
       border: 0; background: transparent; border-radius: .375rem;
@@ -62,12 +70,16 @@
     <h1>Codeset Management System</h1>
     <div class="header-menu">
       <button id="hamburger" class="hamburger-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="headerMenu" aria-label="Open menu">☰</button>
-      <div id="headerMenu" class="menu-pop d-none" role="menu" aria-hidden="true">
-        {% if selected_workbook %}
-        <button id="menuOpenControls" class="menu-item" role="menuitem" type="button">Select Repository</button>
-        {% endif %}
-        <button id="menuOpenTransformer" class="menu-item" role="menuitem" type="button">Generate Codeset Transformer</button>
-        <button id="menuOpenTheme" class="menu-item" role="menuitem" type="button">Theme</button>
+      <div id="headerMenu" class="menu-pop d-none" role="dialog" aria-modal="true" aria-labelledby="headerMenuTitle">
+        <button id="menuClose" class="menu-close btn btn-light btn-sm" aria-label="Close menu" title="Close">×</button>
+        <div class="px-3 py-2">
+          <h6 id="headerMenuTitle" class="mb-2">Menu</h6>
+          {% if selected_workbook %}
+          <button id="menuOpenControls" class="menu-item" type="button">Select Repository</button>
+          {% endif %}
+          <button id="menuOpenTransformer" class="menu-item" type="button">Generate Codeset Transformer</button>
+          <button id="menuOpenTheme" class="menu-item" type="button">Theme</button>
+        </div>
       </div>
     </div>
   </header>
@@ -673,12 +685,33 @@
       const menuOpenControls = document.getElementById('menuOpenControls');
       const menuOpenTransformer = document.getElementById('menuOpenTransformer');
       const menuOpenTheme = document.getElementById('menuOpenTheme');
-      function closeMenu(){ menu?.classList.add('d-none'); hamburger?.setAttribute('aria-expanded','false'); menu?.setAttribute('aria-hidden','true'); }
-      function openMenu(){ menu?.classList.remove('d-none'); hamburger?.setAttribute('aria-expanded','true'); menu?.setAttribute('aria-hidden','false'); }
+      const menuClose = document.getElementById('menuClose');
+      function closeMenu(){
+        const wasOpen = menu && !menu.classList.contains('d-none');
+        menu?.classList.add('d-none');
+        hamburger?.setAttribute('aria-expanded','false');
+        menu?.setAttribute('aria-hidden','true');
+        if (wasOpen) {
+          requestAnimationFrame(() => hamburger?.focus());
+        }
+      }
+      function openMenu(){
+        menu?.classList.remove('d-none');
+        hamburger?.setAttribute('aria-expanded','true');
+        menu?.setAttribute('aria-hidden','false');
+        requestAnimationFrame(() => menuClose?.focus());
+      }
       hamburger?.addEventListener('click', (e)=>{
         if (!menu) return;
         e.stopPropagation();
         menu.classList.contains('d-none') ? openMenu() : closeMenu();
+      });
+      menuClose?.addEventListener('click', (e)=>{ e.preventDefault(); closeMenu(); });
+      menuClose?.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          closeMenu();
+        }
       });
       document.addEventListener('click', (e)=>{ if (!menu || menu.classList.contains('d-none')) return; if (e.target===hamburger || menu.contains(e.target)) return; closeMenu(); });
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') closeMenu(); });
