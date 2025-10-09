@@ -91,7 +91,10 @@
           </div>
           <div class="col-12 col-md-2">
             <button type="submit" name="save_repo_base" value="1"
-                    class="btn btn-primary w-100 js-repo-save" disabled>Load</button>
+                    class="btn btn-primary w-100 js-repo-save" disabled>Save</button>
+          </div>
+          <div class="col-12 col-md-2">
+            <button type="submit" class="btn btn-primary w-100 js-repo-load" disabled>Load</button>
           </div>
         </form>
 
@@ -249,7 +252,10 @@
               </div>
               <div class="col-12 col-md-2">
                 <button type="submit" name="save_repo_base" value="1"
-                        class="btn btn-primary w-100 js-repo-save" disabled>Load</button>
+                        class="btn btn-primary w-100 js-repo-save" disabled>Save</button>
+              </div>
+              <div class="col-12 col-md-2">
+                <button type="submit" class="btn btn-primary w-100 js-repo-load" disabled>Load</button>
               </div>
             </form>
 
@@ -447,6 +453,7 @@
 
       const repoBase = scope.querySelector('.js-repo-base');
       const repoBrowse = scope.querySelector('.js-repo-browse');
+      const repoLoad = scope.querySelector('.js-repo-load');
       const repoSave = scope.querySelector('.js-repo-save');
       const fileInput = scope.querySelector('.js-file-input');
       const fileLabel = scope.querySelector('.js-file-label');
@@ -604,9 +611,11 @@
         return p;
       };
       const enableRepoButtons = () => {
-        if (!repoBase || !repoSave) return;
+        if (!repoBase || !repoSave || !repoLoad) return;
         const val = (repoBase.value || '').trim();
-        repoSave.disabled = !isAbsolutePath(val);
+        const ok = isAbsolutePath(val);
+        repoSave.disabled = !ok;
+        repoLoad.disabled = !ok;
       };
       const cacheRootsIfAbsolute = () => {
         if (!repoBase) return;
