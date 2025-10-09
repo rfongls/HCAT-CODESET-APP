@@ -33,6 +33,14 @@
       min-width: 160px; padding: .25rem; box-shadow: 0 10px 25px rgba(0,0,0,.15);
       z-index: 1060;
     }
+    .menu-close {
+      position: absolute; top: 6px; right: 6px;
+      border: none; line-height: 1; font-size: 1.125rem;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+    .menu-close:hover { background: #f8f9fa; }
+    .menu-close:focus { outline: 2px solid rgba(0,0,0,.2); outline-offset: 2px; }
     .menu-item {
       display: block; width: 100%; padding: .5rem .75rem; text-align: left;
       border: 0; background: transparent; border-radius: .375rem;
@@ -62,11 +70,16 @@
     <h1>Codeset Management System</h1>
     <div class="header-menu">
       <button id="hamburger" class="hamburger-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="headerMenu" aria-label="Open menu">☰</button>
-      <div id="headerMenu" class="menu-pop d-none" role="menu" aria-hidden="true">
-        {% if selected_workbook %}
-        <button id="menuOpenControls" class="menu-item" role="menuitem" type="button">Select Repository</button>
-        {% endif %}
-        <button id="menuOpenTheme" class="menu-item" role="menuitem" type="button">Theme</button>
+      <div id="headerMenu" class="menu-pop d-none" role="dialog" aria-modal="true" aria-labelledby="headerMenuTitle">
+        <button id="menuClose" class="menu-close btn btn-light btn-sm" aria-label="Close menu" title="Close">×</button>
+        <div class="px-3 py-2">
+          <h6 id="headerMenuTitle" class="mb-2">Menu</h6>
+          {% if selected_workbook %}
+          <button id="menuOpenControls" class="menu-item" type="button">Select Repository</button>
+          {% endif %}
+          <button id="menuOpenTransformer" class="menu-item" type="button">Generate Codeset Transformer</button>
+          <button id="menuOpenTheme" class="menu-item" type="button">Theme</button>
+        </div>
       </div>
     </div>
   </header>
@@ -400,6 +413,7 @@
     const sheetNames = {{ sheet_names|tojson }};
     const initialSheet = {{ initial_sheet|tojson }};
     const initialErrors = {{ initial_errors|tojson }};
+    window.initialErrors = initialErrors;
     const workbook = {};
     if (initialSheet) {
       workbook[initialSheet] = {{ base_records|tojson }};
@@ -410,7 +424,6 @@
     }
     const originalFilename = {{ filename|tojson }};
     const hasSelectedWorkbook = {{ 'true' if selected_workbook else 'false' }};
-    const initialErrors = {{ initial_errors|tojson }};
     const undoStacks = {};
     const MAX_UNDO_ENTRIES = 20;
     const STANDARD_PLACEHOLDERS = new Set(['NA', 'N/A']);
@@ -647,7 +660,11 @@
         const toolbarHeight = toolbarEl ? toolbarEl.offsetHeight : 0;
         rootEl.style.setProperty('--app-header-height', `${headerHeight}px`);
         rootEl.style.setProperty('--sheet-toolbar-height', `${toolbarHeight}px`);
+        rootEl.style.setProperty('--header-height', `${headerHeight}px`);
+        rootEl.style.setProperty('--active-toolbar-offset', `${toolbarHeight}px`);
       }
+      publishLayoutMetrics();
+      window.addEventListener('resize', publishLayoutMetrics);
 
       wireControls(document.getElementById('inline-controls'));
       wireControls(document.getElementById('overlay-controls'));
@@ -656,13 +673,35 @@
       const hamburger = document.getElementById('hamburger');
       const menu = document.getElementById('headerMenu');
       const menuOpenControls = document.getElementById('menuOpenControls');
+      const menuOpenTransformer = document.getElementById('menuOpenTransformer');
       const menuOpenTheme = document.getElementById('menuOpenTheme');
-      function closeMenu(){ menu?.classList.add('d-none'); hamburger?.setAttribute('aria-expanded','false'); menu?.setAttribute('aria-hidden','true'); }
-      function openMenu(){ menu?.classList.remove('d-none'); hamburger?.setAttribute('aria-expanded','true'); menu?.setAttribute('aria-hidden','false'); }
+      const menuClose = document.getElementById('menuClose');
+      function closeMenu(){
+        const wasOpen = menu && !menu.classList.contains('d-none');
+        menu?.classList.add('d-none');
+        hamburger?.setAttribute('aria-expanded','false');
+        menu?.setAttribute('aria-hidden','true');
+        if (wasOpen) {
+          requestAnimationFrame(() => hamburger?.focus());
+        }
+      }
+      function openMenu(){
+        menu?.classList.remove('d-none');
+        hamburger?.setAttribute('aria-expanded','true');
+        menu?.setAttribute('aria-hidden','false');
+        requestAnimationFrame(() => menuClose?.focus());
+      }
       hamburger?.addEventListener('click', (e)=>{
         if (!menu) return;
         e.stopPropagation();
         menu.classList.contains('d-none') ? openMenu() : closeMenu();
+      });
+      menuClose?.addEventListener('click', (e)=>{ e.preventDefault(); closeMenu(); });
+      menuClose?.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          closeMenu();
+        }
       });
       document.addEventListener('click', (e)=>{ if (!menu || menu.classList.contains('d-none')) return; if (e.target===hamburger || menu.contains(e.target)) return; closeMenu(); });
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') closeMenu(); });
@@ -685,6 +724,41 @@
         document.body.classList.remove('no-scroll');
       }
       menuOpenControls?.addEventListener('click', ()=>{ closeMenu(); openControlsOverlay(); });
+      // “Generate Codeset Transformer” — prefer ORIGINAL behavior, then graceful fallbacks
+      menuOpenTransformer?.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeMenu();
+        // 1) If the original function exists, call it.
+        if (typeof window.openCodesetTransformer === 'function') {
+          window.openCodesetTransformer();
+          return;
+        }
+        if (typeof window.generateCodesetTransformer === 'function') {
+          window.generateCodesetTransformer();
+          return;
+        }
+        // 2) If the original trigger button exists, click it.
+        const trigger =
+          document.querySelector('#open-transformer-btn') ||
+          document.querySelector('[data-action="open-transformer"]') ||
+          document.querySelector('[data-testid="open-transformer"]');
+        if (trigger) {
+          trigger.click();
+          return;
+        }
+        // 3) If an in-page section exists, reveal/scroll to it.
+        const section =
+          document.getElementById('codeset-transformer') ||
+          document.getElementById('transformer-card') ||
+          document.querySelector('[data-section="codeset-transformer"]');
+        if (section) {
+          section.classList.remove('d-none', 'collapsed');
+          try { section.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
+          return;
+        }
+        // 4) Last-resort: navigate to the known route.
+        window.location.href = '/transformer';
+      });
       controlsOverlayClose?.addEventListener('click', closeControlsOverlay);
       controlsOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeControlsOverlay);
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && controlsOverlay?.classList.contains('open')) closeControlsOverlay(); });
@@ -781,7 +855,195 @@
         }
       }
 
-      if (Array.isArray(initialErrors)) {
+      const TARGET_COLUMNS = ['CODE', 'DISPLAY VALUE', 'SUBDEFINITION', 'MAPPED STD DESCRIPTION'];
+      const TARGET_COLUMN_SET = new Set(TARGET_COLUMNS);
+
+      function norm(value) {
+        return String(value || '').replace(/_/g, ' ').trim().toUpperCase();
+      }
+
+      function isTargetCol(header) {
+        return TARGET_COLUMN_SET.has(norm(header));
+      }
+
+      const escapeHeaderSelector = (value) => {
+        if (typeof CSS !== 'undefined' && CSS.escape) {
+          return CSS.escape(value);
+        }
+        return String(value).replace(/[^a-zA-Z0-9_-]/g, match => `\\${match}`);
+      };
+
+      function getTargetHeaders(sheet) {
+        return (renderHeaders[sheet] || []).filter(isTargetCol);
+      }
+
+      /* --- helpers to set a cell's UI value without re-rendering --- */
+      function setCellUiValueByHeader(tr, header, value) {
+        const cell = tr?.querySelector(`td[data-col="${escapeHeaderSelector(header)}"]`);
+        if (!cell) return;
+        const control = cell.querySelector('input, select, textarea');
+        if (control) {
+          if (control.tagName === 'SELECT') {
+            // best-effort select: choose matching option else fallback to index 0
+            const idx = Array.from(control.options).findIndex(o => o.value === value || o.text === value);
+            control.selectedIndex = idx >= 0 ? idx : 0;
+          } else {
+            control.value = value ?? '';
+          }
+          control.dispatchEvent(new Event('input', { bubbles: true }));
+          control.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
+          cell.textContent = value ?? '';
+        }
+      }
+
+      /* --- core: compact target columns downward starting at rowIndex --- */
+      function compactTargetColumnsFromRow(sheet, rowIndex) {
+        const headers = getTargetHeaders(sheet);
+        if (!headers.length) return false;
+        const baseRows = workbook[sheet] || [];
+        if (!baseRows.length || rowIndex < 0 || rowIndex >= baseRows.length) return false;
+
+        let changed = false;
+        // Build new column arrays -> shift up -> write back
+        headers.forEach(header => {
+          const colVals = baseRows.map(r => (r?.[header] ?? ''));
+          // remove the clicked row's value and push an empty at end
+          colVals.splice(rowIndex, 1);
+          colVals.push('');
+          // write back into the model
+          for (let i = 0; i < baseRows.length; i++) {
+            if (baseRows[i][header] !== colVals[i]) {
+              baseRows[i][header] = colVals[i];
+              changed = true;
+            }
+          }
+        });
+
+        // Update DOM in-place (avoid a full re-render / scroll jump)
+        const table = document.querySelector('#table-wrapper table');
+        const tbody = table?.tBodies?.[0];
+        if (tbody) {
+          const rows = Array.from(tbody.rows);
+          headers.forEach(header => {
+            // recompute from model to avoid redoing the splice logic
+            for (let i = 0; i < rows.length; i++) {
+              const v = (baseRows[i]?.[header] ?? '');
+              setCellUiValueByHeader(rows[i], header, v);
+            }
+          });
+        }
+        return changed;
+      }
+
+      function rowHasTargetValues(sheet, rowObj, tr) {
+        const headers = getTargetHeaders(sheet);
+        if (!headers.length) return false;
+        return headers.some(header => {
+          if (rowObj && norm(rowObj[header]) !== '') return true;
+          if (!tr) return false;
+          const cell = tr.querySelector(`td[data-col="${escapeHeaderSelector(header)}"]`);
+          if (!cell) return false;
+          const control = cell.querySelector('input, select, textarea');
+          if (control) {
+            return norm(control.value) !== '';
+          }
+          return norm(cell.textContent) !== '';
+        });
+      }
+
+      function clearTargetsInRow(sheet, rowObj) {
+        if (!rowObj) return false;
+        const headers = getTargetHeaders(sheet);
+        if (!headers.length) return false;
+        let changed = false;
+        headers.forEach(header => {
+          if (norm(rowObj[header]) !== '') {
+            rowObj[header] = '';
+            changed = true;
+          }
+        });
+        return changed;
+      }
+
+      function sheetHasTargetValues(sheet) {
+        const headers = getTargetHeaders(sheet);
+        if (!headers.length) return false;
+        const baseRows = workbook[sheet] || [];
+        const hasStored = baseRows.some(row => {
+          if (!row) return false;
+          return headers.some(header => norm(row[header]) !== '');
+        });
+        if (hasStored) return true;
+        const table = document.querySelector('#table-wrapper table');
+        if (table && table.tBodies[0]) {
+          return Array.from(table.tBodies[0].rows).some(tr => rowHasTargetValues(sheet, null, tr));
+        }
+        return false;
+      }
+
+      function clearTargetsInDOMRow(tr, sheet) {
+        if (!tr) return false;
+        const headers = getTargetHeaders(sheet);
+        if (!headers.length) return false;
+        let changed = false;
+        headers.forEach(header => {
+          const cell = tr.querySelector(`td[data-col="${escapeHeaderSelector(header)}"]`);
+          if (!cell) return;
+          const control = cell.querySelector('input, select, textarea');
+          if (control) {
+            const prevValue = control.value;
+            if (prevValue !== '') {
+              if (control.tagName === 'SELECT') {
+                control.selectedIndex = 0;
+              } else {
+                control.value = '';
+              }
+              control.dispatchEvent(new Event('input', { bubbles: true }));
+              control.dispatchEvent(new Event('change', { bubbles: true }));
+              changed = true;
+            }
+          } else {
+            const prev = cell.textContent || '';
+            if (norm(prev) !== '') {
+              cell.textContent = '';
+              changed = true;
+            }
+          }
+        });
+        return changed;
+      }
+
+      function clearAllRowsValues(sheet) {
+        const headers = getTargetHeaders(sheet);
+        if (!headers.length) return false;
+        const baseRows = workbook[sheet] || [];
+        let changed = false;
+
+        baseRows.forEach(row => {
+          if (!row) return;
+          headers.forEach(header => {
+            if (norm(row[header]) !== '') {
+              row[header] = '';
+              changed = true;
+            }
+          });
+        });
+
+        const table = document.querySelector('#table-wrapper table');
+        if (table && table.tBodies[0]) {
+          Array.from(table.tBodies[0].rows).forEach(tr => {
+            if (clearTargetsInDOMRow(tr, sheet)) {
+              changed = true;
+            }
+          });
+        }
+
+        return changed;
+      }
+
+      function seedInitialErrors() {
+        if (!Array.isArray(initialErrors) || !initialErrors.length) return;
         initialErrors.forEach(message => {
           if (typeof message !== 'string') return;
           const match = message.match(/^Tab "(.+?)" - /);
@@ -793,6 +1055,12 @@
           }
         });
         renderErrors();
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', seedInitialErrors, { once: true });
+      } else {
+        seedInitialErrors();
       }
       function renderFieldNote(sheet) {
         if (!fieldsBox || !fieldsText) return;
@@ -1000,6 +1268,7 @@
         table.addEventListener('focusin', event => {
           const cell = event.target.closest('td, th');
           if (!cell || typeof cell.cellIndex !== 'number') return;
+          if (event.target.closest('.no-col-highlight')) return;
           const colIdx = cell.cellIndex;
           clearColumnHighlight(table);
           Array.from(table.rows).forEach(row => {
@@ -1018,6 +1287,8 @@
       function renderSheet(sheet) {
         const container = document.getElementById('table-wrapper');
         const buttons = document.getElementById('table-buttons');
+        if (!container || !buttons) return;
+        container.classList.add('table-wrapper');
         container.innerHTML = '';
         buttons.innerHTML = '';
 
@@ -1064,6 +1335,7 @@
 
         const tbody = document.createElement('tbody');
         const codeColName = (mappings[sheet] || {}).code_col;
+        let undoBtn;
 
         function buildRow(baseRow, compRow, rowIndex) {
           const tr = document.createElement('tr');
@@ -1080,17 +1352,34 @@
               const clearBtn = document.createElement('button');
               clearBtn.type = 'button';
               clearBtn.className = 'clear-row-btn';
-              clearBtn.setAttribute('aria-label', 'Clear row');
+              clearBtn.setAttribute('aria-label', 'Clear values & shift up');
+              clearBtn.classList.add('no-col-highlight');
+              clearBtn.title = 'Clear values & shift up';
               clearBtn.textContent = '×';
               clearBtn.addEventListener('click', () => {
                 if (sheetLock) return;
+                // column-wise compaction: clear/shift only target columns
                 pushUndoSnapshot(sheet);
-                baseRows.splice(rowIndex, 1);
-                compRows.splice(rowIndex, 1);
-                baseRows.push(createEmptyBaseRow(sheet));
-                compRows.push(createEmptyComparisonRow(sheet));
-                renderSheet(sheet);
-                validateSheet(sheet);
+                if (undoBtn) undoBtn.disabled = false;
+                const changed = compactTargetColumnsFromRow(sheet, rowIndex);
+                if (changed) {
+                  // keep currentSheet in sync and re-validate
+                  if (currentSheet === sheet) {
+                    syncCurrentSheet();
+                    validateSheet(currentSheet);
+                  } else {
+                    validateSheet(sheet);
+                  }
+                }
+                const tableEl = clearBtn.closest('table');
+                if (tableEl) clearColumnHighlight(tableEl);
+                clearBtn.blur();
+              });
+              clearBtn.addEventListener('keydown', ev => {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                  ev.preventDefault();
+                  clearBtn.click();
+                }
               });
               td.appendChild(clearBtn);
             }
@@ -1123,17 +1412,6 @@
           validateSheet(sheet);
         });
         buttons.appendChild(addBtn);
-        buttons.appendChild(clearAllBtn);
-
-        const undoBtn = document.createElement('button');
-        undoBtn.type = 'button';
-        undoBtn.id = 'undo-button';
-        undoBtn.className = 'btn btn-outline-secondary';
-        undoBtn.textContent = 'Undo';
-        undoBtn.addEventListener('click', () => {
-          if (!sheetLock) restoreUndoState();
-        });
-        buttons.appendChild(undoBtn);
 
         const clearAllBtn = document.createElement('button');
         clearAllBtn.className = 'btn btn-outline-danger';
@@ -1141,117 +1419,37 @@
         clearAllBtn.addEventListener('click', () => {
           if (sheetLock) return;
           if (!baseRows.length) return;
+          if (!sheetHasTargetValues(sheet)) {
+            validateSheet(sheet);
+            return;
+          }
           pushUndoSnapshot(sheet);
-          workbook[sheet] = [createEmptyBaseRow(sheet)];
-          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
-          renderSheet(sheet);
-          validateSheet(sheet);
+          if (undoBtn) undoBtn.disabled = false;
+          clearAllRowsValues(sheet);
+          if (currentSheet === sheet) {
+            syncCurrentSheet();
+            validateSheet(currentSheet);
+          } else {
+            validateSheet(sheet);
+          }
         });
         buttons.appendChild(clearAllBtn);
 
-        const undoBtn = document.createElement('button');
+        undoBtn = document.createElement('button');
         undoBtn.className = 'btn btn-outline-secondary';
         undoBtn.textContent = 'Undo';
         undoBtn.disabled = !getUndoStack(sheet).length;
         undoBtn.addEventListener('click', () => {
           if (sheetLock) return;
           const stack = getUndoStack(sheet);
+          undoBtn.disabled = !stack.length;
           if (!stack.length) return;
           const snapshot = stack.pop();
           workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
           comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
           renderSheet(sheet);
           validateSheet(sheet);
-        });
-        buttons.appendChild(undoBtn);
-
-        const clearAllBtn = document.createElement('button');
-        clearAllBtn.className = 'btn btn-outline-danger';
-        clearAllBtn.textContent = 'Clear All Rows';
-        clearAllBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          if (!baseRows.length) return;
-          pushUndoSnapshot(sheet);
-          workbook[sheet] = [createEmptyBaseRow(sheet)];
-          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(clearAllBtn);
-
-        const undoBtn = document.createElement('button');
-        undoBtn.className = 'btn btn-outline-secondary';
-        undoBtn.textContent = 'Undo';
-        undoBtn.disabled = !getUndoStack(sheet).length;
-        undoBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          const stack = getUndoStack(sheet);
-          if (!stack.length) return;
-          const snapshot = stack.pop();
-          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
-          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(undoBtn);
-
-        const clearAllBtn = document.createElement('button');
-        clearAllBtn.className = 'btn btn-outline-danger';
-        clearAllBtn.textContent = 'Clear All Rows';
-        clearAllBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          if (!baseRows.length) return;
-          pushUndoSnapshot(sheet);
-          workbook[sheet] = [createEmptyBaseRow(sheet)];
-          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(clearAllBtn);
-
-        const undoBtn = document.createElement('button');
-        undoBtn.className = 'btn btn-outline-secondary';
-        undoBtn.textContent = 'Undo';
-        undoBtn.disabled = !getUndoStack(sheet).length;
-        undoBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          const stack = getUndoStack(sheet);
-          if (!stack.length) return;
-          const snapshot = stack.pop();
-          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
-          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(undoBtn);
-
-        const clearAllBtn = document.createElement('button');
-        clearAllBtn.className = 'btn btn-outline-danger';
-        clearAllBtn.textContent = 'Clear All Rows';
-        clearAllBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          if (!baseRows.length) return;
-          pushUndoSnapshot(sheet);
-          workbook[sheet] = [createEmptyBaseRow(sheet)];
-          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(clearAllBtn);
-
-        const undoBtn = document.createElement('button');
-        undoBtn.className = 'btn btn-outline-secondary';
-        undoBtn.textContent = 'Undo';
-        undoBtn.disabled = !getUndoStack(sheet).length;
-        undoBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          const stack = getUndoStack(sheet);
-          if (!stack.length) return;
-          const snapshot = stack.pop();
-          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
-          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
-          renderSheet(sheet);
-          validateSheet(sheet);
+          undoBtn.disabled = !getUndoStack(sheet).length;
         });
         buttons.appendChild(undoBtn);
 
@@ -1332,7 +1530,7 @@
         });
 
         applyLockState();
-        publishLayoutMetrics();
+        publishLayoutMetrics?.();
       }
 
       async function ensureSheetLoaded(sheet) {
@@ -1396,8 +1594,6 @@
         }
         if (t.closest('#table-wrapper')) { syncCurrentSheet(); validateSheet(currentSheet); }
       });
-
-      window.addEventListener('resize', publishLayoutMetrics);
 
       document.getElementById('export-errors')?.addEventListener('click', async () => {
         syncCurrentSheet(); validateSheet(currentSheet);
