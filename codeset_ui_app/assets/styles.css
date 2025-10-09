@@ -293,18 +293,38 @@ header {
     padding: 0;
 }
 
-.codeset-table th.actions-header {
-    min-width: 110px;
+.codeset-table th.row-clear-header {
+    width: 48px;
+    min-width: 48px;
+    padding: 0;
     text-align: center;
+    position: sticky;
+    left: 0;
+    background-color: var(--primary-color);
+    z-index: 6;
 }
 
-.codeset-table td.actions-cell {
+.codeset-table td.row-clear-cell {
+    width: 48px;
+    min-width: 48px;
     padding: 4px;
     text-align: center;
+    position: sticky;
+    left: 0;
+    background: var(--background-color);
+    box-shadow: 4px 0 6px -4px rgba(0, 0, 0, 0.2);
+    z-index: 1;
 }
 
-.codeset-table td.actions-cell .btn {
-    white-space: nowrap;
+.codeset-table td.row-clear-cell .hamburger-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.25rem;
+}
+
+.codeset-table td.row-clear-cell .hamburger-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .codeset-table td > input[type="text"],
