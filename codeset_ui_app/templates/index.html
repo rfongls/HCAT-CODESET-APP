@@ -91,10 +91,10 @@
           </div>
           <div class="col-12 col-md-2">
             <button type="submit" name="save_repo_base" value="1"
-                    class="btn btn-primary w-100 js-repo-save" disabled>Save</button>
+                    class="btn btn-primary w-100 js-repo-save">Save</button>
           </div>
           <div class="col-12 col-md-2">
-            <button type="submit" class="btn btn-primary w-100 js-repo-load" disabled>Load</button>
+            <button type="submit" class="btn btn-primary w-100 js-repo-load">Load</button>
           </div>
         </form>
 
@@ -124,7 +124,7 @@
             </select>
           </div>
           <div class="col-12 col-md-2">
-            <button type="submit" class="btn btn-primary w-100 js-load-btn" disabled>Load Workbook</button>
+            <button type="submit" class="btn btn-primary w-100 js-load-btn">Load Workbook</button>
           </div>
           {% if sheet_names and not compare_mode %}
           <div class="col-12 col-md-2">
@@ -252,10 +252,10 @@
               </div>
               <div class="col-12 col-md-2">
                 <button type="submit" name="save_repo_base" value="1"
-                        class="btn btn-primary w-100 js-repo-save" disabled>Save</button>
+                        class="btn btn-primary w-100 js-repo-save">Save</button>
               </div>
               <div class="col-12 col-md-2">
-                <button type="submit" class="btn btn-primary w-100 js-repo-load" disabled>Load</button>
+                <button type="submit" class="btn btn-primary w-100 js-repo-load">Load</button>
               </div>
             </form>
 
@@ -287,7 +287,7 @@
                 </select>
               </div>
               <div class="col-12 col-md-2">
-                <button type="submit" class="btn btn-primary w-100 js-load-btn" disabled>Load Workbook</button>
+                <button type="submit" class="btn btn-primary w-100 js-load-btn">Load Workbook</button>
               </div>
 
               {% if sheet_names %}
@@ -820,6 +820,10 @@
       const errorsPerSheet = {};
       const STANDARD_PLACEHOLDERS = new Set(['NA', 'N/A']);
 
+      function formatErrorMessage(sheet, rowNumber, detail) {
+        return `Tab "${sheet}" - Row ${rowNumber} - ${detail}`;
+      }
+
       function restoreUndoState() {
         if (!undoStack.length) return;
         const snapshot = undoStack.pop();
@@ -857,70 +861,40 @@
       }
 
       if (Array.isArray(initialErrors) && initialErrors.length) {
-        const bucket = {};
-        const normalizedMessages = [];
+        const buckets = {};
+        const codeDisplayRows = new Set();
         initialErrors.forEach(msg => {
           if (typeof msg !== 'string') return;
-
+          const match = msg.match(/^Tab "([^"]+)" - Row (\d+) - (.+)$/);
           let sheetKey = '_general';
-          let formatted = msg;
-          let rowKey = null;
-          let kind = null;
-
-          const clientMatch = msg.match(/^On tab "([^"]+)"/);
-          if (clientMatch) {
-            sheetKey = clientMatch[1];
-          } else {
-            const colonMatch = msg.match(/^([^:]+?)\s+row(?:s)?\s+([^:]+):\s*(.+)$/i);
-            const rowMatch = colonMatch ? null : msg.match(/^([^:]+?)\s+row(?:s)?\s+([^:]+?)\s+(.*)$/i);
-            const sheetMatch = colonMatch || rowMatch;
-            if (sheetMatch) {
-              const [, sheet, rows, detail] = sheetMatch;
-              const normalizedRows = rows.trim();
-              const plural = /,|\band\b|\bto\b|\bthrough\b|-/i.test(normalizedRows) ? 'Rows' : 'Row';
-              sheetKey = sheet.trim() || '_general';
-              const detailText = (colonMatch ? sheetMatch[3] : detail || '').trim();
-              const suffix = detailText ? `: ${detailText}` : '';
-              formatted = `On tab "${sheetKey}" - ${plural} ${normalizedRows}${suffix}`;
-              if (/^\d+$/.test(normalizedRows)) {
-                rowKey = `${sheetKey}|${normalizedRows}`;
-                const detailUpper = detailText.toUpperCase();
-                if (detailUpper === 'DISPLAY VALUE REQUIRED WHEN CODE IS PROVIDED') {
-                  kind = 'display-code';
-                } else if (detailUpper.startsWith('DISPLAY VALUE REQUIRED WHEN')) {
-                  if (detailUpper.includes('MAPPED')) {
-                    kind = 'display-mapped';
-                  }
-                }
-              }
-            } else {
-              const genericMatch = msg.match(/^([^:]+?):\s*(.+)$/);
-              if (genericMatch) {
-                sheetKey = genericMatch[1].trim();
-                formatted = `On tab "${sheetKey}" - ${genericMatch[2].trim()}`;
-              }
-            }
+          let rowNumber = null;
+          let detail = msg;
+          if (match) {
+            sheetKey = match[1];
+            rowNumber = Number(match[2]);
+            detail = match[3];
           }
-
-          normalizedMessages.push({ sheet: sheetKey, formatted, rowKey, kind });
+          const rowKey = rowNumber ? `${sheetKey}|${rowNumber}` : null;
+          if (
+            rowKey &&
+            detail.startsWith('Mapped standard description') &&
+            detail.includes('display value') &&
+            codeDisplayRows.has(rowKey)
+          ) {
+            return;
+          }
+          if (
+            rowKey &&
+            detail.startsWith('Code') &&
+            detail.includes('display value')
+          ) {
+            codeDisplayRows.add(rowKey);
+          }
+          if (!buckets[sheetKey]) buckets[sheetKey] = [];
+          buckets[sheetKey].push(match ? msg : detail);
         });
-
-        const displayCodeRows = new Set(
-          normalizedMessages
-            .filter(item => item.kind === 'display-code' && item.rowKey)
-            .map(item => item.rowKey)
-        );
-
-        normalizedMessages
-          .filter(item => !(item.kind === 'display-mapped' && item.rowKey && displayCodeRows.has(item.rowKey)))
-          .forEach(item => {
-            const { sheet, formatted } = item;
-            if (!bucket[sheet]) bucket[sheet] = [];
-            bucket[sheet].push(formatted);
-          });
-
-        Object.entries(bucket).forEach(([sheet, msgs]) => {
-          errorsPerSheet[sheet] = (errorsPerSheet[sheet] || []).concat(msgs);
+        Object.entries(buckets).forEach(([sheet, msgs]) => {
+          errorsPerSheet[sheet] = msgs;
         });
         renderErrors();
       }
@@ -939,6 +913,7 @@
         const stdDescCol = info.std_col;
         const rows = workbook[sheet] || [];
         const seenCodes = {};
+        const duplicateInfo = new Map();
         const errs = [];
         const table = document.querySelector('#table-wrapper table');
         const headerList = renderHeaders[sheet] || [];
@@ -952,6 +927,7 @@
         };
         if (table) table.querySelectorAll('td').forEach(td => td.classList.remove('error-cell'));
         rows.forEach((row, idx) => {
+          const rowNumber = idx + 2;
           const code    = codeCol ? normalizeValue(row[codeCol]) : '';
           const display = displayCol ? normalizeValue(row[displayCol]) : '';
           const mapped  = mappedCol ? normalizeValue(row[mappedCol]) : '';
@@ -961,24 +937,53 @@
           const tr = table ? table.tBodies[0].rows[idx] : null;
           const missingDisplay = !display && displayIdx !== -1;
           if (missingDisplay && code) {
-            errs.push(`On tab "${sheet}" - Code "${code}" does not have a display value`);
+            errs.push(formatErrorMessage(sheet, rowNumber, `Code '${code}' is missing a display value`));
             markCell(tr, displayIdx);
           }
-          if (display && !code) { errs.push(`On tab "${sheet}" - Display value "${display}" does not have a code`); markCell(tr, codeIdx); }
-          if (requiresMapping && !mapped) { errs.push(`On tab "${sheet}" - "${code || 'Row ' + (idx + 2)}" does not have a mapped standard description`); markCell(tr, mappedIdx); }
-          if (mapped && !code) { errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a code`); markCell(tr, codeIdx); }
-          if (missingDisplay && !code && mapped) {
-            errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a display value`);
+          if (display && !code) {
+            errs.push(formatErrorMessage(sheet, rowNumber, `Display value '${display}' is missing a code`));
+            markCell(tr, codeIdx);
+          }
+          if (requiresMapping && !mapped) {
+            let detail = `${(mappedCol || 'MAPPED_STD_DESCRIPTION').replace(/_/g, ' ')} is required when a standard code/description is present`;
+            if (code) detail += ` for code '${code}'`;
+            errs.push(formatErrorMessage(sheet, rowNumber, detail));
+            markCell(tr, mappedIdx);
+          }
+          if (mapped && !code) {
+            errs.push(formatErrorMessage(sheet, rowNumber, `Mapped standard description '${mapped}' is missing a code`));
+            markCell(tr, codeIdx);
+          }
+          if (mapped && missingDisplay && !code) {
+            errs.push(formatErrorMessage(sheet, rowNumber, `Mapped standard description '${mapped}' is missing a display value`));
             markCell(tr, displayIdx);
           }
           if (code) {
-            if (seenCodes[code] !== undefined) {
-              errs.push(`On tab "${sheet}" - Code "${code}" is a duplicate code. All codes within a tab must be unique.`);
+            if (Object.prototype.hasOwnProperty.call(seenCodes, code)) {
+              const firstIdx = seenCodes[code];
               markCell(tr, codeIdx);
-              const other = table ? table.tBodies[0].rows[seenCodes[code]] : null;
+              const other = table ? table.tBodies[0].rows[firstIdx] : null;
               markCell(other, codeIdx);
-            } else { seenCodes[code] = idx; }
+              const existing = duplicateInfo.get(code) || new Set([firstIdx]);
+              existing.add(idx);
+              duplicateInfo.set(code, existing);
+            } else {
+              seenCodes[code] = idx;
+            }
           }
+        });
+        duplicateInfo.forEach((rowSet, code) => {
+          if (!(rowSet instanceof Set)) return;
+          const rowList = Array.from(rowSet).sort((a, b) => a - b);
+          rowList.forEach(rowIdx => {
+            const rowNumber = rowIdx + 2;
+            const others = rowList.filter(r => r !== rowIdx).map(r => r + 2);
+            if (!others.length) return;
+            const detail = others.length === 1
+              ? `Code '${code}' duplicates row ${others[0]}`
+              : `Code '${code}' duplicates rows ${others.join(', ')}`;
+            errs.push(formatErrorMessage(sheet, rowNumber, detail));
+          });
         });
         errorsPerSheet[sheet] = errs;
         renderErrors();
@@ -1115,26 +1120,6 @@
         });
         table.appendChild(tbody);
         container.appendChild(table);
-
-        const clearAllBtn = document.createElement('button');
-        clearAllBtn.type = 'button';
-        clearAllBtn.className = 'btn btn-outline-danger';
-        clearAllBtn.textContent = 'Clear All Rows';
-        clearAllBtn.disabled = sheetLock || rows.length === 0;
-        clearAllBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          syncCurrentSheet();
-          const sheetRows = workbook[sheet] || [];
-          const compRows = comparisonData[sheet] || [];
-          if (!sheetRows.length && !compRows.length) return;
-          pushUndoState();
-          workbook[sheet] = [];
-          comparisonData[sheet] = [];
-          currentSheet = sheet;
-          renderSheet(sheet);
-          validateSheet(sheet);
-          renderFieldNote(sheet);
-        });
 
         const clearAllBtn = document.createElement('button');
         clearAllBtn.type = 'button';
