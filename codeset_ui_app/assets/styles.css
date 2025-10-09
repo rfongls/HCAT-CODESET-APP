@@ -9,6 +9,8 @@
     --highlight-color: #fff9c4;
     --table-even-color: #f5f5f5;
     --error-bg: #f8d7da;
+    --header-height: 0px;
+    --active-toolbar-offset: 12px;
 }
 
 [data-theme="light-purple"] {
@@ -151,6 +153,10 @@ header {
     padding: 20px;
     text-align: center;
     margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 1040;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 #inline-controls,
@@ -237,6 +243,30 @@ header {
 .table-wrapper {
     overflow: auto;
     max-height: 70vh;
+    position: relative;
+}
+
+#active-sheet-card {
+    position: relative;
+}
+
+.active-sheet-toolbar {
+    position: sticky;
+    top: calc(var(--header-height) + var(--active-toolbar-offset));
+    z-index: 1030;
+    background: var(--background-color);
+    padding-bottom: .75rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 6px 12px rgba(75, 0, 130, 0.08);
+    border-bottom: 1px solid #e6e6f0;
+}
+
+.active-sheet-toolbar .section-title {
+    margin-bottom: .75rem;
+}
+
+.active-sheet-toolbar .row {
+    margin-bottom: 0 !important;
 }
 
 .codeset-table {
@@ -254,6 +284,9 @@ header {
 .codeset-table th {
     background-color: var(--primary-color);
     color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 5;
 }
 
 .codeset-table tr:nth-child(even) {
@@ -323,6 +356,15 @@ header {
     color: var(--text-color);
 }
 
+#fields-box p,
+#requirements-box ul,
+#requirements-box li,
+#errors-box ul,
+#errors-box li {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
 #fields-box .alert-heading,
 #requirements-box .alert-heading,
 #errors-box .alert-heading {
@@ -361,6 +403,8 @@ header {
     padding: 1rem;
     margin-bottom: 1rem;
     box-shadow: 0 2px 8px rgba(75, 0, 130, 0.06); /* faint indigo tint */
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .section-title {

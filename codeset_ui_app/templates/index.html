@@ -15,7 +15,7 @@
 
   <!-- Minimal extras for hamburger, menu, and overlay -->
   <style>
-    header { position: relative; }
+    header { position: sticky; top: 0; z-index: 1040; }
     .header-menu { position: absolute; top: 12px; right: 16px; }
 
     .hamburger-btn {
@@ -178,18 +178,20 @@
     <hr class="section-divider" aria-hidden="true">
 
     <div class="section-card" id="active-sheet-card">
-      <div class="section-title">Active Sheet</div>
+      <div class="active-sheet-toolbar">
+        <div class="section-title mb-3">Active Sheet</div>
 
-      <div class="row g-2 align-items-end mb-3">
-        <div class="col-12 col-md-8">
-          <select id="sheet-select" class="form-select">
-            {% for sheet in sheet_names %}
-            <option value="{{ sheet }}" {% if sheet == initial_sheet %}selected{% endif %}>{{ sheet }}</option>
-            {% endfor %}
-          </select>
+        <div class="row g-2 align-items-end">
+          <div class="col-12 col-md-8">
+            <select id="sheet-select" class="form-select">
+              {% for sheet in sheet_names %}
+              <option value="{{ sheet }}" {% if sheet == initial_sheet %}selected{% endif %}>{{ sheet }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="d-none d-md-block col-md-2"></div>
+          <div class="d-none d-md-block col-md-2"></div>
         </div>
-        <div class="d-none d-md-block col-md-2"></div>
-        <div class="d-none d-md-block col-md-2"></div>
       </div>
 
       <div class="row">
@@ -398,6 +400,7 @@
     const fieldNotes = {{ field_notes|tojson }};
     const sheetNames = {{ sheet_names|tojson }};
     const initialSheet = {{ initial_sheet|tojson }};
+    const initialErrors = {{ initial_errors|tojson }};
     const workbook = {};
     workbook[initialSheet] = {{ base_records|tojson }};
     const comparisonData = {};
@@ -635,6 +638,16 @@
 
     /* ---------- App wiring ---------- */
     document.addEventListener('DOMContentLoaded', () => {
+      const rootElement = document.documentElement;
+      const headerEl = document.querySelector('header');
+      const updateHeaderHeight = () => {
+        if (!headerEl) return;
+        const rect = headerEl.getBoundingClientRect();
+        rootElement.style.setProperty('--header-height', `${rect.height}px`);
+      };
+      updateHeaderHeight();
+      window.addEventListener('resize', updateHeaderHeight);
+
       wireControls(document.getElementById('inline-controls'));
       wireControls(document.getElementById('overlay-controls'));
 
@@ -796,6 +809,47 @@
           exportErrorsBtn?.classList.add('d-none');
         }
       }
+
+      if (Array.isArray(initialErrors) && initialErrors.length) {
+        const bucket = {};
+        initialErrors.forEach(msg => {
+          if (typeof msg !== 'string') return;
+
+          let sheetKey = '_general';
+          let formatted = msg;
+
+          const clientMatch = msg.match(/^On tab "([^"]+)"/);
+          if (clientMatch) {
+            sheetKey = clientMatch[1];
+          } else {
+            const colonMatch = msg.match(/^([^:]+?)\s+row(?:s)?\s+([^:]+):\s*(.+)$/i);
+            const rowMatch = colonMatch ? null : msg.match(/^([^:]+?)\s+row(?:s)?\s+([^:]+?)\s+(.*)$/i);
+            const sheetMatch = colonMatch || rowMatch;
+            if (sheetMatch) {
+              const [, sheet, rows, detail] = sheetMatch;
+              const normalizedRows = rows.trim();
+              const plural = /,|\band\b|\bto\b|\bthrough\b|-/i.test(normalizedRows) ? 'Rows' : 'Row';
+              sheetKey = sheet.trim() || '_general';
+              const detailText = (colonMatch ? sheetMatch[3] : detail || '').trim();
+              const suffix = detailText ? `: ${detailText}` : '';
+              formatted = `On tab "${sheetKey}" - ${plural} ${normalizedRows}${suffix}`;
+            } else {
+              const genericMatch = msg.match(/^([^:]+?):\s*(.+)$/);
+              if (genericMatch) {
+                sheetKey = genericMatch[1].trim();
+                formatted = `On tab "${sheetKey}" - ${genericMatch[2].trim()}`;
+              }
+            }
+          }
+
+          if (!bucket[sheetKey]) bucket[sheetKey] = [];
+          bucket[sheetKey].push(formatted);
+        });
+        Object.entries(bucket).forEach(([sheet, msgs]) => {
+          errorsPerSheet[sheet] = (errorsPerSheet[sheet] || []).concat(msgs);
+        });
+        renderErrors();
+      }
       function renderFieldNote(sheet) {
         if (!fieldsBox || !fieldsText) return;
         const note = fieldNotes[sheet] || '';
@@ -896,16 +950,6 @@
         const lockText = document.createElement('span'); lockText.className='ms-2';
         lockDiv.appendChild(lockBtn); lockDiv.appendChild(lockText); container.appendChild(lockDiv);
 
-        const ftDiv = document.createElement('div'); ftDiv.className='form-check form-switch mb-2';
-        const ftInput = document.createElement('input'); ftInput.type='checkbox'; ftInput.className='form-check-input';
-        ftInput.id = 'freetext-' + sheet;
-        ftInput.checked = !!freeTextFlags[sheet];
-        ftInput.addEventListener('change', () => { freeTextFlags[sheet] = ftInput.checked; });
-        const ftLabel = document.createElement('label'); ftLabel.className='form-check-label ms-2';
-        ftLabel.htmlFor = ftInput.id; ftLabel.textContent = 'Free Text';
-        ftDiv.appendChild(ftInput); ftDiv.appendChild(ftLabel);
-        container.appendChild(ftDiv);
-
         const table = document.createElement('table');
         table.className = 'table table-bordered table-sm codeset-table';
         table.id = 'table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_');
@@ -977,7 +1021,7 @@
           lockBtn.textContent = locked ? '🔒' : '🔓';
           lockBtn.className = `btn btn-sm ${locked ? 'btn-lock-protected' : 'btn-lock-unprotected'}`;
           lockBtn.setAttribute('aria-pressed', String(locked));
-          lockText.textContent = locked ? 'Sheet Protected' : 'Sheet Unprotected';
+          lockText.textContent = locked ? 'Workbook Protected' : 'Workbook Unprotected';
           table.querySelectorAll('input, select').forEach(el => { el.disabled = locked; });
           addBtn.disabled = locked;
         }
