@@ -1208,6 +1208,7 @@
         table.addEventListener('focusin', event => {
           const cell = event.target.closest('td, th');
           if (!cell || typeof cell.cellIndex !== 'number') return;
+          if (event.target.closest('.no-col-highlight')) return;
           const colIdx = cell.cellIndex;
           clearColumnHighlight(table);
           Array.from(table.rows).forEach(row => {
@@ -1292,6 +1293,7 @@
               clearBtn.type = 'button';
               clearBtn.className = 'clear-row-btn';
               clearBtn.setAttribute('aria-label', 'Clear values & shift up');
+              clearBtn.classList.add('no-col-highlight');
               clearBtn.title = 'Clear values & shift up';
               clearBtn.textContent = '×';
               clearBtn.addEventListener('click', () => {
@@ -1309,12 +1311,9 @@
                     validateSheet(sheet);
                   }
                 }
-              });
-              clearBtn.addEventListener('keydown', ev => {
-                if (ev.key === 'Enter' || ev.key === ' ') {
-                  ev.preventDefault();
-                  clearBtn.click();
-                }
+                const tableEl = clearBtn.closest('table');
+                if (tableEl) clearColumnHighlight(tableEl);
+                clearBtn.blur();
               });
               clearBtn.addEventListener('keydown', ev => {
                 if (ev.key === 'Enter' || ev.key === ' ') {
