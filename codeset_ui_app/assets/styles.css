@@ -9,8 +9,8 @@
     --highlight-color: #fff9c4;
     --table-even-color: #f5f5f5;
     --error-bg: #f8d7da;
-    --header-height: 0px;
-    --active-toolbar-offset: 12px;
+    --app-header-height: 0px;
+    --sheet-toolbar-height: 0px;
 }
 
 [data-theme="light-purple"] {
@@ -50,7 +50,7 @@
 [data-theme="dark-blue"] {
     --background-color: #121212;
     --text-color: #000000;
-	--menu-text-color: #f8f9fa;
+--menu-text-color: #f8f9fa;
     --primary-color: #0d6efd;
     --primary-hover: #0a58ca;
     --secondary-color: #0dcaf0;
@@ -155,8 +155,8 @@ header {
     margin-bottom: 20px;
     position: sticky;
     top: 0;
-    z-index: 1040;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 1100;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
 #inline-controls,
@@ -270,6 +270,21 @@ header {
     margin-bottom: 0 !important;
 }
 
+.sheet-toolbar {
+    position: sticky;
+    top: calc(var(--app-header-height) + 1rem);
+    z-index: 1050;
+    background: var(--background-color);
+    padding: .75rem .75rem 1rem;
+    margin: -.75rem -.75rem 1rem;
+    border-radius: .75rem;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.sheet-toolbar .row {
+    margin-bottom: 0 !important;
+}
+
 .codeset-table {
     border-collapse: collapse;
     width: 100%;
@@ -364,6 +379,44 @@ header {
     background-color: var(--highlight-color);
 }
 
+.codeset-table td {
+    padding: 0;
+    vertical-align: middle;
+}
+
+.codeset-table td > input[type="text"],
+.codeset-table td > select {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 6px 8px;
+    border: none;
+    background-color: inherit;
+    color: var(--text-color);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+    box-sizing: border-box;
+}
+
+.codeset-table td > input[type="text"]:disabled,
+.codeset-table td > select:disabled {
+    background-color: #f0f0f4;
+    color: rgba(0, 0, 0, 0.65);
+}
+
+.codeset-table td > span {
+    display: block;
+    padding: 6px 8px;
+    background-color: inherit;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+    box-sizing: border-box;
+}
+
+#table-wrapper thead th {
+    position: sticky;
+    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
+    z-index: 1020;
+}
+
 .codeset-table tr:nth-child(even) {
     background-color: var(--table-even-color);
 }
@@ -386,6 +439,11 @@ header {
 
 .error-cell {
     background-color: var(--error-bg) !important;
+}
+
+.codeset-table td.column-highlight:not(.error-cell),
+.codeset-table th.column-highlight {
+    background-color: var(--highlight-color) !important;
 }
 
 /* Base highlight tokens (kept for non-form controls) */
@@ -438,6 +496,11 @@ header {
 #errors-box li {
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+#requirements-box ul,
+#errors-box ul {
+    padding-left: 1.25rem;
 }
 
 #fields-box .alert-heading,
