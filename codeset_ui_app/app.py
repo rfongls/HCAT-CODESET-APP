@@ -516,6 +516,13 @@ def index():
     except BuildError:
         transformer_url = None
 
+    initial_errors: list[str] = []
+    if workbook_data:
+        try:
+            initial_errors = validate_workbook(workbook_data, mapping_data)
+        except Exception:
+            initial_errors = []
+
     return render_template(
         "index.html",
         sheet_names=sheet_names,
@@ -544,6 +551,7 @@ def index():
         compare_mode=compare_mode,
         reopen_controls=reopen_controls,
         transformer_url=transformer_url,
+        initial_errors=initial_errors,
     )
 
 
@@ -686,8 +694,58 @@ def import_workbook():
     except Exception as exc:
         return str(exc), 400
 
+def _first_non_loopback_ipv4() -> str:
+    """Return the first non-loopback IPv4 address for the current host."""
+    import socket
+
+    try:
+        hostname = socket.gethostname()
+        for addr in socket.gethostbyname_ex(hostname)[2]:
+            if not addr.startswith("127.") and not addr.startswith("169.254"):
+                return addr
+    except socket.gaierror:
+        pass
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.connect(("8.8.8.8", 80))
+            return sock.getsockname()[0]
+    except OSError:
+        pass
+
+    return "127.0.0.1"
+
+
+def _launch_browser_when_ready(port: int) -> None:
+    """Open the default browser once the development server is reachable."""
+    import socket
+    import threading
+    import time
+    import webbrowser
+
+    def _open() -> None:
+        deadline = time.time() + 40
+        while time.time() < deadline:
+            try:
+                with socket.create_connection(("127.0.0.1", port), timeout=1):
+                    break
+            except OSError:
+                time.sleep(0.5)
+        host_ip = _first_non_loopback_ipv4()
+        url = f"http://{host_ip}:{port}/"
+        try:
+            webbrowser.open(url)
+        except Exception:
+            # Fallback to printing the URL so the operator can open it manually.
+            print(f"Codeset UI available at {url}")
+
+    threading.Thread(target=_open, daemon=True).start()
+
+
 if __name__ == "__main__":
     # Disable the Flask reloader so the server doesn't restart when a workbook
     # is loaded. The reloader can interrupt the initial request and appear as a
     # connection reset in the browser.
-    app.run(debug=True, use_reloader=False)
+    port = 5000
+    _launch_browser_when_ready(port)
+    app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)
