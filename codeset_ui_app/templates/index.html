@@ -90,7 +90,10 @@
           </div>
           <div class="col-12 col-md-2">
             <button type="submit" name="save_repo_base" value="1"
-                    class="btn btn-primary w-100 js-repo-save" disabled>Load</button>
+                    class="btn btn-primary w-100 js-repo-save">Save</button>
+          </div>
+          <div class="col-12 col-md-2">
+            <button type="submit" class="btn btn-primary w-100 js-repo-load">Load</button>
           </div>
         </form>
 
@@ -120,7 +123,7 @@
             </select>
           </div>
           <div class="col-12 col-md-2">
-            <button type="submit" class="btn btn-primary w-100 js-load-btn" disabled>Load Workbook</button>
+            <button type="submit" class="btn btn-primary w-100 js-load-btn">Load Workbook</button>
           </div>
           {% if sheet_names and not compare_mode %}
           <div class="col-12 col-md-2">
@@ -248,7 +251,10 @@
               </div>
               <div class="col-12 col-md-2">
                 <button type="submit" name="save_repo_base" value="1"
-                        class="btn btn-primary w-100 js-repo-save" disabled>Load</button>
+                        class="btn btn-primary w-100 js-repo-save">Save</button>
+              </div>
+              <div class="col-12 col-md-2">
+                <button type="submit" class="btn btn-primary w-100 js-repo-load">Load</button>
               </div>
             </form>
 
@@ -280,7 +286,7 @@
                 </select>
               </div>
               <div class="col-12 col-md-2">
-                <button type="submit" class="btn btn-primary w-100 js-load-btn" disabled>Load Workbook</button>
+                <button type="submit" class="btn btn-primary w-100 js-load-btn">Load Workbook</button>
               </div>
 
               {% if sheet_names %}
@@ -399,6 +405,7 @@
     const fieldNotes = {{ field_notes|tojson }};
     const sheetNames = {{ sheet_names|tojson }};
     const initialSheet = {{ initial_sheet|tojson }};
+    const initialErrors = {{ initial_errors|tojson }};
     const workbook = {};
     workbook[initialSheet] = {{ base_records|tojson }};
     const comparisonData = {};
@@ -407,6 +414,29 @@
     const hasSelectedWorkbook = {{ 'true' if selected_workbook else 'false' }};
     let sheetLock = false;
     let currentSheet = initialSheet;
+
+    const UNDO_LIMIT = 25;
+    const undoStack = [];
+
+    function cloneState(source) {
+      return JSON.parse(JSON.stringify(source));
+    }
+
+    function updateUndoButtonState() {
+      const undoBtn = document.getElementById('undo-button');
+      if (undoBtn) undoBtn.disabled = sheetLock || undoStack.length === 0;
+    }
+
+    function pushUndoState() {
+      const snapshot = {
+        workbook: cloneState(workbook),
+        comparison: cloneState(comparisonData),
+        sheetLock
+      };
+      undoStack.push(snapshot);
+      if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+      updateUndoButtonState();
+    }
 
     /* ---------- shared controls wiring (inline & overlay) ---------- */
     function wireControls(scope){
@@ -420,6 +450,7 @@
 
       const repoBase = scope.querySelector('.js-repo-base');
       const repoBrowse = scope.querySelector('.js-repo-browse');
+      const repoLoad = scope.querySelector('.js-repo-load');
       const repoSave = scope.querySelector('.js-repo-save');
       const fileInput = scope.querySelector('.js-file-input');
       const fileLabel = scope.querySelector('.js-file-label');
@@ -569,9 +600,11 @@
         return p;
       };
       const enableRepoButtons = () => {
-        if (!repoBase || !repoSave) return;
+        if (!repoBase || !repoSave || !repoLoad) return;
         const val = (repoBase.value || '').trim();
-        repoSave.disabled = !isAbsolutePath(val);
+        const ok = isAbsolutePath(val);
+        repoSave.disabled = !ok;
+        repoLoad.disabled = !ok;
       };
       const cacheRootsIfAbsolute = () => {
         if (!repoBase) return;
@@ -730,6 +763,45 @@
           exportErrorsBtn?.classList.add('d-none');
         }
       }
+
+      if (Array.isArray(initialErrors) && initialErrors.length) {
+        const buckets = {};
+        const codeDisplayRows = new Set();
+        initialErrors.forEach(msg => {
+          if (typeof msg !== 'string') return;
+          const match = msg.match(/^Tab "([^"]+)" - Row (\d+) - (.+)$/);
+          let sheetKey = '_general';
+          let rowNumber = null;
+          let detail = msg;
+          if (match) {
+            sheetKey = match[1];
+            rowNumber = Number(match[2]);
+            detail = match[3];
+          }
+          const rowKey = rowNumber ? `${sheetKey}|${rowNumber}` : null;
+          if (
+            rowKey &&
+            detail.startsWith('Mapped standard description') &&
+            detail.includes('display value') &&
+            codeDisplayRows.has(rowKey)
+          ) {
+            return;
+          }
+          if (
+            rowKey &&
+            detail.startsWith('Code') &&
+            detail.includes('display value')
+          ) {
+            codeDisplayRows.add(rowKey);
+          }
+          if (!buckets[sheetKey]) buckets[sheetKey] = [];
+          buckets[sheetKey].push(match ? msg : detail);
+        });
+        Object.entries(buckets).forEach(([sheet, msgs]) => {
+          errorsPerSheet[sheet] = msgs;
+        });
+        renderErrors();
+      }
       function renderFieldNote(sheet) {
         if (!fieldsBox || !fieldsText) return;
         const note = fieldNotes[sheet] || '';
@@ -743,12 +815,18 @@
         const mappedCol = info.mapped_col;
         const rows = workbook[sheet] || [];
         const seenCodes = {};
+        const duplicateInfo = new Map();
         const errs = [];
         const table = document.querySelector('#table-wrapper table');
         const headerList = renderHeaders[sheet] || [];
         const codeIdx = headerList.indexOf(codeCol);
         const displayIdx = headerList.indexOf(displayCol);
         const mappedIdx = headerList.indexOf(mappedCol);
+        const markCell = (rowEl, colIdx) => {
+          if (!rowEl || colIdx === -1) return;
+          const cell = rowEl.children[colIdx];
+          if (cell) cell.classList.add('error-cell');
+        };
         if (table) table.querySelectorAll('td').forEach(td => td.classList.remove('error-cell'));
         rows.forEach((row, idx) => {
           const code    = String(row[codeCol] ?? '').trim();
@@ -761,13 +839,31 @@
           if (mapped && !code) { errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a code`); if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell'); }
           if (mapped && !display) { errs.push(`On tab "${sheet}" - Mapped standard description "${mapped}" does not have a display value`); if (tr && displayIdx !== -1) tr.children[displayIdx].classList.add('error-cell'); }
           if (code) {
-            if (seenCodes[code] !== undefined) {
-              errs.push(`On tab "${sheet}" - Code "${code}" is a duplicate code. All codes within a tab must be unique.`);
-              if (tr && codeIdx !== -1) tr.children[codeIdx].classList.add('error-cell');
-              const other = table ? table.tBodies[0].rows[seenCodes[code]] : null;
-              if (other && codeIdx !== -1) other.children[codeIdx].classList.add('error-cell');
-            } else { seenCodes[code] = idx; }
+            if (Object.prototype.hasOwnProperty.call(seenCodes, code)) {
+              const firstIdx = seenCodes[code];
+              markCell(tr, codeIdx);
+              const other = table ? table.tBodies[0].rows[firstIdx] : null;
+              markCell(other, codeIdx);
+              const existing = duplicateInfo.get(code) || new Set([firstIdx]);
+              existing.add(idx);
+              duplicateInfo.set(code, existing);
+            } else {
+              seenCodes[code] = idx;
+            }
           }
+        });
+        duplicateInfo.forEach((rowSet, code) => {
+          if (!(rowSet instanceof Set)) return;
+          const rowList = Array.from(rowSet).sort((a, b) => a - b);
+          rowList.forEach(rowIdx => {
+            const rowNumber = rowIdx + 2;
+            const others = rowList.filter(r => r !== rowIdx).map(r => r + 2);
+            if (!others.length) return;
+            const detail = others.length === 1
+              ? `Code '${code}' duplicates row ${others[0]}`
+              : `Code '${code}' duplicates rows ${others.join(', ')}`;
+            errs.push(formatErrorMessage(sheet, rowNumber, detail));
+          });
         });
         errorsPerSheet[sheet] = errs;
         renderErrors();
@@ -799,7 +895,7 @@
           const existingComp = (comparisonData[sheet] || [])[rowIdx] || {};
           const baseObj = { ...existingBase }, compObj = { ...existingComp };
           allHeaders.forEach((h, idx) => {
-            const cell = tr.children[idx];
+            const cell = tr.children[idx + 1];
             const input = cell.querySelector('input, select');
             const val = input ? input.value : cell.textContent;
             if (h.endsWith('_COMPARE')) compObj[h] = val; else baseObj[h] = val;
@@ -853,25 +949,94 @@
         table.className = 'table table-bordered table-sm codeset-table';
         table.id = 'table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_');
 
-        const thead = document.createElement('thead'); const headRow = document.createElement('tr');
+        const thead = document.createElement('thead');
+        const headRow = document.createElement('tr');
         renderHeaders[sheet].forEach(h => {
-          const th = document.createElement('th'); th.textContent = h.replace(/_/g, ' ');
-          if (h.endsWith('_COMPARE')) th.classList.add('compare-col', 'compare-header'); headRow.appendChild(th);
+          const th = document.createElement('th');
+          th.textContent = h.replace(/_/g, ' ');
+          if (h.endsWith('_COMPARE')) th.classList.add('compare-col', 'compare-header');
+          headRow.appendChild(th);
         });
-        thead.appendChild(headRow); table.appendChild(thead);
+        thead.appendChild(headRow);
+        table.appendChild(thead);
 
         const tbody = document.createElement('tbody');
-        const rows = workbook[sheet] || [];
-        rows.forEach((row, idx) => {
+        const mapInfo = mappings[sheet] || {};
+        const codeHeader = mapInfo.code_col || (renderHeaders[sheet][0] || '');
+
+        let highlightedColumn = -1;
+
+        function clearColumnHighlight() {
+          table.querySelectorAll('.column-highlight').forEach(cell => cell.classList.remove('column-highlight'));
+          highlightedColumn = -1;
+        }
+
+        function setColumnHighlight(index) {
+          if (index === highlightedColumn || index < 0) return;
+          clearColumnHighlight();
+          table.querySelectorAll('tr').forEach(row => {
+            const cell = row.children[index];
+            if (cell) cell.classList.add('column-highlight');
+          });
+          highlightedColumn = index;
+        }
+
+        function makeClearButton(rowEl) {
+          const clearBtn = document.createElement('button');
+          clearBtn.type = 'button';
+          clearBtn.className = 'hamburger-btn row-clear-btn';
+          clearBtn.setAttribute('aria-label', 'Clear row');
+          clearBtn.textContent = '×';
+          clearBtn.disabled = sheetLock;
+          clearBtn.addEventListener('click', () => {
+            if (sheetLock) return;
+            syncCurrentSheet();
+            const rowIndex = Array.from(tbody.children).indexOf(rowEl);
+            const sheetRows = workbook[sheet] || [];
+            const compRows = comparisonData[sheet] || [];
+            if (rowIndex < 0 || rowIndex >= sheetRows.length) return;
+            pushUndoState();
+            sheetRows.splice(rowIndex, 1);
+            if (rowIndex < compRows.length) compRows.splice(rowIndex, 1);
+            workbook[sheet] = sheetRows;
+            comparisonData[sheet] = compRows;
+            currentSheet = sheet;
+            renderSheet(sheet);
+            validateSheet(sheet);
+            renderFieldNote(sheet);
+          });
+          return clearBtn;
+        }
+
+        function buildRow(rowData = {}, compData = {}) {
           const tr = document.createElement('tr');
-          const comp = (comparisonData[sheet] || [])[idx] || {};
           renderHeaders[sheet].forEach(h => {
             const td = document.createElement('td');
             if (h.endsWith('_COMPARE')) td.classList.add('compare-col');
-            const value = h.endsWith('_COMPARE') ? comp[h] : row[h];
+            const value = h.endsWith('_COMPARE') ? compData[h] : rowData[h];
             const input = createInput(sheet, h, value);
-            td.appendChild(input); tr.appendChild(td);
+            if (h === codeHeader && !h.endsWith('_COMPARE')) {
+              td.classList.add('code-with-clear');
+              if (input) {
+                if (input.tagName === 'INPUT') {
+                  input.classList.add('code-input');
+                }
+                td.appendChild(input);
+              }
+              const clearBtn = makeClearButton(tr);
+              td.appendChild(clearBtn);
+            } else if (input) {
+              td.appendChild(input);
+            }
+            tr.appendChild(td);
           });
+          return tr;
+        }
+
+        const rows = workbook[sheet] || [];
+        rows.forEach((row, idx) => {
+          const comp = (comparisonData[sheet] || [])[idx] || {};
+          const tr = buildRow(row, comp);
           tbody.appendChild(tr);
         });
         table.appendChild(tbody); container.appendChild(table);
@@ -880,15 +1045,24 @@
         const addBtn = document.createElement('button');
         addBtn.className = 'btn btn-primary'; addBtn.textContent = 'Add Row';
         addBtn.addEventListener('click', () => {
-          const tr = document.createElement('tr');
-          renderHeaders[sheet].forEach(h => {
-            const td = document.createElement('td');
-            if (h.endsWith('_COMPARE')) td.classList.add('compare-col');
-            const input = createInput(sheet, h); td.appendChild(input); tr.appendChild(td);
-          });
+          const tr = buildRow();
           tbody.appendChild(tr);
+          const newButton = tr.querySelector('.row-clear-btn');
+          if (newButton) newButton.disabled = sheetLock;
+          clearAllBtn.disabled = sheetLock;
         });
         buttons.appendChild(addBtn);
+        buttons.appendChild(clearAllBtn);
+
+        const undoBtn = document.createElement('button');
+        undoBtn.type = 'button';
+        undoBtn.id = 'undo-button';
+        undoBtn.className = 'btn btn-outline-secondary';
+        undoBtn.textContent = 'Undo';
+        undoBtn.addEventListener('click', () => {
+          if (!sheetLock) restoreUndoState();
+        });
+        buttons.appendChild(undoBtn);
 
         const saveBtn = document.createElement('button');
         saveBtn.id='export-workbook'; saveBtn.className='btn btn-success'; saveBtn.textContent='Export Workbook';
@@ -921,9 +1095,12 @@
           lockBtn.textContent = locked ? '🔒' : '🔓';
           lockBtn.className = `btn btn-sm ${locked ? 'btn-lock-protected' : 'btn-lock-unprotected'}`;
           lockBtn.setAttribute('aria-pressed', String(locked));
-          lockText.textContent = locked ? 'Sheet Protected' : 'Sheet Unprotected';
+          lockText.textContent = locked ? 'Workbook Protected' : 'Workbook Unprotected';
           table.querySelectorAll('input, select').forEach(el => { el.disabled = locked; });
           addBtn.disabled = locked;
+          clearAllBtn.disabled = locked || tbody.children.length === 0;
+          tbody.querySelectorAll('.row-clear-btn').forEach(btn => { btn.disabled = locked; });
+          updateUndoButtonState();
         }
         lockBtn.addEventListener('click', () => { sheetLock = !sheetLock; applyLockState(); publishLayoutMetrics(); });
         applyLockState();
