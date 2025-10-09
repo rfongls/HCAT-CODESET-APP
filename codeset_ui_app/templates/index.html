@@ -945,10 +945,9 @@
         const codeIdx = headerList.indexOf(codeCol);
         const displayIdx = headerList.indexOf(displayCol);
         const mappedIdx = headerList.indexOf(mappedCol);
-        const columnOffset = 1;
         const markCell = (rowEl, colIdx) => {
           if (!rowEl || colIdx === -1) return;
-          const cell = rowEl.children[colIdx + columnOffset];
+          const cell = rowEl.children[colIdx];
           if (cell) cell.classList.add('error-cell');
         };
         if (table) table.querySelectorAll('td').forEach(td => td.classList.remove('error-cell'));
@@ -1041,32 +1040,22 @@
         table.className = 'table table-bordered table-sm codeset-table';
         table.id = 'table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_');
 
-        const thead = document.createElement('thead'); const headRow = document.createElement('tr');
-        const clearTh = document.createElement('th');
-        clearTh.className = 'row-clear-header';
-        clearTh.setAttribute('scope', 'col');
-        const clearLabel = document.createElement('span');
-        clearLabel.className = 'visually-hidden';
-        clearLabel.textContent = 'Clear row';
-        clearTh.appendChild(clearLabel);
-        headRow.appendChild(clearTh);
+        const thead = document.createElement('thead');
+        const headRow = document.createElement('tr');
         renderHeaders[sheet].forEach(h => {
           const th = document.createElement('th');
           th.textContent = h.replace(/_/g, ' ');
           if (h.endsWith('_COMPARE')) th.classList.add('compare-col', 'compare-header');
           headRow.appendChild(th);
         });
-        const actionsTh = document.createElement('th');
-        actionsTh.textContent = 'Actions';
-        actionsTh.classList.add('actions-header');
-        headRow.appendChild(actionsTh);
-        thead.appendChild(headRow); table.appendChild(thead);
+        thead.appendChild(headRow);
+        table.appendChild(thead);
 
         const tbody = document.createElement('tbody');
+        const mapInfo = mappings[sheet] || {};
+        const codeHeader = mapInfo.code_col || (renderHeaders[sheet][0] || '');
 
-        function prependClearCell(tr) {
-          const clearTd = document.createElement('td');
-          clearTd.className = 'row-clear-cell';
+        function makeClearButton(rowEl) {
           const clearBtn = document.createElement('button');
           clearBtn.type = 'button';
           clearBtn.className = 'hamburger-btn row-clear-btn';
@@ -1076,7 +1065,7 @@
           clearBtn.addEventListener('click', () => {
             if (sheetLock) return;
             syncCurrentSheet();
-            const rowIndex = Array.from(tbody.children).indexOf(tr);
+            const rowIndex = Array.from(tbody.children).indexOf(rowEl);
             const sheetRows = workbook[sheet] || [];
             const compRows = comparisonData[sheet] || [];
             if (rowIndex < 0 || rowIndex >= sheetRows.length) return;
@@ -1090,25 +1079,62 @@
             validateSheet(sheet);
             renderFieldNote(sheet);
           });
-          clearTd.appendChild(clearBtn);
-          tr.insertBefore(clearTd, tr.firstChild);
+          return clearBtn;
+        }
+
+        function buildRow(rowData = {}, compData = {}) {
+          const tr = document.createElement('tr');
+          renderHeaders[sheet].forEach(h => {
+            const td = document.createElement('td');
+            if (h.endsWith('_COMPARE')) td.classList.add('compare-col');
+            const value = h.endsWith('_COMPARE') ? compData[h] : rowData[h];
+            const input = createInput(sheet, h, value);
+            if (h === codeHeader && !h.endsWith('_COMPARE')) {
+              td.classList.add('code-with-clear');
+              if (input) {
+                if (input.tagName === 'INPUT') {
+                  input.classList.add('code-input');
+                }
+                td.appendChild(input);
+              }
+              const clearBtn = makeClearButton(tr);
+              td.appendChild(clearBtn);
+            } else if (input) {
+              td.appendChild(input);
+            }
+            tr.appendChild(td);
+          });
+          return tr;
         }
 
         const rows = workbook[sheet] || [];
         rows.forEach((row, idx) => {
-          const tr = document.createElement('tr');
           const comp = (comparisonData[sheet] || [])[idx] || {};
-          renderHeaders[sheet].forEach(h => {
-            const td = document.createElement('td');
-            if (h.endsWith('_COMPARE')) td.classList.add('compare-col');
-            const value = h.endsWith('_COMPARE') ? comp[h] : row[h];
-            const input = createInput(sheet, h, value);
-            td.appendChild(input); tr.appendChild(td);
-          });
-          prependClearCell(tr);
+          const tr = buildRow(row, comp);
           tbody.appendChild(tr);
         });
-        table.appendChild(tbody); container.appendChild(table);
+        table.appendChild(tbody);
+        container.appendChild(table);
+
+        const clearAllBtn = document.createElement('button');
+        clearAllBtn.type = 'button';
+        clearAllBtn.className = 'btn btn-outline-danger';
+        clearAllBtn.textContent = 'Clear All Rows';
+        clearAllBtn.disabled = sheetLock || rows.length === 0;
+        clearAllBtn.addEventListener('click', () => {
+          if (sheetLock) return;
+          syncCurrentSheet();
+          const sheetRows = workbook[sheet] || [];
+          const compRows = comparisonData[sheet] || [];
+          if (!sheetRows.length && !compRows.length) return;
+          pushUndoState();
+          workbook[sheet] = [];
+          comparisonData[sheet] = [];
+          currentSheet = sheet;
+          renderSheet(sheet);
+          validateSheet(sheet);
+          renderFieldNote(sheet);
+        });
 
         const clearAllBtn = document.createElement('button');
         clearAllBtn.type = 'button';
@@ -1133,14 +1159,10 @@
         const addBtn = document.createElement('button');
         addBtn.className = 'btn btn-primary'; addBtn.textContent = 'Add Row';
         addBtn.addEventListener('click', () => {
-          const tr = document.createElement('tr');
-          renderHeaders[sheet].forEach(h => {
-            const td = document.createElement('td');
-            if (h.endsWith('_COMPARE')) td.classList.add('compare-col');
-            const input = createInput(sheet, h); td.appendChild(input); tr.appendChild(td);
-          });
-          prependClearCell(tr);
+          const tr = buildRow();
           tbody.appendChild(tr);
+          const newButton = tr.querySelector('.row-clear-btn');
+          if (newButton) newButton.disabled = sheetLock;
           clearAllBtn.disabled = sheetLock;
         });
         buttons.appendChild(addBtn);
