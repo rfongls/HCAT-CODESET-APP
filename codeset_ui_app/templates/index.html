@@ -66,6 +66,7 @@
         {% if selected_workbook %}
         <button id="menuOpenControls" class="menu-item" role="menuitem" type="button">Select Repository</button>
         {% endif %}
+        <button id="menuOpenTransformer" class="menu-item" role="menuitem" type="button">Generate Codeset Transformer</button>
         <button id="menuOpenTheme" class="menu-item" role="menuitem" type="button">Theme</button>
       </div>
     </div>
@@ -670,6 +671,7 @@
       const hamburger = document.getElementById('hamburger');
       const menu = document.getElementById('headerMenu');
       const menuOpenControls = document.getElementById('menuOpenControls');
+      const menuOpenTransformer = document.getElementById('menuOpenTransformer');
       const menuOpenTheme = document.getElementById('menuOpenTheme');
       function closeMenu(){ menu?.classList.add('d-none'); hamburger?.setAttribute('aria-expanded','false'); menu?.setAttribute('aria-hidden','true'); }
       function openMenu(){ menu?.classList.remove('d-none'); hamburger?.setAttribute('aria-expanded','true'); menu?.setAttribute('aria-hidden','false'); }
@@ -699,6 +701,41 @@
         document.body.classList.remove('no-scroll');
       }
       menuOpenControls?.addEventListener('click', ()=>{ closeMenu(); openControlsOverlay(); });
+      // “Generate Codeset Transformer” — prefer ORIGINAL behavior, then graceful fallbacks
+      menuOpenTransformer?.addEventListener('click', (e) => {
+        e.preventDefault();
+        closeMenu();
+        // 1) If the original function exists, call it.
+        if (typeof window.openCodesetTransformer === 'function') {
+          window.openCodesetTransformer();
+          return;
+        }
+        if (typeof window.generateCodesetTransformer === 'function') {
+          window.generateCodesetTransformer();
+          return;
+        }
+        // 2) If the original trigger button exists, click it.
+        const trigger =
+          document.querySelector('#open-transformer-btn') ||
+          document.querySelector('[data-action="open-transformer"]') ||
+          document.querySelector('[data-testid="open-transformer"]');
+        if (trigger) {
+          trigger.click();
+          return;
+        }
+        // 3) If an in-page section exists, reveal/scroll to it.
+        const section =
+          document.getElementById('codeset-transformer') ||
+          document.getElementById('transformer-card') ||
+          document.querySelector('[data-section="codeset-transformer"]');
+        if (section) {
+          section.classList.remove('d-none', 'collapsed');
+          try { section.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
+          return;
+        }
+        // 4) Last-resort: navigate to the known route.
+        window.location.href = '/transformer';
+      });
       controlsOverlayClose?.addEventListener('click', closeControlsOverlay);
       controlsOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeControlsOverlay);
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && controlsOverlay?.classList.contains('open')) closeControlsOverlay(); });
