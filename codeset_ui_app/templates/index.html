@@ -417,6 +417,16 @@
     let sheetLock = false;
     let currentSheet = initialSheet;
 
+    /* --- runtime sizing for sticky offsets --- */
+    function setHeaderHeights() {
+      const headerEl = document.querySelector('header');
+      const height = headerEl ? headerEl.offsetHeight : 0;
+      document.documentElement.style.setProperty('--app-header-height', `${height}px`);
+      document.documentElement.style.setProperty('--header-height', `${height}px`);
+    }
+    setHeaderHeights();
+    window.addEventListener('resize', setHeaderHeights);
+
     /* ---------- shared controls wiring (inline & overlay) ---------- */
     function wireControls(scope){
       if (!scope) return;
