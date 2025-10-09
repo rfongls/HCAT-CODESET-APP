@@ -400,6 +400,7 @@
     const sheetNames = {{ sheet_names|tojson }};
     const initialSheet = {{ initial_sheet|tojson }};
     const initialErrors = {{ initial_errors|tojson }};
+    window.initialErrors = initialErrors;
     const workbook = {};
     if (initialSheet) {
       workbook[initialSheet] = {{ base_records|tojson }};
@@ -410,7 +411,6 @@
     }
     const originalFilename = {{ filename|tojson }};
     const hasSelectedWorkbook = {{ 'true' if selected_workbook else 'false' }};
-    const initialErrors = {{ initial_errors|tojson }};
     const undoStacks = {};
     const MAX_UNDO_ENTRIES = 20;
     const STANDARD_PLACEHOLDERS = new Set(['NA', 'N/A']);
@@ -781,7 +781,8 @@
         }
       }
 
-      if (Array.isArray(initialErrors)) {
+      function seedInitialErrors() {
+        if (!Array.isArray(initialErrors) || !initialErrors.length) return;
         initialErrors.forEach(message => {
           if (typeof message !== 'string') return;
           const match = message.match(/^Tab "(.+?)" - /);
@@ -793,6 +794,12 @@
           }
         });
         renderErrors();
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', seedInitialErrors, { once: true });
+      } else {
+        seedInitialErrors();
       }
       function renderFieldNote(sheet) {
         if (!fieldsBox || !fieldsText) return;
@@ -1018,6 +1025,8 @@
       function renderSheet(sheet) {
         const container = document.getElementById('table-wrapper');
         const buttons = document.getElementById('table-buttons');
+        if (!container || !buttons) return;
+        container.classList.add('table-wrapper');
         container.innerHTML = '';
         buttons.innerHTML = '';
 
@@ -1084,13 +1093,57 @@
               clearBtn.textContent = '×';
               clearBtn.addEventListener('click', () => {
                 if (sheetLock) return;
+                const rowEl = tr;
+                if (!rowEl) return;
+                const controls = Array.from(rowEl.querySelectorAll('input, select')).filter(control => {
+                  return !control.disabled && !control.readOnly;
+                });
+                const hasValue = controls.some(control => control.value !== '');
+                if (!hasValue) {
+                  const isCurrentSheet = currentSheet === sheet;
+                  const tableEl = rowEl.closest('table');
+                  if (isCurrentSheet) {
+                    syncCurrentSheet();
+                    validateSheet(currentSheet);
+                  } else if (tableEl) {
+                    const data = readSheet(tableEl, sheet);
+                    workbook[sheet] = data.baseRows;
+                    comparisonData[sheet] = data.compRows;
+                    validateSheet(sheet);
+                  } else {
+                    validateSheet(sheet);
+                  }
+                  return;
+                }
                 pushUndoSnapshot(sheet);
-                baseRows.splice(rowIndex, 1);
-                compRows.splice(rowIndex, 1);
-                baseRows.push(createEmptyBaseRow(sheet));
-                compRows.push(createEmptyComparisonRow(sheet));
-                renderSheet(sheet);
-                validateSheet(sheet);
+                controls.forEach(control => {
+                  if (control.tagName === 'SELECT') {
+                    control.selectedIndex = 0;
+                  } else {
+                    control.value = '';
+                  }
+                  control.dispatchEvent(new Event('input', { bubbles: true }));
+                  control.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                const isCurrentSheet = currentSheet === sheet;
+                const tableEl = rowEl.closest('table');
+                if (isCurrentSheet) {
+                  syncCurrentSheet();
+                  validateSheet(currentSheet);
+                } else if (tableEl) {
+                  const data = readSheet(tableEl, sheet);
+                  workbook[sheet] = data.baseRows;
+                  comparisonData[sheet] = data.compRows;
+                  validateSheet(sheet);
+                } else {
+                  validateSheet(sheet);
+                }
+              });
+              clearBtn.addEventListener('keydown', ev => {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                  ev.preventDefault();
+                  clearBtn.click();
+                }
               });
               td.appendChild(clearBtn);
             }
@@ -1123,107 +1176,6 @@
           validateSheet(sheet);
         });
         buttons.appendChild(addBtn);
-        buttons.appendChild(clearAllBtn);
-
-        const undoBtn = document.createElement('button');
-        undoBtn.type = 'button';
-        undoBtn.id = 'undo-button';
-        undoBtn.className = 'btn btn-outline-secondary';
-        undoBtn.textContent = 'Undo';
-        undoBtn.addEventListener('click', () => {
-          if (!sheetLock) restoreUndoState();
-        });
-        buttons.appendChild(undoBtn);
-
-        const clearAllBtn = document.createElement('button');
-        clearAllBtn.className = 'btn btn-outline-danger';
-        clearAllBtn.textContent = 'Clear All Rows';
-        clearAllBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          if (!baseRows.length) return;
-          pushUndoSnapshot(sheet);
-          workbook[sheet] = [createEmptyBaseRow(sheet)];
-          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(clearAllBtn);
-
-        const undoBtn = document.createElement('button');
-        undoBtn.className = 'btn btn-outline-secondary';
-        undoBtn.textContent = 'Undo';
-        undoBtn.disabled = !getUndoStack(sheet).length;
-        undoBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          const stack = getUndoStack(sheet);
-          if (!stack.length) return;
-          const snapshot = stack.pop();
-          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
-          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(undoBtn);
-
-        const clearAllBtn = document.createElement('button');
-        clearAllBtn.className = 'btn btn-outline-danger';
-        clearAllBtn.textContent = 'Clear All Rows';
-        clearAllBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          if (!baseRows.length) return;
-          pushUndoSnapshot(sheet);
-          workbook[sheet] = [createEmptyBaseRow(sheet)];
-          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(clearAllBtn);
-
-        const undoBtn = document.createElement('button');
-        undoBtn.className = 'btn btn-outline-secondary';
-        undoBtn.textContent = 'Undo';
-        undoBtn.disabled = !getUndoStack(sheet).length;
-        undoBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          const stack = getUndoStack(sheet);
-          if (!stack.length) return;
-          const snapshot = stack.pop();
-          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
-          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(undoBtn);
-
-        const clearAllBtn = document.createElement('button');
-        clearAllBtn.className = 'btn btn-outline-danger';
-        clearAllBtn.textContent = 'Clear All Rows';
-        clearAllBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          if (!baseRows.length) return;
-          pushUndoSnapshot(sheet);
-          workbook[sheet] = [createEmptyBaseRow(sheet)];
-          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(clearAllBtn);
-
-        const undoBtn = document.createElement('button');
-        undoBtn.className = 'btn btn-outline-secondary';
-        undoBtn.textContent = 'Undo';
-        undoBtn.disabled = !getUndoStack(sheet).length;
-        undoBtn.addEventListener('click', () => {
-          if (sheetLock) return;
-          const stack = getUndoStack(sheet);
-          if (!stack.length) return;
-          const snapshot = stack.pop();
-          workbook[sheet] = Array.isArray(snapshot.workbook) ? snapshot.workbook : [];
-          comparisonData[sheet] = Array.isArray(snapshot.comparison) ? snapshot.comparison : [];
-          renderSheet(sheet);
-          validateSheet(sheet);
-        });
-        buttons.appendChild(undoBtn);
 
         const clearAllBtn = document.createElement('button');
         clearAllBtn.className = 'btn btn-outline-danger';
