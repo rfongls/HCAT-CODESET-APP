@@ -278,15 +278,46 @@ header {
 .codeset-table th,
 .codeset-table td {
     border: 1px solid #ddd;
-    padding: 6px 8px;
 }
 
 .codeset-table th {
+    padding: 6px 8px;
     background-color: var(--primary-color);
     color: #fff;
     position: sticky;
     top: 0;
     z-index: 5;
+}
+
+.codeset-table td {
+    padding: 0;
+}
+
+.codeset-table td > input[type="text"],
+.codeset-table td > select {
+    width: 100%;
+    padding: 4px 6px;
+    border: none;
+    background: transparent;
+    box-sizing: border-box;
+    color: inherit;
+}
+
+.codeset-table td > input[type="text"]:focus,
+.codeset-table td > select:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+}
+
+.codeset-table td > input[type="text"]:disabled,
+.codeset-table td > select:disabled {
+    background-color: rgba(0, 0, 0, 0.04);
+    color: inherit;
+}
+
+.codeset-table td > span {
+    display: block;
+    padding: 4px 6px;
 }
 
 .codeset-table tr:nth-child(even) {
