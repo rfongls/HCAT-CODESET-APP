@@ -246,7 +246,7 @@ header {
 
 .table-wrapper {
     position: relative;
-    padding-left: 56px;
+    padding-left: 0;
     overflow-x: auto;
 }
 
@@ -254,7 +254,7 @@ header {
     overflow: auto;
     max-height: 70vh;
     position: relative;
-    padding-left: 44px;
+    padding-left: 0;
 }
 
 #active-sheet-card {
@@ -423,7 +423,7 @@ header {
 
 #table-wrapper thead th {
     position: sticky;
-    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
+    top: 0;
     z-index: 1020;
 }
 
@@ -437,6 +437,12 @@ header {
     /* ensure button space on left */
     position: relative;
     padding-left: 64px;
+}
+
+/* per-row delete button (sits next to clear) */
+.delete-row-btn {
+    margin-left: 6px;
+    cursor: pointer;
 }
 
 .clear-row-btn {
@@ -495,7 +501,7 @@ header {
 
 #table-wrapper thead th {
     position: sticky;
-    top: calc(var(--app-header-height) + var(--sheet-toolbar-height) + 1rem);
+    top: 0;
     z-index: 1020;
 }
 

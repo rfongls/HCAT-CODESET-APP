@@ -793,6 +793,153 @@
         }
       }
 
+      const TARGET_COLUMN_NAMES = new Set(['CODE', 'DISPLAY VALUE', 'SUBDEFINITION', 'MAPPED STD DESCRIPTION']);
+
+      function normalizeHeaderName(name) {
+        return String(name || '').replace(/_/g, ' ').trim().toUpperCase();
+      }
+
+      function isTargetColumn(name) {
+        return TARGET_COLUMN_NAMES.has(normalizeHeaderName(name));
+      }
+
+      const escapeHeaderSelector = (value) => {
+        if (typeof CSS !== 'undefined' && CSS.escape) {
+          return CSS.escape(value);
+        }
+        return String(value).replace(/[^a-zA-Z0-9_-]/g, match => `\\${match}`);
+      };
+
+      function getTargetHeaders(sheet) {
+        return (renderHeaders[sheet] || []).filter(isTargetColumn);
+      }
+
+      function rowHasTargetValues(sheet, rowObj, tr) {
+        const headers = getTargetHeaders(sheet);
+        if (!headers.length) return false;
+        return headers.some(header => {
+          if (rowObj && normalizeValue(rowObj[header]) !== '') return true;
+          if (!tr) return false;
+          const cell = tr.querySelector(`td[data-col="${escapeHeaderSelector(header)}"]`);
+          if (!cell) return false;
+          const control = cell.querySelector('input, select, textarea');
+          if (control) {
+            return normalizeValue(control.value) !== '';
+          }
+          return normalizeValue(cell.textContent) !== '';
+        });
+      }
+
+      function clearTargetFieldsInRow(sheet, rowObj) {
+        if (!rowObj) return false;
+        const headers = getTargetHeaders(sheet);
+        if (!headers.length) return false;
+        let changed = false;
+        headers.forEach(header => {
+          if (normalizeValue(rowObj[header]) !== '') {
+            rowObj[header] = '';
+            changed = true;
+          }
+        });
+        return changed;
+      }
+
+      function clearTargetInputsInRow(tr, sheet) {
+        const headers = getTargetHeaders(sheet);
+        if (!tr || !headers.length) return false;
+        let changed = false;
+        headers.forEach(header => {
+          const cell = tr.querySelector(`td[data-col="${escapeHeaderSelector(header)}"]`);
+          if (!cell) return;
+          const control = cell.querySelector('input, select, textarea');
+          if (control) {
+            const prevValue = control.value;
+            if (prevValue !== '') {
+              if (control.tagName === 'SELECT') {
+                control.selectedIndex = 0;
+              } else {
+                control.value = '';
+              }
+              control.dispatchEvent(new Event('input', { bubbles: true }));
+              control.dispatchEvent(new Event('change', { bubbles: true }));
+              changed = true;
+            }
+          } else {
+            const prev = cell.textContent || '';
+            if (normalizeValue(prev) !== '') {
+              cell.textContent = '';
+              changed = true;
+            }
+          }
+        });
+        return changed;
+      }
+
+      function sheetHasTargetValues(sheet) {
+        const headers = getTargetHeaders(sheet);
+        if (!headers.length) return false;
+        const baseRows = workbook[sheet] || [];
+        const hasStored = baseRows.some(row => {
+          if (!row) return false;
+          return headers.some(header => normalizeValue(row[header]) !== '');
+        });
+        if (hasStored) return true;
+        const table = document.querySelector('#table-wrapper table');
+        if (table && table.tBodies[0]) {
+          return Array.from(table.tBodies[0].rows).some(tr => rowHasTargetValues(sheet, null, tr));
+        }
+        return false;
+      }
+
+      function clearAllRowsValues(sheet) {
+        const headers = getTargetHeaders(sheet);
+        if (!headers.length) return false;
+        const baseRows = workbook[sheet] || [];
+        let changed = false;
+
+        baseRows.forEach(row => {
+          if (!row) return;
+          headers.forEach(header => {
+            if (normalizeValue(row[header]) !== '') {
+              row[header] = '';
+              changed = true;
+            }
+          });
+        });
+
+        const table = document.querySelector('#table-wrapper table');
+        if (table && table.tBodies[0]) {
+          Array.from(table.tBodies[0].rows).forEach(tr => {
+            headers.forEach(header => {
+              const cell = tr.querySelector(`td[data-col="${escapeHeaderSelector(header)}"]`);
+              if (!cell) return;
+              const control = cell.querySelector('input, select, textarea');
+              if (control) {
+                const prevValue = control.value;
+                if (prevValue !== '') {
+                  if (control.tagName === 'SELECT') {
+                    control.selectedIndex = 0;
+                  } else {
+                    control.value = '';
+                  }
+                  control.dispatchEvent(new Event('input', { bubbles: true }));
+                  control.dispatchEvent(new Event('change', { bubbles: true }));
+                  changed = true;
+                }
+              } else {
+                const prev = cell.textContent || '';
+                if (normalizeValue(prev) !== '') {
+                  cell.textContent = '';
+                  changed = true;
+                }
+              }
+            });
+          });
+        }
+
+        return changed;
+      }
+
       function seedInitialErrors() {
         if (!Array.isArray(initialErrors) || !initialErrors.length) return;
         initialErrors.forEach(message => {
@@ -1085,6 +1232,7 @@
 
         const tbody = document.createElement('tbody');
         const codeColName = (mappings[sheet] || {}).code_col;
+        let undoBtn;
 
         function buildRow(baseRow, compRow, rowIndex) {
           const tr = document.createElement('tr');
@@ -1107,11 +1255,9 @@
                 if (sheetLock) return;
                 const rowEl = tr;
                 if (!rowEl) return;
-                const controls = Array.from(rowEl.querySelectorAll('input, select')).filter(control => {
-                  return !control.disabled && !control.readOnly;
-                });
-                const hasValue = controls.some(control => control.value !== '');
-                if (!hasValue) {
+                const baseRowData = baseRows[rowIndex] || baseRow || {};
+                const hasValues = rowHasTargetValues(sheet, baseRowData, rowEl);
+                if (!hasValues) {
                   const isCurrentSheet = currentSheet === sheet;
                   const tableEl = rowEl.closest('table');
                   if (isCurrentSheet) {
@@ -1128,15 +1274,9 @@
                   return;
                 }
                 pushUndoSnapshot(sheet);
-                controls.forEach(control => {
-                  if (control.tagName === 'SELECT') {
-                    control.selectedIndex = 0;
-                  } else {
-                    control.value = '';
-                  }
-                  control.dispatchEvent(new Event('input', { bubbles: true }));
-                  control.dispatchEvent(new Event('change', { bubbles: true }));
-                });
+                if (undoBtn) undoBtn.disabled = false;
+                clearTargetFieldsInRow(sheet, baseRowData);
+                clearTargetInputsInRow(rowEl, sheet);
                 const isCurrentSheet = currentSheet === sheet;
                 const tableEl = rowEl.closest('table');
                 if (isCurrentSheet) {
@@ -1158,6 +1298,32 @@
                 }
               });
               td.appendChild(clearBtn);
+
+              const deleteBtn = document.createElement('button');
+              deleteBtn.type = 'button';
+              deleteBtn.className = 'btn btn-outline-danger btn-sm delete-row-btn';
+              deleteBtn.setAttribute('aria-label', 'Delete row');
+              deleteBtn.textContent = '−';
+              deleteBtn.addEventListener('click', () => {
+                if (sheetLock) return;
+                pushUndoSnapshot(sheet);
+                if (undoBtn) undoBtn.disabled = false;
+                baseRows.splice(rowIndex, 1);
+                compRows.splice(rowIndex, 1);
+                if (!baseRows.length) {
+                  baseRows.push(createEmptyBaseRow(sheet));
+                  compRows.push(createEmptyComparisonRow(sheet));
+                }
+                renderSheet(sheet);
+                validateSheet(sheet);
+              });
+              deleteBtn.addEventListener('keydown', ev => {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                  ev.preventDefault();
+                  deleteBtn.click();
+                }
+              });
+              td.appendChild(deleteBtn);
             }
             if (input) {
               td.appendChild(input);
@@ -1195,15 +1361,23 @@
         clearAllBtn.addEventListener('click', () => {
           if (sheetLock) return;
           if (!baseRows.length) return;
+          if (!sheetHasTargetValues(sheet)) {
+            validateSheet(sheet);
+            return;
+          }
           pushUndoSnapshot(sheet);
-          workbook[sheet] = [createEmptyBaseRow(sheet)];
-          comparisonData[sheet] = [createEmptyComparisonRow(sheet)];
-          renderSheet(sheet);
-          validateSheet(sheet);
+          if (undoBtn) undoBtn.disabled = false;
+          clearAllRowsValues(sheet);
+          if (currentSheet === sheet) {
+            syncCurrentSheet();
+            validateSheet(currentSheet);
+          } else {
+            validateSheet(sheet);
+          }
         });
         buttons.appendChild(clearAllBtn);
 
-        const undoBtn = document.createElement('button');
+        undoBtn = document.createElement('button');
         undoBtn.className = 'btn btn-outline-secondary';
         undoBtn.textContent = 'Undo';
         undoBtn.disabled = !getUndoStack(sheet).length;
