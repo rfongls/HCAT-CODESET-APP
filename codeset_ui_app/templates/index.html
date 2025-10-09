@@ -660,6 +660,8 @@
         rootEl.style.setProperty('--header-height', `${headerHeight}px`);
         rootEl.style.setProperty('--active-toolbar-offset', `${toolbarHeight}px`);
       }
+      publishLayoutMetrics();
+      window.addEventListener('resize', publishLayoutMetrics);
 
       wireControls(document.getElementById('inline-controls'));
       wireControls(document.getElementById('overlay-controls'));
@@ -1420,7 +1422,7 @@
         });
 
         applyLockState();
-        publishLayoutMetrics();
+        publishLayoutMetrics?.();
       }
 
       async function ensureSheetLoaded(sheet) {
@@ -1484,8 +1486,6 @@
         }
         if (t.closest('#table-wrapper')) { syncCurrentSheet(); validateSheet(currentSheet); }
       });
-
-      window.addEventListener('resize', publishLayoutMetrics);
 
       document.getElementById('export-errors')?.addEventListener('click', async () => {
         syncCurrentSheet(); validateSheet(currentSheet);
