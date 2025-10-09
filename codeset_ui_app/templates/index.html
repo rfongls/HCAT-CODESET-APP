@@ -781,7 +781,8 @@
         }
       }
 
-      if (Array.isArray(initialErrors)) {
+      function seedInitialErrors() {
+        if (!Array.isArray(initialErrors) || !initialErrors.length) return;
         initialErrors.forEach(message => {
           if (typeof message !== 'string') return;
           const match = message.match(/^Tab "(.+?)" - /);
@@ -793,6 +794,12 @@
           }
         });
         renderErrors();
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', seedInitialErrors, { once: true });
+      } else {
+        seedInitialErrors();
       }
       function renderFieldNote(sheet) {
         if (!fieldsBox || !fieldsText) return;
