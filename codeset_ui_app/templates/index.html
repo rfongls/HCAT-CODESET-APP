@@ -1228,12 +1228,8 @@
           const cell = event.target.closest('td, th');
           if (!cell || typeof cell.cellIndex !== 'number') return;
           if (event.target.closest('.no-col-highlight')) return;
-          const colIdx = cell.cellIndex;
           clearColumnHighlight(table);
-          Array.from(table.rows).forEach(row => {
-            const target = row.cells[colIdx];
-            if (target) target.classList.add('column-highlight');
-          });
+          cell.classList.add('column-highlight');
         });
         table.addEventListener('focusout', () => {
           requestAnimationFrame(() => {
