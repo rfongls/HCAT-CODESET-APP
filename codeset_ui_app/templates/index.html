@@ -71,7 +71,9 @@
     <div class="header-menu">
       <button id="hamburger" class="hamburger-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="headerMenu" aria-label="Open menu">☰</button>
       <div id="headerMenu" class="menu-pop d-none" role="dialog" aria-modal="true" aria-labelledby="headerMenuTitle">
-        <button id="menuClose" class="menu-close btn btn-light btn-sm" aria-label="Close menu" title="Close">×</button>
+        <div class="flyout-header">
+          <button id="headerMenuClose" class="flyout-close" aria-label="Close menu" title="Close">×</button>
+        </div>
         <div class="px-3 py-2">
           <h6 id="headerMenuTitle" class="mb-2">Menu</h6>
           {% if selected_workbook %}
@@ -241,8 +243,8 @@
     <div class="overlay-backdrop"></div>
     <div class="overlay-dialog" role="dialog" aria-modal="true" aria-labelledby="controlsOverlayTitle" tabindex="-1">
       <div class="overlay-header">
-        <h5 id="controlsOverlayTitle" class="mb-0">Select Repository</h5>
-        <button id="overlayClose" type="button" class="btn btn-light fs-4" aria-label="Close">&times;</button>
+        <h5 id="controlsOverlayTitle" class="overlay-title">Select Repository</h5>
+        <button id="overlayClose" type="button" class="overlay-header-close" aria-label="Close" title="Close">&times;</button>
       </div>
       <div class="overlay-body">
         <div id="overlay-controls" class="section-card">
@@ -364,8 +366,8 @@
     <div class="overlay-backdrop"></div>
     <div class="overlay-dialog" role="dialog" aria-modal="true" aria-labelledby="themeOverlayTitle" tabindex="-1">
       <div class="overlay-header">
-        <h5 id="themeOverlayTitle" class="mb-0">Theme</h5>
-        <button id="themeOverlayClose" type="button" class="btn btn-light fs-4" aria-label="Close">&times;</button>
+        <h5 id="themeOverlayTitle" class="overlay-title">Theme</h5>
+        <button id="themeClose" type="button" class="overlay-header-close" aria-label="Close" title="Close">&times;</button>
       </div>
       <div class="overlay-body">
         <div class="section-card">
@@ -685,7 +687,7 @@
       const menuOpenControls = document.getElementById('menuOpenControls');
       const menuOpenTransformer = document.getElementById('menuOpenTransformer');
       const menuOpenTheme = document.getElementById('menuOpenTheme');
-      const menuClose = document.getElementById('menuClose');
+      const headerMenuClose = document.getElementById('headerMenuClose');
       function closeMenu(){
         const wasOpen = menu && !menu.classList.contains('d-none');
         menu?.classList.add('d-none');
@@ -699,15 +701,15 @@
         menu?.classList.remove('d-none');
         hamburger?.setAttribute('aria-expanded','true');
         menu?.setAttribute('aria-hidden','false');
-        requestAnimationFrame(() => menuClose?.focus());
+        requestAnimationFrame(() => headerMenuClose?.focus());
       }
       hamburger?.addEventListener('click', (e)=>{
         if (!menu) return;
         e.stopPropagation();
         menu.classList.contains('d-none') ? openMenu() : closeMenu();
       });
-      menuClose?.addEventListener('click', (e)=>{ e.preventDefault(); closeMenu(); });
-      menuClose?.addEventListener('keydown', (e)=>{
+      headerMenuClose?.addEventListener('click', (e)=>{ e.preventDefault(); closeMenu(); });
+      headerMenuClose?.addEventListener('keydown', (e)=>{
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           closeMenu();
@@ -725,7 +727,7 @@
         document.body.classList.add('no-scroll');
         controlsOverlay.classList.add('open');
         controlsOverlay.setAttribute('aria-hidden','false');
-        (controlsOverlay.querySelector('input,select,button,[tabindex]:not([tabindex="-1"])')||controlsOverlay).focus();
+        requestAnimationFrame(() => controlsOverlayClose?.focus());
       }
       function closeControlsOverlay(){
         if (!controlsOverlay) return;
@@ -769,7 +771,13 @@
         // 4) Last-resort: navigate to the known route.
         window.location.href = '/transformer';
       });
-      controlsOverlayClose?.addEventListener('click', closeControlsOverlay);
+      controlsOverlayClose?.addEventListener('click', (e)=>{ e.preventDefault(); closeControlsOverlay(); });
+      controlsOverlayClose?.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          closeControlsOverlay();
+        }
+      });
       controlsOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeControlsOverlay);
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && controlsOverlay?.classList.contains('open')) closeControlsOverlay(); });
       controlsOverlayDialog?.addEventListener('click',(e)=>e.stopPropagation());
@@ -778,14 +786,14 @@
 
       // Theme overlay
       const themeOverlay = document.getElementById('themeOverlay');
-      const themeOverlayClose = document.getElementById('themeOverlayClose');
+      const themeOverlayClose = document.getElementById('themeClose');
       const themeOverlayDialog = themeOverlay?.querySelector('.overlay-dialog');
       function openThemeOverlay(){
         if (!themeOverlay) return;
         document.body.classList.add('no-scroll');
         themeOverlay.classList.add('open');
         themeOverlay.setAttribute('aria-hidden','false');
-        (themeOverlay.querySelector('input,select,button,[tabindex]:not([tabindex="-1"])')||themeOverlay).focus();
+        requestAnimationFrame(() => themeOverlayClose?.focus());
       }
       function closeThemeOverlay(){
         if (!themeOverlay) return;
@@ -794,7 +802,13 @@
         document.body.classList.remove('no-scroll');
       }
       menuOpenTheme?.addEventListener('click', ()=>{ closeMenu(); openThemeOverlay(); });
-      themeOverlayClose?.addEventListener('click', closeThemeOverlay);
+      themeOverlayClose?.addEventListener('click', (e)=>{ e.preventDefault(); closeThemeOverlay(); });
+      themeOverlayClose?.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          closeThemeOverlay();
+        }
+      });
       themeOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeThemeOverlay);
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && themeOverlay?.classList.contains('open')) closeThemeOverlay(); });
       themeOverlayDialog?.addEventListener('click',(e)=>e.stopPropagation());

@@ -14,10 +14,11 @@ def test_close_buttons_render(tmp_path, monkeypatch):
     resp = client.get("/")
     text = resp.get_data(as_text=True)
 
-    assert '<button id="overlayClose" type="button" class="btn btn-light fs-4" aria-label="Close">&times;</button>' in text
-    assert '<button id="themeOverlayClose" type="button" class="btn btn-light fs-4" aria-label="Close">&times;</button>' in text
+    assert text.count('class="overlay-header-close"') == 2
+    assert 'class="overlay-title">Select Repository' in text
+    assert 'class="overlay-title">Theme' in text
 
     css = (Path(__file__).resolve().parents[1] / "codeset_ui_app/assets/styles.css").read_text()
-    assert ".overlay-header .btn-light" in css
-    assert "box-shadow" in css
+    assert ".overlay-header-close" in css
+    assert "background: rgba(255,255,255,.15)" in css
 
