@@ -624,6 +624,20 @@
       publishLayoutMetrics();
       window.addEventListener('resize', publishLayoutMetrics);
 
+      async function switchSheet(newSheet) {
+        if (!newSheet || newSheet === currentSheet) return;
+        try {
+          syncCurrentSheet();
+          validateSheet(currentSheet);
+        } catch (_) {}
+        currentSheet = newSheet;
+        await ensureSheetLoaded(currentSheet);
+        renderSheet(currentSheet);
+        validateSheet(currentSheet);
+        try { renderFieldNote(currentSheet); } catch (_) {}
+        try { publishLayoutMetrics(); } catch (_) {}
+      }
+
       wireControls(document.getElementById('inline-controls'));
       wireControls(document.getElementById('overlay-controls'));
 
@@ -973,7 +987,7 @@
         return changed;
       }
 
-      function clearAllRowsValues(sheet) {
+      function clearAllRowsValues(sheet, table) {
         const headers = getTargetHeaders(sheet);
         if (!headers.length) return false;
         const baseRows = workbook[sheet] || [];
@@ -989,9 +1003,9 @@
           });
         });
 
-        const table = document.querySelector('#table-wrapper table');
-        if (table && table.tBodies[0]) {
-          Array.from(table.tBodies[0].rows).forEach(tr => {
+        const tableEl = table && table.tBodies ? table : document.querySelector('#table-wrapper table');
+        if (tableEl && tableEl.tBodies[0]) {
+          Array.from(tableEl.tBodies[0].rows).forEach(tr => {
             if (clearTargetsInDOMRow(tr, sheet)) {
               changed = true;
             }
@@ -1373,20 +1387,25 @@
         clearAllBtn.textContent = 'Clear All Rows';
         clearAllBtn.addEventListener('click', () => {
           if (sheetLock) return;
-          if (!baseRows.length) return;
+          const tableEl = container.querySelector('table');
           if (!sheetHasTargetValues(sheet)) {
             validateSheet(sheet);
             return;
           }
           pushUndoSnapshot(sheet);
-          if (undoBtn) undoBtn.disabled = false;
-          clearAllRowsValues(sheet);
-          if (currentSheet === sheet) {
-            syncCurrentSheet();
-            validateSheet(currentSheet);
-          } else {
+          const stack = getUndoStack(sheet);
+          const changed = clearAllRowsValues(sheet, tableEl);
+          if (!changed) {
+            stack.pop();
+            if (undoBtn) undoBtn.disabled = !stack.length;
             validateSheet(sheet);
+            return;
           }
+          if (undoBtn) undoBtn.disabled = false;
+          if (currentSheet === sheet) {
+            try { syncCurrentSheet(); } catch (_) {}
+          }
+          validateSheet(sheet);
         });
         buttons.appendChild(clearAllBtn);
 
@@ -1517,15 +1536,7 @@
         }
       })();
 
-      sheetSelector?.addEventListener('change', async () => {
-        syncCurrentSheet(); validateSheet(currentSheet);
-        currentSheet = sheetSelector.value;
-        await ensureSheetLoaded(currentSheet);
-        renderSheet(currentSheet);
-        validateSheet(currentSheet);
-        renderFieldNote(currentSheet);
-        publishLayoutMetrics();
-      });
+      sheetSelector?.addEventListener('change', () => switchSheet(sheetSelector.value));
 
       document.addEventListener('input', ev => {
         if (ev.target.closest('#table-wrapper')) { syncCurrentSheet(); validateSheet(currentSheet); }
