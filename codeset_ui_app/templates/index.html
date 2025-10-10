@@ -242,7 +242,7 @@
     <div class="overlay-dialog" role="dialog" aria-modal="true" aria-labelledby="controlsOverlayTitle" tabindex="-1">
       <div class="overlay-header">
         <h5 id="controlsOverlayTitle" class="mb-0">Select Repository</h5>
-        <button id="overlayClose" type="button" class="btn btn-light fs-4" aria-label="Close">&times;</button>
+        <button id="overlayClose" type="button" class="overlay-close" aria-label="Close" title="Close">&times;</button>
       </div>
       <div class="overlay-body">
         <div id="overlay-controls" class="section-card">
@@ -365,7 +365,7 @@
     <div class="overlay-dialog" role="dialog" aria-modal="true" aria-labelledby="themeOverlayTitle" tabindex="-1">
       <div class="overlay-header">
         <h5 id="themeOverlayTitle" class="mb-0">Theme</h5>
-        <button id="themeOverlayClose" type="button" class="btn btn-light fs-4" aria-label="Close">&times;</button>
+        <button id="themeClose" type="button" class="overlay-close" aria-label="Close" title="Close">&times;</button>
       </div>
       <div class="overlay-body">
         <div class="section-card">
@@ -725,7 +725,7 @@
         document.body.classList.add('no-scroll');
         controlsOverlay.classList.add('open');
         controlsOverlay.setAttribute('aria-hidden','false');
-        (controlsOverlay.querySelector('input,select,button,[tabindex]:not([tabindex="-1"])')||controlsOverlay).focus();
+        requestAnimationFrame(() => controlsOverlayClose?.focus());
       }
       function closeControlsOverlay(){
         if (!controlsOverlay) return;
@@ -769,7 +769,13 @@
         // 4) Last-resort: navigate to the known route.
         window.location.href = '/transformer';
       });
-      controlsOverlayClose?.addEventListener('click', closeControlsOverlay);
+      controlsOverlayClose?.addEventListener('click', (e)=>{ e.preventDefault(); closeControlsOverlay(); });
+      controlsOverlayClose?.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          closeControlsOverlay();
+        }
+      });
       controlsOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeControlsOverlay);
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && controlsOverlay?.classList.contains('open')) closeControlsOverlay(); });
       controlsOverlayDialog?.addEventListener('click',(e)=>e.stopPropagation());
@@ -778,14 +784,14 @@
 
       // Theme overlay
       const themeOverlay = document.getElementById('themeOverlay');
-      const themeOverlayClose = document.getElementById('themeOverlayClose');
+      const themeOverlayClose = document.getElementById('themeClose');
       const themeOverlayDialog = themeOverlay?.querySelector('.overlay-dialog');
       function openThemeOverlay(){
         if (!themeOverlay) return;
         document.body.classList.add('no-scroll');
         themeOverlay.classList.add('open');
         themeOverlay.setAttribute('aria-hidden','false');
-        (themeOverlay.querySelector('input,select,button,[tabindex]:not([tabindex="-1"])')||themeOverlay).focus();
+        requestAnimationFrame(() => themeOverlayClose?.focus());
       }
       function closeThemeOverlay(){
         if (!themeOverlay) return;
@@ -794,7 +800,13 @@
         document.body.classList.remove('no-scroll');
       }
       menuOpenTheme?.addEventListener('click', ()=>{ closeMenu(); openThemeOverlay(); });
-      themeOverlayClose?.addEventListener('click', closeThemeOverlay);
+      themeOverlayClose?.addEventListener('click', (e)=>{ e.preventDefault(); closeThemeOverlay(); });
+      themeOverlayClose?.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          closeThemeOverlay();
+        }
+      });
       themeOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeThemeOverlay);
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && themeOverlay?.classList.contains('open')) closeThemeOverlay(); });
       themeOverlayDialog?.addEventListener('click',(e)=>e.stopPropagation());

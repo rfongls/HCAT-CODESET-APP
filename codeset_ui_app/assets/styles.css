@@ -675,13 +675,38 @@ header {
 /* =========================
    Controls Overlay (centered)
    ========================= */
-.overlay {
+.overlay { 
     position: fixed;
     inset: 0;
     display: none;             /* hidden by default */
     z-index: 1050;
     align-items: center;       /* center vertically */
     justify-content: center;   /* center horizontally */
+}
+.overlay-close {
+    border: none;
+    background: rgba(255,255,255,.22);
+    color: #fff;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    font-size: 1.25rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background .18s ease-in-out, transform .18s ease-in-out;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.3);
+}
+.overlay-close:hover,
+.overlay-close:focus {
+    background: rgba(255,255,255,.32);
+    transform: translateY(-1px);
+}
+.overlay-close:focus {
+    outline: 2px solid rgba(255,255,255,.6);
+    outline-offset: 2px;
 }
 .overlay.open {
     display: flex;             /* show as flex to center .overlay-dialog */
