@@ -9,6 +9,11 @@
     --highlight-color: #fff9c4;
     --table-even-color: #f5f5f5;
     --error-bg: #f8d7da;
+    /* NEW: flyout (hamburger) defaults for light themes */
+    --flyout-bg: #fff;
+    --flyout-border: rgba(0,0,0,.15);
+    --flyout-hover: #f2f2f7;
+    --flyout-text: #000;
     --app-header-height: 0;
     --sheet-toolbar-height: 0;
     /* used by sticky active-sheet toolbar */
@@ -143,6 +148,13 @@
     --error-bg: #5a1e1e;
 }
 
+[data-theme^="dark"] {
+    --flyout-bg: #1f1f1f;
+    --flyout-border: #333;
+    --flyout-hover: rgba(255,255,255,.08);
+    --flyout-text: #f8f9fa;
+}
+
 body {
     font-family: Arial, sans-serif;
     background-color: var(--background-color);
@@ -191,8 +203,8 @@ header {
     position: absolute;
     right: 16px;
     top: 56px;
-    background: #fff;
-    border: 1px solid rgba(0,0,0,.15);
+    background: var(--flyout-bg);
+    border: 1px solid var(--flyout-border);
     border-radius: .5rem;
     min-width: 160px;
     padding: .25rem;
@@ -212,11 +224,11 @@ header {
     border: 0;
     background: transparent;
     border-radius: .375rem;
-    color: var(--menu-text-color);
+    color: var(--flyout-text);
 }
 
 .menu-item:hover {
-    background: #f2f2f7;
+    background: var(--flyout-hover);
 }
 
 #inline-controls,
