@@ -13,75 +13,20 @@
   />
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 
-  <!-- Minimal extras for hamburger, menu, and overlay -->
-  <style>
-    header { position: sticky; top: 0; z-index: 1200; }
-    .header-menu { position: absolute; top: 12px; right: 16px; }
-
-    .hamburger-btn {
-      width: 40px; height: 40px;
-      display: inline-flex; align-items: center; justify-content: center;
-      border-radius: .375rem; font-size: 1.25rem; line-height: 1;
-      background: #fff; border: 1px solid rgba(0,0,0,.15);
-      box-shadow: 0 1px 2px rgba(0,0,0,.06);
-    }
-    .hamburger-btn:hover { background: #f8f9fa; }
-
-    .menu-pop {
-      position: absolute; right: 16px; top: 56px;
-      background: #fff; border: 1px solid rgba(0,0,0,.15); border-radius: .5rem;
-      min-width: 160px; padding: .25rem; box-shadow: 0 10px 25px rgba(0,0,0,.15);
-      z-index: 1060;
-    }
-    .menu-close {
-      position: absolute; top: 6px; right: 6px;
-      border: none; line-height: 1; font-size: 1.125rem;
-      background: #fff;
-      box-shadow: 0 1px 2px rgba(0,0,0,.06);
-    }
-    .menu-close:hover { background: #f8f9fa; }
-    .menu-close:focus { outline: 2px solid rgba(0,0,0,.2); outline-offset: 2px; }
-    .menu-item {
-      display: block; width: 100%; padding: .5rem .75rem; text-align: left;
-      border: 0; background: transparent; border-radius: .375rem;
-    }
-    .menu-item:hover { background: #f2f2f7; }
-
-    .overlay { position: fixed; inset: 0; display: none; z-index: 1050; }
-    .overlay.open { display: block; }
-    .overlay-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
-    .overlay-dialog {
-      position: relative; margin: 4vh auto; width: min(1200px, 95vw); max-height: 92vh;
-      display: flex; flex-direction: column; background: var(--background-color); border-radius: .75rem;
-      box-shadow: 0 20px 60px rgba(0,0,0,.25); overflow: hidden;
-    }
-    .overlay-header {
-      padding: .75rem 1rem; background: var(--primary-color); color: #fff;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .overlay-body { padding: 1rem; overflow: auto; }
-    .no-scroll { overflow: hidden; }
-
-    .section-title { font-weight: 700; margin-bottom: .5rem; }
-  </style>
 </head>
 <body>
   <header>
     <h1>Codeset Management System</h1>
     <div class="header-menu">
-      <button id="hamburger" class="hamburger-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="headerMenu" aria-label="Open menu">☰</button>
-      <div id="headerMenu" class="menu-pop d-none" role="dialog" aria-modal="true" aria-labelledby="headerMenuTitle">
-        <div class="flyout-header">
-          <button id="headerMenuClose" class="flyout-close" aria-label="Close menu" title="Close">×</button>
-        </div>
-        <div class="px-3 py-2">
-          <h6 id="headerMenuTitle" class="mb-2">Menu</h6>
-          {% if selected_workbook %}
-          <button id="menuOpenControls" class="menu-item" type="button">Select Repository</button>
-          {% endif %}
-          <button id="menuOpenTransformer" class="menu-item" type="button">Generate Codeset Transformer</button>
-          <button id="menuOpenTheme" class="menu-item" type="button">Theme</button>
-        </div>
+      <button id="hamburger" class="hamburger-btn" type="button"
+              aria-haspopup="true" aria-expanded="false" aria-controls="headerMenu"
+              aria-label="Open menu">☰</button>
+      <div id="headerMenu" class="menu-pop d-none" role="menu" aria-hidden="true">
+        {% if selected_workbook %}
+        <button id="menuOpenControls" class="menu-item" role="menuitem" type="button">Select Repository</button>
+        <button id="menuGenerateTransformer" class="menu-item" role="menuitem" type="button">Generate Codeset Transformer</button>
+        {% endif %}
+        <button id="menuOpenTheme" class="menu-item" role="menuitem" type="button">Theme</button>
       </div>
     </div>
   </header>
@@ -240,12 +185,11 @@
 
   <!-- CONTROLS OVERLAY (for use AFTER workbook is loaded) -->
   <div id="controlsOverlay" class="overlay" aria-hidden="true">
-    <button id="overlayClose" type="button" class="overlay-close" aria-label="Close" title="Close">&times;</button>
     <div class="overlay-backdrop"></div>
     <div class="overlay-dialog" role="dialog" aria-modal="true" aria-labelledby="controlsOverlayTitle" tabindex="-1">
       <div class="overlay-header">
         <h5 id="controlsOverlayTitle" class="overlay-title">Select Repository</h5>
-        <button id="overlayClose" type="button" class="overlay-header-close" aria-label="Close" title="Close">&times;</button>
+        <button id="overlayClose" type="button" class="btn btn-light fs-4 overlay-header-close" aria-label="Close" title="Close">&times;</button>
       </div>
       <div class="overlay-body">
         <div id="overlay-controls" class="section-card">
@@ -364,12 +308,11 @@
 
   <!-- THEME OVERLAY -->
   <div id="themeOverlay" class="overlay" aria-hidden="true">
-    <button id="themeClose" type="button" class="overlay-close" aria-label="Close" title="Close">&times;</button>
     <div class="overlay-backdrop"></div>
     <div class="overlay-dialog" role="dialog" aria-modal="true" aria-labelledby="themeOverlayTitle" tabindex="-1">
       <div class="overlay-header">
         <h5 id="themeOverlayTitle" class="overlay-title">Theme</h5>
-        <button id="themeClose" type="button" class="overlay-header-close" aria-label="Close" title="Close">&times;</button>
+        <button id="themeOverlayClose" type="button" class="btn btn-light fs-4 overlay-header-close" aria-label="Close" title="Close">&times;</button>
       </div>
       <div class="overlay-body">
         <div class="section-card">
@@ -417,6 +360,7 @@
     const sheetNames = {{ sheet_names|tojson }};
     const initialSheet = {{ initial_sheet|tojson }};
     const initialErrors = {{ initial_errors|tojson }};
+    const transformerUrl = {{ transformer_url|tojson }};
     window.initialErrors = initialErrors;
     const workbook = {};
     if (initialSheet) {
@@ -687,35 +631,26 @@
       const hamburger = document.getElementById('hamburger');
       const menu = document.getElementById('headerMenu');
       const menuOpenControls = document.getElementById('menuOpenControls');
-      const menuOpenTransformer = document.getElementById('menuOpenTransformer');
+      const menuGenerateTransformer = document.getElementById('menuGenerateTransformer');
       const menuOpenTheme = document.getElementById('menuOpenTheme');
-      const headerMenuClose = document.getElementById('headerMenuClose');
       function closeMenu(){
-        const wasOpen = menu && !menu.classList.contains('d-none');
         menu?.classList.add('d-none');
         hamburger?.setAttribute('aria-expanded','false');
         menu?.setAttribute('aria-hidden','true');
-        if (wasOpen) {
-          requestAnimationFrame(() => hamburger?.focus());
-        }
       }
       function openMenu(){
         menu?.classList.remove('d-none');
         hamburger?.setAttribute('aria-expanded','true');
         menu?.setAttribute('aria-hidden','false');
-        requestAnimationFrame(() => headerMenuClose?.focus());
+        const firstItem = menu?.querySelector('.menu-item');
+        if (firstItem) {
+          requestAnimationFrame(() => firstItem.focus());
+        }
       }
       hamburger?.addEventListener('click', (e)=>{
         if (!menu) return;
         e.stopPropagation();
         menu.classList.contains('d-none') ? openMenu() : closeMenu();
-      });
-      headerMenuClose?.addEventListener('click', (e)=>{ e.preventDefault(); closeMenu(); });
-      headerMenuClose?.addEventListener('keydown', (e)=>{
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          closeMenu();
-        }
       });
       document.addEventListener('click', (e)=>{ if (!menu || menu.classList.contains('d-none')) return; if (e.target===hamburger || menu.contains(e.target)) return; closeMenu(); });
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') closeMenu(); });
@@ -729,20 +664,27 @@
         document.body.classList.add('no-scroll');
         controlsOverlay.classList.add('open');
         controlsOverlay.setAttribute('aria-hidden','false');
-        requestAnimationFrame(() => controlsOverlayClose?.focus());
+        const focusTarget = controlsOverlay.querySelector('input,select,button,[tabindex]:not([tabindex="-1"])');
+        if (focusTarget) {
+          requestAnimationFrame(() => focusTarget.focus());
+        }
       }
       function closeControlsOverlay(){
         if (!controlsOverlay) return;
         controlsOverlay.classList.remove('open');
         controlsOverlay.setAttribute('aria-hidden','true');
         document.body.classList.remove('no-scroll');
+        if (document.activeElement && controlsOverlay.contains(document.activeElement)) {
+          menuOpenControls?.focus();
+        }
       }
       menuOpenControls?.addEventListener('click', ()=>{ closeMenu(); openControlsOverlay(); });
-      // “Generate Codeset Transformer” — prefer ORIGINAL behavior, then graceful fallbacks
-      menuOpenTransformer?.addEventListener('click', (e) => {
-        e.preventDefault();
+      menuGenerateTransformer?.addEventListener('click', () => {
         closeMenu();
-        // 1) If the original function exists, call it.
+        if (transformerUrl) {
+          window.location.href = transformerUrl;
+          return;
+        }
         if (typeof window.openCodesetTransformer === 'function') {
           window.openCodesetTransformer();
           return;
@@ -751,7 +693,6 @@
           window.generateCodesetTransformer();
           return;
         }
-        // 2) If the original trigger button exists, click it.
         const trigger =
           document.querySelector('#open-transformer-btn') ||
           document.querySelector('[data-action="open-transformer"]') ||
@@ -760,7 +701,6 @@
           trigger.click();
           return;
         }
-        // 3) If an in-page section exists, reveal/scroll to it.
         const section =
           document.getElementById('codeset-transformer') ||
           document.getElementById('transformer-card') ||
@@ -770,16 +710,9 @@
           try { section.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
           return;
         }
-        // 4) Last-resort: navigate to the known route.
         window.location.href = '/transformer';
       });
       controlsOverlayClose?.addEventListener('click', (e)=>{ e.preventDefault(); closeControlsOverlay(); });
-      controlsOverlayClose?.addEventListener('keydown', (e)=>{
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          closeControlsOverlay();
-        }
-      });
       controlsOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeControlsOverlay);
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && controlsOverlay?.classList.contains('open')) closeControlsOverlay(); });
       controlsOverlayDialog?.addEventListener('click',(e)=>e.stopPropagation());
@@ -788,29 +721,29 @@
 
       // Theme overlay
       const themeOverlay = document.getElementById('themeOverlay');
-      const themeOverlayClose = document.getElementById('themeClose');
+      const themeOverlayClose = document.getElementById('themeOverlayClose');
       const themeOverlayDialog = themeOverlay?.querySelector('.overlay-dialog');
       function openThemeOverlay(){
         if (!themeOverlay) return;
         document.body.classList.add('no-scroll');
         themeOverlay.classList.add('open');
         themeOverlay.setAttribute('aria-hidden','false');
-        requestAnimationFrame(() => themeOverlayClose?.focus());
+        const focusTarget = themeOverlay.querySelector('input,select,button,[tabindex]:not([tabindex="-1"])');
+        if (focusTarget) {
+          requestAnimationFrame(() => focusTarget.focus());
+        }
       }
       function closeThemeOverlay(){
         if (!themeOverlay) return;
         themeOverlay.classList.remove('open');
         themeOverlay.setAttribute('aria-hidden','true');
         document.body.classList.remove('no-scroll');
+        if (document.activeElement && themeOverlay.contains(document.activeElement)) {
+          menuOpenTheme?.focus();
+        }
       }
       menuOpenTheme?.addEventListener('click', ()=>{ closeMenu(); openThemeOverlay(); });
       themeOverlayClose?.addEventListener('click', (e)=>{ e.preventDefault(); closeThemeOverlay(); });
-      themeOverlayClose?.addEventListener('keydown', (e)=>{
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          closeThemeOverlay();
-        }
-      });
       themeOverlay?.querySelector('.overlay-backdrop')?.addEventListener('click', closeThemeOverlay);
       document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && themeOverlay?.classList.contains('open')) closeThemeOverlay(); });
       themeOverlayDialog?.addEventListener('click',(e)=>e.stopPropagation());
@@ -1295,12 +1228,8 @@
           const cell = event.target.closest('td, th');
           if (!cell || typeof cell.cellIndex !== 'number') return;
           if (event.target.closest('.no-col-highlight')) return;
-          const colIdx = cell.cellIndex;
           clearColumnHighlight(table);
-          Array.from(table.rows).forEach(row => {
-            const target = row.cells[colIdx];
-            if (target) target.classList.add('column-highlight');
-          });
+          cell.classList.add('column-highlight');
         });
         table.addEventListener('focusout', () => {
           requestAnimationFrame(() => {
