@@ -663,7 +663,7 @@ def index():
         elif "workbook" in request.files and not request.form.get("compare_mode"):
             file = request.files["workbook"]
             if file.filename:
-                stage_only = request.form.get("stage_only")
+                stage_only = request.form.get("stage_only") == "1"
                 tmp_path: Path | None = None
                 try:
                     filename = secure_filename(file.filename)
@@ -962,7 +962,7 @@ def import_workbook():
     file = request.files.get("workbook")
     if file is None or not file.filename:
         return "No workbook provided", 400
-    stage_only = request.form.get("stage_only")
+    stage_only = request.form.get("stage_only") == "1"
     tmp_path: Path | None = None
     try:
         filename = secure_filename(file.filename)

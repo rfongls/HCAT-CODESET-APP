@@ -196,6 +196,34 @@ def test_import_stage_sheet_data_includes_added_rows(tmp_path, monkeypatch):
     assert rows[1]["CODE"] == ""
 
 
+def test_import_stage_flag_requires_explicit_one(tmp_path, monkeypatch):
+    app_module, repo, fname = setup_app(tmp_path, monkeypatch)
+    client = app_module.app.test_client()
+
+    resp = client.post("/", data={"repo": repo, "workbook_name": fname})
+    assert resp.status_code == 200
+
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sheet1"
+    ws.append(["CODE", "DISPLAY VALUE"])
+    ws.append(["X", "X-ray"])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    resp = client.post(
+        "/import",
+        data={"stage_only": "0", "workbook": (buf, fname)},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200
+    payload = resp.get_json()
+    assert payload["status"] == "applied"
+    assert app_module.pending_import_active is False
+
 def test_upload_form_loads_workbook(tmp_path, monkeypatch):
     app_module, repo, fname = setup_app(tmp_path, monkeypatch)
     client = app_module.app.test_client()
