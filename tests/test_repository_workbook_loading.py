@@ -161,7 +161,7 @@ def test_import_stage_cancel(tmp_path, monkeypatch):
     assert on_disk["Sheet1"].max_row == 1
 
 
-def test_upload_form_stages_import(tmp_path, monkeypatch):
+def test_upload_form_loads_workbook(tmp_path, monkeypatch):
     app_module, repo, fname = setup_app(tmp_path, monkeypatch)
     client = app_module.app.test_client()
 
@@ -182,15 +182,19 @@ def test_upload_form_stages_import(tmp_path, monkeypatch):
 
     resp = client.post(
         "/",
-        data={"stage_only": "1", "workbook": (buf, fname)},
+        data={"workbook": (buf, fname)},
         content_type="multipart/form-data",
     )
     assert resp.status_code == 200
     html = resp.get_data(as_text=True)
-    assert "Pending Workbook Import" in html
-    assert app_module.pending_import_active is True
-    assert app_module.pending_import_diff["summary"]["added"] == 2
-    assert app_module.pending_import_path and app_module.pending_import_path.exists()
+    assert "Pending Workbook Import" not in html
+    assert app_module.pending_import_active is False
+    assert app_module.workbook_path and app_module.workbook_path.exists()
+
+    sheet_resp = client.get("/sheet/Sheet1")
+    assert sheet_resp.status_code == 200
+    data = sheet_resp.get_json()
+    assert data and data[0]["CODE"] == "A"
 
 def test_export_overwrites_original_file(tmp_path, monkeypatch):
     app_module, repo, fname = setup_app(tmp_path, monkeypatch)
