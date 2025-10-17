@@ -1401,8 +1401,14 @@
         const baseRows = workbook[sheet];
         const compRows = comparisonData[sheet];
 
-        if (!baseRows.length) {
+        let rowCount = Math.max(baseRows.length, compRows.length);
+        if (rowCount === 0) {
+          rowCount = 1;
+        }
+        while (baseRows.length < rowCount) {
           baseRows.push(createEmptyBaseRow(sheet));
+        }
+        while (compRows.length < rowCount) {
           compRows.push(createEmptyComparisonRow(sheet));
         }
 

@@ -575,31 +575,46 @@ def _combine_sheet(sheet: str) -> pd.DataFrame | None:
     df = workbook_data.get(sheet)
     if df is None:
         return None
-    cmp = comparison_data.get(sheet)
-    if cmp is None:
+    cmp_df = comparison_data.get(sheet)
+    if cmp_df is None:
         return df
     combined = df.copy()
+
+    cmp_df = cmp_df.copy()
+
+    max_rows = max(len(combined), len(cmp_df))
+    if max_rows:
+        combined = combined.reindex(range(max_rows)).reset_index(drop=True)
+        cmp_df = cmp_df.reindex(range(max_rows)).reset_index(drop=True)
+    else:
+        combined = combined.iloc[0:0].copy()
+        cmp_df = cmp_df.iloc[0:0].copy()
+
     info = mapping_data.get(sheet, {})
     code_col = info.get("code_col")
     display_col = info.get("display_col")
     mapped_col = info.get("mapped_col")
-    if code_col and "CODE_COMPARE" in cmp:
-        combined.insert(combined.columns.get_loc(code_col) + 1, "CODE_COMPARE", cmp["CODE_COMPARE"])
-    if display_col and "DISPLAY_VALUE_COMPARE" in cmp:
+    if code_col and "CODE_COMPARE" in cmp_df:
+        combined.insert(
+            combined.columns.get_loc(code_col) + 1,
+            "CODE_COMPARE",
+            cmp_df["CODE_COMPARE"],
+        )
+    if display_col and "DISPLAY_VALUE_COMPARE" in cmp_df:
         combined.insert(
             combined.columns.get_loc(display_col) + 1,
             "DISPLAY_VALUE_COMPARE",
-            cmp["DISPLAY_VALUE_COMPARE"],
+            cmp_df["DISPLAY_VALUE_COMPARE"],
         )
     if mapped_col:
         cmp_key = f"{mapped_col}_COMPARE"
-        if cmp_key in cmp:
+        if cmp_key in cmp_df:
             combined.insert(
                 combined.columns.get_loc(mapped_col) + 1,
                 cmp_key,
-                cmp[cmp_key],
+                cmp_df[cmp_key],
             )
-    return combined
+    return combined.fillna("")
 
 @app.route("/", methods=["GET", "POST"])
 def index():
