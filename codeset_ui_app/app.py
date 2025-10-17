@@ -648,17 +648,38 @@ def index():
         elif "workbook" in request.files and not request.form.get("compare_mode"):
             file = request.files["workbook"]
             if file.filename:
+                stage_only = request.form.get("stage_only")
+                tmp_path: Path | None = None
                 try:
                     filename = secure_filename(file.filename)
-                    temp_dir = Path(tempfile.gettempdir())
-                    workbook_path = temp_dir / filename
-                    file.save(workbook_path)
-                    _load_workbook_path(workbook_path, filename)
+                    suffix = Path(filename).suffix or ".xlsx"
+                    _clear_pending_import()
+                    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+                    tmp_path = Path(tmp.name)
+                    tmp.close()
+                    file.save(tmp_path)
+                    if stage_only:
+                        _stage_import_workbook(tmp_path, filename)
+                        tmp_path = None
+                    else:
+                        temp_dir = Path(tempfile.gettempdir())
+                        workbook_path = temp_dir / filename
+                        tmp_path.replace(workbook_path)
+                        tmp_path = None
+                        _load_workbook_path(workbook_path, filename)
                 except Exception as exc:
                     last_error = str(exc)
-                    workbook_data = {}
-                    dropdown_data = {}
-                    mapping_data = {}
+                    if stage_only:
+                        _clear_pending_import()
+                    else:
+                        workbook_data = {}
+                        dropdown_data = {}
+                        mapping_data = {}
+                    if tmp_path and tmp_path.exists():
+                        try:
+                            tmp_path.unlink()
+                        except OSError:
+                            pass
         elif request.form.get("repo") and request.form.get("workbook_name"):
             selected_repo = request.form.get("repo")
             selected_workbook = request.form.get("workbook_name")
