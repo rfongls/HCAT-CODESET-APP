@@ -1417,6 +1417,25 @@
         const scrollContainer = document.createElement('div');
         scrollContainer.className = 'table-scroll';
 
+        const headerIndexMap = {};
+        renderHeaders[sheet].forEach((header, idx) => {
+          headerIndexMap[header] = idx;
+        });
+
+        const comparePartnerFor = {};
+        const basePartnerFor = {};
+        let lastBaseHeader = null;
+        renderHeaders[sheet].forEach(header => {
+          if (header.endsWith('_COMPARE')) {
+            if (lastBaseHeader) {
+              comparePartnerFor[lastBaseHeader] = header;
+              basePartnerFor[header] = lastBaseHeader;
+            }
+          } else {
+            lastBaseHeader = header;
+          }
+        });
+
         const table = document.createElement('table');
         table.className = 'table table-bordered table-sm codeset-table';
         table.id = 'table-' + sheet.replace(/[^a-zA-Z0-9_]/g, '_');
@@ -1445,6 +1464,9 @@
             td.dataset.col = header;
             if (header.endsWith('_COMPARE')) {
               td.classList.add('compare-col');
+              if (basePartnerFor[header]) {
+                td.dataset.baseTarget = basePartnerFor[header];
+              }
             }
             const value = header.endsWith('_COMPARE') ? (compRow ? compRow[header] : '') : (baseRow ? baseRow[header] : '');
             const input = createInput(sheet, header, value);
@@ -1484,6 +1506,9 @@
               });
               td.appendChild(clearBtn);
             }
+            if (comparePartnerFor[header]) {
+              td.dataset.compareTarget = comparePartnerFor[header];
+            }
             if (input) {
               td.appendChild(input);
             }
@@ -1492,14 +1517,59 @@
           return tr;
         }
 
+        function readCellValue(cell) {
+          const input = cell?.querySelector('input, select');
+          if (input) return input.value ?? '';
+          const text = cell?.querySelector('.cell-text');
+          if (text) return text.textContent ?? '';
+          return cell?.textContent ?? '';
+        }
+
+        function applyDiffForPair(baseCell, compareCell) {
+          if (!baseCell) return;
+          const baseVal = normalizeValue(readCellValue(baseCell));
+          const compareVal = normalizeValue(readCellValue(compareCell));
+          const isDifferent = baseVal !== compareVal;
+          if (isDifferent) {
+            baseCell.classList.add('diff-cell');
+            compareCell?.classList.add('diff-cell');
+          } else {
+            baseCell.classList.remove('diff-cell');
+            compareCell?.classList.remove('diff-cell');
+          }
+        }
+
+        function updateRowDiff(rowEl) {
+          if (!rowEl) return;
+          const baseCells = rowEl.querySelectorAll('td[data-compare-target]');
+          baseCells.forEach(baseCell => {
+            const compareHeader = baseCell.dataset.compareTarget;
+            const compareIdx = headerIndexMap[compareHeader];
+            const compareCell = compareIdx === undefined ? null : rowEl.children[compareIdx];
+            applyDiffForPair(baseCell, compareCell);
+          });
+        }
+
         baseRows.forEach((row, idx) => {
-          tbody.appendChild(buildRow(row, compRows[idx] || {}, idx));
+          const tr = buildRow(row, compRows[idx] || {}, idx);
+          tbody.appendChild(tr);
+          updateRowDiff(tr);
         });
 
         table.appendChild(tbody);
         scrollContainer.appendChild(table);
         container.appendChild(scrollContainer);
         enableColumnHighlight(table);
+
+        table.addEventListener('input', event => {
+          const rowEl = event.target.closest('tr');
+          if (rowEl) updateRowDiff(rowEl);
+        });
+
+        table.addEventListener('change', event => {
+          const rowEl = event.target.closest('tr');
+          if (rowEl) updateRowDiff(rowEl);
+        });
 
         const addBtn = document.createElement('button');
         addBtn.className = 'btn btn-primary';
