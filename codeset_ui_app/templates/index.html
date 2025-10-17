@@ -42,122 +42,20 @@
     {% set diff_sheets = diff.get('sheets', {}) %}
     <section id="pending-import" class="section-card mb-3">
       <div class="section-title">Pending Workbook Import</div>
-      <p class="mb-2">Review the differences between the active workbook and the uploaded file
-        <strong>{{ pending_import_name or 'Pending Workbook' }}</strong>.</p>
+      <p class="mb-2">The uploaded workbook <strong>{{ pending_import_name or 'Pending Workbook' }}</strong> is
+        staged. Review the side-by-side values in the grid below before applying.</p>
       {% if diff_sheets %}
       <p class="mb-3 small text-muted">
-        Summary: {{ diff_summary.get('added', 0) }} additions,
-        {{ diff_summary.get('removed', 0) }} removals,
-        {{ diff_summary.get('changed', 0) }} updates across {{ diff_summary.get('total_sheets', 0) }} tab{{ '' if diff_summary.get('total_sheets', 0) == 1 else 's' }}.
+        {{ diff_summary.get('added', 0) }} addition{{ '' if diff_summary.get('added', 0) == 1 else 's' }},
+        {{ diff_summary.get('removed', 0) }} removal{{ '' if diff_summary.get('removed', 0) == 1 else 's' }}, and
+        {{ diff_summary.get('changed', 0) }} updated row{{ '' if diff_summary.get('changed', 0) == 1 else 's' }} across
+        {{ diff_summary.get('total_sheets', 0) }} tab{{ '' if diff_summary.get('total_sheets', 0) == 1 else 's' }}.
       </p>
       {% else %}
       <p class="mb-3 small text-muted">No differences detected. Confirming will overwrite the workbook with the uploaded file.</p>
       {% endif %}
 
-      {% for sheet, info in diff_sheets.items() %}
-      <details class="import-diff-sheet mb-3" {% if diff_sheets|length == 1 %}open{% endif %}>
-        <summary class="fw-bold">Tab "{{ sheet }}" — {{ info.added_count }} added, {{ info.removed_count }} removed, {{ info.changed_count }} updated</summary>
-        <div class="mt-2">
-          {% if info.added %}
-          <div class="mb-3">
-            <h6>Added Rows</h6>
-            <div class="table-responsive">
-              <table class="table table-sm table-bordered mb-0">
-                <thead>
-                  <tr>
-                    <th scope="col">Key</th>
-                    <th scope="col">Imported Row</th>
-                    {% for col in info.columns %}
-                    <th scope="col">{{ col.replace('_', ' ') }}</th>
-                    {% endfor %}
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for row in info.added %}
-                  <tr>
-                    <td>{{ row.key }}</td>
-                    <td>{{ row.row }}</td>
-                    {% for col in info.columns %}
-                    <td>{{ row['values'].get(col, '') }}</td>
-                    {% endfor %}
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          {% endif %}
-
-          {% if info.removed %}
-          <div class="mb-3">
-            <h6>Removed Rows</h6>
-            <div class="table-responsive">
-              <table class="table table-sm table-bordered mb-0">
-                <thead>
-                  <tr>
-                    <th scope="col">Key</th>
-                    <th scope="col">Current Row</th>
-                    {% for col in info.columns %}
-                    <th scope="col">{{ col.replace('_', ' ') }}</th>
-                    {% endfor %}
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for row in info.removed %}
-                  <tr>
-                    <td>{{ row.key }}</td>
-                    <td>{{ row.row }}</td>
-                    {% for col in info.columns %}
-                    <td>{{ row['values'].get(col, '') }}</td>
-                    {% endfor %}
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          {% endif %}
-
-          {% if info.changed %}
-          <div class="mb-3">
-            <h6>Updated Rows</h6>
-            <div class="table-responsive">
-              <table class="table table-sm table-bordered mb-0">
-                <thead>
-                  <tr>
-                    <th scope="col">Key</th>
-                    <th scope="col">Current Row</th>
-                    <th scope="col">Imported Row</th>
-                    <th scope="col">Column</th>
-                    <th scope="col">Current Value</th>
-                    <th scope="col">Imported Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for row in info.changed %}
-                    {% set change_count = row.changed_columns|length %}
-                    {% for col in row.changed_columns %}
-                  <tr>
-                    {% if loop.first %}
-                    <td rowspan="{{ change_count }}">{{ row.key }}</td>
-                    <td rowspan="{{ change_count }}">{{ row.base_row }}</td>
-                    <td rowspan="{{ change_count }}">{{ row.incoming_row }}</td>
-                    {% endif %}
-                    <td>{{ col }}</td>
-                    <td>{{ row.before.get(col, '') }}</td>
-                    <td>{{ row.after.get(col, '') }}</td>
-                  </tr>
-                    {% endfor %}
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          {% endif %}
-        </div>
-      </details>
-      {% endfor %}
-
+      <p class="mb-0 small">Use <em>Confirm All Changes</em> to replace the current workbook or <em>Cancel Import</em> to discard the staged file.</p>
       <div class="d-flex flex-wrap gap-2 mt-3">
         <button id="confirm-import-all" type="button" class="btn btn-success">Confirm All Changes</button>
         <button id="cancel-import" type="button" class="btn btn-outline-secondary">Cancel Import</button>
