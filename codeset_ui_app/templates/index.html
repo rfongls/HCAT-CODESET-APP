@@ -399,6 +399,7 @@
     if (initialSheet) {
       comparisonData[initialSheet] = {{ compare_records|tojson }};
     }
+    const pendingImportActive = {{ pending_import_active|tojson }};
     const originalFilename = {{ filename|tojson }};
     const hasSelectedWorkbook = {{ 'true' if selected_workbook else 'false' }};
     const undoStacks = {};
@@ -1434,6 +1435,11 @@
 
         function applyDiffForPair(baseCell, compareCell) {
           if (!baseCell) return;
+          if (!pendingImportActive) {
+            baseCell.classList.remove('diff-cell');
+            compareCell?.classList.remove('diff-cell');
+            return;
+          }
           const baseVal = normalizeValue(readCellValue(baseCell));
           const compareVal = normalizeValue(readCellValue(compareCell));
           const isDifferent = baseVal !== compareVal;
