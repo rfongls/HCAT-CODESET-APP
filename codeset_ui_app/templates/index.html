@@ -252,6 +252,7 @@
           <div class="col-12 col-md-8">
             <label for="upload-file-inline" class="form-control selected-primary text-truncate js-file-label" title="Choose File" style="cursor: pointer;">-- Click to Choose File --</label>
             <input id="upload-file-inline" type="file" name="workbook" accept=".xlsx" class="d-none js-file-input" />
+            <input type="hidden" name="stage_only" value="1" />
           </div>
           <div class="col-12 col-md-2">
             <button type="submit" class="btn btn-outline-primary w-100">Upload</button>
@@ -423,6 +424,7 @@
               <div class="col-12 col-md-8">
                 <label for="upload-file-modal" class="form-control selected-primary text-truncate js-file-label" title="Choose File" style="cursor: pointer;">-- Click to Choose File --</label>
                 <input id="upload-file-modal" type="file" name="workbook" accept=".xlsx" class="d-none js-file-input" />
+                <input type="hidden" name="stage_only" value="1" />
               </div>
               <div class="col-12 col-md-2">
                 <button type="submit" class="btn btn-outline-primary w-100">Upload</button>
