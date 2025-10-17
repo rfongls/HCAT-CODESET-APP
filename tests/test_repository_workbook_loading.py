@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 import importlib
+import io
 from openpyxl import Workbook
 
 
@@ -55,7 +56,6 @@ def test_import_updates_overwrites_file(tmp_path, monkeypatch):
     assert resp.status_code == 200
 
     from openpyxl import Workbook, load_workbook as xl_load
-    import io
 
     wb = Workbook()
     ws = wb.active
@@ -83,6 +83,153 @@ def test_import_updates_overwrites_file(tmp_path, monkeypatch):
     resp = client.get("/sheet/Sheet1")
     assert resp.get_json()[0]["CODE"] == "A"
 
+
+def test_import_stage_and_confirm(tmp_path, monkeypatch):
+    app_module, repo, fname = setup_app(tmp_path, monkeypatch)
+    client = app_module.app.test_client()
+
+    resp = client.post("/", data={"repo": repo, "workbook_name": fname})
+    assert resp.status_code == 200
+
+    from openpyxl import Workbook, load_workbook as xl_load
+
+    staged_wb = Workbook()
+    staged_ws = staged_wb.active
+    staged_ws.title = "Sheet1"
+    staged_ws.append(["CODE", "DISPLAY VALUE"])
+    staged_ws.append(["A", "Alpha"])
+    staged_ws.append(["B", "Beta"])
+    buf = io.BytesIO()
+    staged_wb.save(buf)
+    buf.seek(0)
+
+    resp = client.post(
+        "/import",
+        data={"stage_only": "1", "workbook": (buf, fname)},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200
+    payload = resp.get_json()
+    assert payload["status"] == "pending_changes"
+    assert payload["diff"]["summary"]["added"] == 2
+
+    on_disk = xl_load(tmp_path / "Samples" / repo / fname)
+    assert on_disk["Sheet1"].max_row == 1
+
+    confirm_resp = client.post("/import/confirm", json={"action": "apply_all"})
+    assert confirm_resp.status_code == 200
+    assert confirm_resp.get_json()["status"] == "applied"
+
+    updated = xl_load(tmp_path / "Samples" / repo / fname)
+    ws = updated["Sheet1"]
+    assert ws.max_row == 3
+    assert ws["A2"].value == "A"
+    assert ws["A3"].value == "B"
+
+
+def test_import_stage_cancel(tmp_path, monkeypatch):
+    app_module, repo, fname = setup_app(tmp_path, monkeypatch)
+    client = app_module.app.test_client()
+
+    resp = client.post("/", data={"repo": repo, "workbook_name": fname})
+    assert resp.status_code == 200
+
+    from openpyxl import Workbook, load_workbook as xl_load
+
+    staged_wb = Workbook()
+    staged_ws = staged_wb.active
+    staged_ws.title = "Sheet1"
+    staged_ws.append(["CODE", "DISPLAY VALUE"])
+    staged_ws.append(["A", "Alpha"])
+    buf = io.BytesIO()
+    staged_wb.save(buf)
+    buf.seek(0)
+
+    resp = client.post(
+        "/import",
+        data={"stage_only": "1", "workbook": (buf, fname)},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200
+    assert resp.get_json()["status"].startswith("pending")
+
+    cancel_resp = client.post("/import/confirm", json={"action": "cancel"})
+    assert cancel_resp.status_code == 200
+    assert cancel_resp.get_json()["status"] == "cancelled"
+
+    on_disk = xl_load(tmp_path / "Samples" / repo / fname)
+    assert on_disk["Sheet1"].max_row == 1
+
+
+def test_import_stage_sheet_data_includes_added_rows(tmp_path, monkeypatch):
+    app_module, repo, fname = setup_app(tmp_path, monkeypatch)
+    client = app_module.app.test_client()
+
+    resp = client.post("/", data={"repo": repo, "workbook_name": fname})
+    assert resp.status_code == 200
+
+    from openpyxl import Workbook
+
+    staged_wb = Workbook()
+    staged_ws = staged_wb.active
+    staged_ws.title = "Sheet1"
+    staged_ws.append(["CODE", "DISPLAY VALUE"])
+    staged_ws.append(["A", "Alpha"])
+    staged_ws.append(["B", "Beta"])
+    buf = io.BytesIO()
+    staged_wb.save(buf)
+    buf.seek(0)
+
+    resp = client.post(
+        "/import",
+        data={"stage_only": "1", "workbook": (buf, fname)},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200
+
+    sheet_resp = client.get("/sheet/Sheet1")
+    assert sheet_resp.status_code == 200
+    rows = sheet_resp.get_json()
+    assert len(rows) == 2
+    assert rows[0]["CODE_COMPARE"] == "A"
+    assert rows[1]["CODE_COMPARE"] == "B"
+    assert rows[1]["CODE"] == ""
+
+
+def test_upload_form_loads_workbook(tmp_path, monkeypatch):
+    app_module, repo, fname = setup_app(tmp_path, monkeypatch)
+    client = app_module.app.test_client()
+
+    resp = client.post("/", data={"repo": repo, "workbook_name": fname})
+    assert resp.status_code == 200
+
+    from openpyxl import Workbook
+
+    staged_wb = Workbook()
+    staged_ws = staged_wb.active
+    staged_ws.title = "Sheet1"
+    staged_ws.append(["CODE", "DISPLAY VALUE"])
+    staged_ws.append(["A", "Alpha"])
+    staged_ws.append(["B", "Beta"])
+    buf = io.BytesIO()
+    staged_wb.save(buf)
+    buf.seek(0)
+
+    resp = client.post(
+        "/",
+        data={"workbook": (buf, fname)},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert "Pending Workbook Import" not in html
+    assert app_module.pending_import_active is False
+    assert app_module.workbook_path and app_module.workbook_path.exists()
+
+    sheet_resp = client.get("/sheet/Sheet1")
+    assert sheet_resp.status_code == 200
+    data = sheet_resp.get_json()
+    assert data and data[0]["CODE"] == "A"
 
 def test_export_overwrites_original_file(tmp_path, monkeypatch):
     app_module, repo, fname = setup_app(tmp_path, monkeypatch)
