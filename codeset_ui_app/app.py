@@ -3,6 +3,7 @@ from typing import Dict, Any
 from pathlib import Path
 import tempfile
 import io
+from collections import defaultdict
 
 import pandas as pd
 from flask import Flask, render_template, request, jsonify, send_file, url_for
@@ -36,6 +37,10 @@ workbook_path: Path | None = None
 last_error: str | None = None
 comparison_data: Dict[str, "pd.DataFrame"] = {}
 comparison_path: Path | None = None
+pending_import_path: Path | None = None
+pending_import_name: str | None = None
+pending_import_active: bool = False
+pending_import_diff: Dict[str, Any] = {}
 
 TRANSFORMER_REQUIRE_MAPPED = {
     "CS_ABNORMAL_FLAG",
@@ -97,6 +102,235 @@ def _records(df: pd.DataFrame | None) -> list[dict]:
         df = pd.concat(cols, axis=1)
         df.columns = list(dict.fromkeys(df.columns))
     return df.to_dict(orient="records")
+
+
+def _clear_pending_import(clear_comparison: bool = True) -> None:
+    """Remove any staged import workbook and reset comparison state if needed."""
+
+    global pending_import_path, pending_import_name, pending_import_active
+    global pending_import_diff, comparison_data, comparison_path
+
+    staged_path = pending_import_path
+    pending_import_path = None
+    pending_import_name = None
+    pending_import_diff = {}
+
+    if pending_import_active and clear_comparison:
+        comparison_data = {}
+        comparison_path = None
+
+    pending_import_active = False
+
+    if staged_path and staged_path.exists():
+        try:
+            staged_path.unlink()
+        except OSError:
+            pass
+
+
+def _infer_sheet_columns(df: pd.DataFrame | None) -> tuple[str | None, str | None, str | None]:
+    """Infer key columns (code, display, mapped) from ``df`` when metadata is missing."""
+
+    code_col = display_col = mapped_col = None
+    if df is None:
+        return code_col, display_col, mapped_col
+
+    for col in df.columns:
+        col_key = col.strip().upper().replace(" ", "_")
+        if col_key == "CODE" and not code_col:
+            code_col = col
+        if col_key in {"DISPLAY_VALUE", "DISPLAY"} and not display_col:
+            display_col = col
+        if col_key in {
+            "MAPPED_STD_DESCRIPTION",
+            "MAPPED_STANDARD_DESCRIPTION",
+            "MAPPED_STD_CODE",
+            "MAPPED_STANDARD_CODE",
+        } and not mapped_col:
+            mapped_col = col
+    return code_col, display_col, mapped_col
+
+
+def _normalize_diff_dataframe(df: pd.DataFrame | None, columns: list[str]) -> pd.DataFrame:
+    """Return a normalized dataframe limited to ``columns`` for diff comparisons."""
+
+    if not columns:
+        return pd.DataFrame()
+
+    if df is None or df.empty:
+        return pd.DataFrame({col: pd.Series(dtype=str) for col in columns})
+
+    data: Dict[str, pd.Series] = {}
+    for col in columns:
+        if col in df.columns:
+            series = _str_series(df, col)
+        else:
+            series = pd.Series([""] * len(df))
+        data[col] = series.fillna("").astype(str).str.strip()
+    return pd.DataFrame(data).reset_index(drop=True)
+
+
+def _prepare_diff_rows(
+    sheet: str,
+    df: pd.DataFrame | None,
+    columns: list[str],
+    key_column: str | None,
+) -> list[Dict[str, Any]]:
+    """Convert dataframe rows into a diff-friendly structure with unique keys."""
+
+    normalized = _normalize_diff_dataframe(df, columns)
+    rows: list[Dict[str, Any]] = []
+
+    if normalized.empty:
+        return rows
+
+    for idx, record in enumerate(normalized.to_dict(orient="records")):
+        row_number = idx + 2  # account for header row in Excel
+        key_value = record.get(key_column, "") if key_column else ""
+        display_key = key_value or f"Row {row_number}"
+        rows.append(
+            {
+                "values": record,
+                "row": row_number,
+                "key_value": key_value.strip(),
+                "display_key": display_key,
+            }
+        )
+
+    occurrences: dict[str, int] = defaultdict(int)
+    for row in rows:
+        base_key = row["key_value"] or f"__row_{row['row']}"
+        count = occurrences[base_key]
+        occurrences[base_key] += 1
+        unique_key = base_key if count == 0 else f"{base_key}#{count}"
+        row["unique_key"] = unique_key
+
+    return rows
+
+
+def _compute_workbook_diff(imported: Dict[str, pd.DataFrame]) -> Dict[str, Any]:
+    """Build a diff summary between the active workbook and ``imported`` data."""
+
+    diff: Dict[str, Any] = {"sheets": {}, "summary": {}}
+    sheet_names = sorted(set(workbook_data.keys()) | set(imported.keys()))
+
+    total_added = total_removed = total_changed = 0
+
+    for sheet in sheet_names:
+        base_df = workbook_data.get(sheet)
+        new_df = imported.get(sheet)
+
+        info = mapping_data.get(sheet, {})
+        base_code, base_display, base_mapped = _infer_sheet_columns(base_df)
+        new_code, new_display, new_mapped = _infer_sheet_columns(new_df)
+
+        def _pick_column(candidates: list[str | None]) -> str | None:
+            for cand in candidates:
+                if not cand:
+                    continue
+                if (base_df is not None and cand in base_df.columns) or (
+                    new_df is not None and cand in new_df.columns
+                ):
+                    return cand
+            return None
+
+        code_col = _pick_column([info.get("code_col"), base_code, new_code])
+        display_col = _pick_column([info.get("display_col"), base_display, new_display])
+        mapped_col = _pick_column([info.get("mapped_col"), base_mapped, new_mapped])
+
+        columns = [c for c in [code_col, display_col, mapped_col] if c]
+        if not columns:
+            continue
+
+        columns = list(dict.fromkeys(columns))
+        key_column = code_col or display_col or mapped_col
+
+        base_rows = _prepare_diff_rows(sheet, base_df, columns, key_column)
+        new_rows = _prepare_diff_rows(sheet, new_df, columns, key_column)
+
+        base_map = {row["unique_key"]: row for row in base_rows}
+        new_map = {row["unique_key"]: row for row in new_rows}
+
+        added_rows: list[Dict[str, Any]] = []
+        removed_rows: list[Dict[str, Any]] = []
+        changed_rows: list[Dict[str, Any]] = []
+
+        for key, new_row in new_map.items():
+            if key not in base_map:
+                added_rows.append(
+                    {
+                        "key": new_row["display_key"],
+                        "values": new_row["values"],
+                        "row": new_row["row"],
+                    }
+                )
+            else:
+                base_row = base_map[key]
+                if base_row["values"] != new_row["values"]:
+                    changed_columns = [
+                        col for col in columns if base_row["values"].get(col) != new_row["values"].get(col)
+                    ]
+                    changed_rows.append(
+                        {
+                            "key": new_row["display_key"],
+                            "before": base_row["values"],
+                            "after": new_row["values"],
+                            "base_row": base_row["row"],
+                            "incoming_row": new_row["row"],
+                            "changed_columns": changed_columns,
+                        }
+                    )
+
+        for key, base_row in base_map.items():
+            if key not in new_map:
+                removed_rows.append(
+                    {
+                        "key": base_row["display_key"],
+                        "values": base_row["values"],
+                        "row": base_row["row"],
+                    }
+                )
+
+        if added_rows or removed_rows or changed_rows:
+            diff["sheets"][sheet] = {
+                "columns": columns,
+                "key_column": key_column,
+                "added": added_rows,
+                "removed": removed_rows,
+                "changed": changed_rows,
+                "added_count": len(added_rows),
+                "removed_count": len(removed_rows),
+                "changed_count": len(changed_rows),
+            }
+            total_added += len(added_rows)
+            total_removed += len(removed_rows)
+            total_changed += len(changed_rows)
+
+    diff["summary"] = {
+        "total_sheets": len(diff["sheets"]),
+        "added": total_added,
+        "removed": total_removed,
+        "changed": total_changed,
+    }
+    diff["has_changes"] = bool(diff["sheets"])
+    return diff
+
+
+def _stage_import_workbook(path: Path, filename: str) -> Dict[str, Any]:
+    """Load ``path`` as a staged import workbook and populate comparison data."""
+
+    global pending_import_path, pending_import_name, pending_import_active, pending_import_diff
+
+    with path.open("rb") as fh:
+        imported_data, _ = load_workbook(fh)
+
+    pending_import_diff = _compute_workbook_diff(imported_data)
+    pending_import_path = path
+    pending_import_name = filename
+    pending_import_active = True
+
+    _load_comparison_workbook_path(path)
+    return pending_import_diff
 
 
 def load_repository_base() -> None:
@@ -171,6 +405,8 @@ load_repository_base()
 def _load_workbook_path(path: Path, filename: str) -> None:
     """Load workbook at ``path`` and populate globals for UI rendering."""
     global workbook_data, workbook_obj, dropdown_data, mapping_data, field_notes, original_filename, last_error, comparison_data, comparison_path
+
+    _clear_pending_import(clear_comparison=False)
 
     with path.open("rb") as fh:
         workbook_data, wb = load_workbook(fh)
@@ -552,6 +788,9 @@ def index():
         reopen_controls=reopen_controls,
         transformer_url=transformer_url,
         initial_errors=initial_errors,
+        pending_import=pending_import_diff,
+        pending_import_active=pending_import_active,
+        pending_import_name=pending_import_name,
     )
 
 
@@ -687,12 +926,66 @@ def import_workbook():
     file = request.files.get("workbook")
     if file is None or not file.filename:
         return "No workbook provided", 400
+    stage_only = request.form.get("stage_only")
+    tmp_path: Path | None = None
     try:
-        file.save(workbook_path)
-        _load_workbook_path(workbook_path, workbook_path.name)
-        return jsonify({"status": "ok"})
+        filename = secure_filename(file.filename)
+        suffix = Path(filename).suffix or ".xlsx"
+        _clear_pending_import()
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        tmp_path = Path(tmp.name)
+        tmp.close()
+        file.save(tmp_path)
+        if stage_only:
+            diff = _stage_import_workbook(tmp_path, filename)
+            status = "pending_changes" if diff.get("has_changes") else "pending_no_changes"
+            return jsonify({"status": status, "diff": diff})
+        tmp_path.replace(workbook_path)
+        tmp_path = None
+        _load_workbook_path(workbook_path, filename or workbook_path.name)
+        return jsonify({"status": "applied"})
     except Exception as exc:
+        if tmp_path and tmp_path.exists():
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+        _clear_pending_import()
         return str(exc), 400
+
+
+@app.route("/import/confirm", methods=["POST"])
+def confirm_import_workbook():
+    """Apply or discard the currently staged import workbook."""
+
+    global workbook_path, pending_import_path, pending_import_name
+
+    if workbook_path is None:
+        return "No workbook loaded", 400
+
+    payload = request.get_json(silent=True) or {}
+    action = payload.get("action")
+
+    if action == "cancel":
+        _clear_pending_import()
+        return jsonify({"status": "cancelled"})
+
+    if action != "apply_all":
+        return "Invalid action", 400
+
+    staged_path = pending_import_path
+    if staged_path is None or not staged_path.exists():
+        return "No pending import", 400
+
+    try:
+        staged_path.replace(workbook_path)
+        _load_workbook_path(workbook_path, pending_import_name or workbook_path.name)
+    except Exception as exc:
+        _clear_pending_import()
+        return str(exc), 400
+
+    _clear_pending_import()
+    return jsonify({"status": "applied"})
 
 def _first_non_loopback_ipv4() -> str:
     """Return the first non-loopback IPv4 address for the current host."""
