@@ -10,10 +10,18 @@ def _format_error(sheet: str, row: int | str, detail: str) -> str:
     """Return a standardized validation message."""
 
     if isinstance(row, int):
-        row_label = f"Row {row}"
+        row_label = f"row {row}"
     else:
         row_label = str(row)
-    return f'Tab "{sheet}" - {row_label} - {detail}'
+    return f"{sheet} {row_label}: {detail}"
+
+
+def _label(name: str | None, fallback: str) -> str:
+    """Return a normalized column label for error messaging."""
+
+    if not name:
+        return fallback
+    return str(name).strip()
 
 
 def _norm(val: Any) -> str:
@@ -47,6 +55,10 @@ def validate_workbook(
         if df is None or df.empty:
             continue
         # Duplicate codes
+        code_label = _label(code_col, "CODE")
+        display_label = _label(display_col, "DISPLAY VALUE")
+        mapped_label = _label(mapped_col, "MAPPED_STD_DESCRIPTION")
+
         if code_col and code_col in df.columns:
             codes = df[code_col].astype(str).str.strip()
             dup_vals = codes[codes != ""].value_counts()
@@ -57,11 +69,14 @@ def validate_workbook(
                     others = [str(r) for r in dup_rows if r != row_num]
                     if not others:
                         continue
+                    others_list = ", ".join(others)
                     if len(others) == 1:
-                        detail = f"Code '{code_val}' duplicates row {others[0]}"
+                        detail = (
+                            f"duplicate {code_label} '{code_val}' duplicates row {others_list}"
+                        )
                     else:
                         detail = (
-                            f"Code '{code_val}' duplicates rows {', '.join(others)}"
+                            f"duplicate {code_label} '{code_val}' duplicates rows {others_list}"
                         )
                     errors.append(_format_error(sheet, row_num, detail))
         # Row-wise validations
@@ -77,7 +92,7 @@ def validate_workbook(
                     _format_error(
                         sheet,
                         row_num,
-                        f"Code '{code}' is missing a display value",
+                        f"{display_label} required when {code_label} is provided",
                     )
                 )
             if display and not code:
@@ -85,10 +100,9 @@ def validate_workbook(
                     _format_error(
                         sheet,
                         row_num,
-                        f"Display value '{display}' is missing a code",
+                        f"{code_label} required when {display_label} is provided",
                     )
                 )
-            mapped_label = mapped_col or "MAPPED_STD_DESCRIPTION"
             if (
                 sheet not in skip_mapped_requirement
                 and (code or display)
@@ -96,25 +110,23 @@ def validate_workbook(
                 and not mapped
             ):
                 detail = (
-                    f"{mapped_label.replace('_', ' ')} is required when a standard code/description is present"
+                    f"{mapped_label} required when STANDARD_CODE/STANDARD_DESCRIPTION is provided"
                 )
-                if code:
-                    detail += f" for code '{code}'"
                 errors.append(_format_error(sheet, row_num, detail))
             if mapped and not code:
                 errors.append(
                     _format_error(
                         sheet,
                         row_num,
-                        f"Mapped standard description '{mapped}' is missing a code",
+                        f"{code_label} required when {mapped_label} is provided",
                     )
                 )
-            if mapped and not display and not code:
+            if mapped and not display:
                 errors.append(
                     _format_error(
                         sheet,
                         row_num,
-                        f"Mapped standard description '{mapped}' is missing a display value",
+                        f"{display_label} required when {mapped_label} is provided",
                     )
                 )
     return errors

@@ -36,6 +36,33 @@
     <div class="alert alert-danger" role="alert">{{ error }}</div>
     {% endif %}
 
+    {% if pending_import_active %}
+    {% set diff = pending_import or {} %}
+    {% set diff_summary = diff.get('summary', {}) %}
+    {% set diff_sheets = diff.get('sheets', {}) %}
+    <section id="pending-import" class="section-card mb-3">
+      <div class="section-title">Pending Workbook Import</div>
+      <p class="mb-2">The uploaded workbook <strong>{{ pending_import_name or 'Pending Workbook' }}</strong> is
+        staged. Review the side-by-side values in the grid below before applying.</p>
+      {% if diff_sheets %}
+      <p class="mb-3 small text-muted">
+        {{ diff_summary.get('added', 0) }} addition{{ '' if diff_summary.get('added', 0) == 1 else 's' }},
+        {{ diff_summary.get('removed', 0) }} removal{{ '' if diff_summary.get('removed', 0) == 1 else 's' }}, and
+        {{ diff_summary.get('changed', 0) }} updated row{{ '' if diff_summary.get('changed', 0) == 1 else 's' }} across
+        {{ diff_summary.get('total_sheets', 0) }} tab{{ '' if diff_summary.get('total_sheets', 0) == 1 else 's' }}.
+      </p>
+      {% else %}
+      <p class="mb-3 small text-muted">No differences detected. Confirming will overwrite the workbook with the uploaded file.</p>
+      {% endif %}
+
+      <p class="mb-0 small">Use <em>Confirm All Changes</em> to replace the current workbook or <em>Cancel Import</em> to discard the staged file.</p>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <button id="confirm-import-all" type="button" class="btn btn-success">Confirm All Changes</button>
+        <button id="cancel-import" type="button" class="btn btn-outline-secondary">Cancel Import</button>
+      </div>
+    </section>
+    {% endif %}
+
     {% if not selected_workbook %}
     <!-- LANDING CONTROLS (inline as before) -->
     <section id="inline-controls" class="mb-3">
@@ -189,7 +216,7 @@
     <div class="overlay-dialog" role="dialog" aria-modal="true" aria-labelledby="controlsOverlayTitle" tabindex="-1">
       <div class="overlay-header">
         <h5 id="controlsOverlayTitle" class="overlay-title">Select Repository</h5>
-        <button id="overlayClose" type="button" class="btn btn-light fs-4 overlay-header-close" aria-label="Close" title="Close">&times;</button>
+        <button id="overlayClose" type="button" class="overlay-header-close" aria-label="Close" title="Close">&times;</button>
       </div>
       <div class="overlay-body">
         <div id="overlay-controls" class="section-card">
@@ -312,7 +339,7 @@
     <div class="overlay-dialog" role="dialog" aria-modal="true" aria-labelledby="themeOverlayTitle" tabindex="-1">
       <div class="overlay-header">
         <h5 id="themeOverlayTitle" class="overlay-title">Theme</h5>
-        <button id="themeOverlayClose" type="button" class="btn btn-light fs-4 overlay-header-close" aria-label="Close" title="Close">&times;</button>
+        <button id="themeOverlayClose" type="button" class="overlay-header-close" aria-label="Close" title="Close">&times;</button>
       </div>
       <div class="overlay-body">
         <div class="section-card">
@@ -404,6 +431,7 @@
       const repoSave = scope.querySelector('.js-repo-save');
       const fileInput = scope.querySelector('.js-file-input');
       const fileLabel = scope.querySelector('.js-file-label');
+      const defaultLabelText = fileLabel ? fileLabel.textContent : '';
 
       function updateLoadEnable(){
         const hasRepo = !!(repoSelect && !repoSelect.disabled && repoSelect.value);
@@ -493,7 +521,9 @@
       compareWorkbookSelect?.addEventListener('change', updateHighlights);
 
       fileInput?.addEventListener('change', () => {
-        const name = fileInput.files.length ? fileInput.files[0].name : 'Choose File';
+        const name = fileInput.files.length
+          ? fileInput.files[0].name
+          : (defaultLabelText || 'Choose File');
         if (fileLabel) { fileLabel.textContent = name; fileLabel.title = name; }
       });
 
@@ -1267,8 +1297,14 @@
         const baseRows = workbook[sheet];
         const compRows = comparisonData[sheet];
 
-        if (!baseRows.length) {
+        let rowCount = Math.max(baseRows.length, compRows.length);
+        if (rowCount === 0) {
+          rowCount = 1;
+        }
+        while (baseRows.length < rowCount) {
           baseRows.push(createEmptyBaseRow(sheet));
+        }
+        while (compRows.length < rowCount) {
           compRows.push(createEmptyComparisonRow(sheet));
         }
 
@@ -1285,6 +1321,25 @@
 
         const scrollContainer = document.createElement('div');
         scrollContainer.className = 'table-scroll';
+
+        const headerIndexMap = {};
+        renderHeaders[sheet].forEach((header, idx) => {
+          headerIndexMap[header] = idx;
+        });
+
+        const comparePartnerFor = {};
+        const basePartnerFor = {};
+        let lastBaseHeader = null;
+        renderHeaders[sheet].forEach(header => {
+          if (header.endsWith('_COMPARE')) {
+            if (lastBaseHeader) {
+              comparePartnerFor[lastBaseHeader] = header;
+              basePartnerFor[header] = lastBaseHeader;
+            }
+          } else {
+            lastBaseHeader = header;
+          }
+        });
 
         const table = document.createElement('table');
         table.className = 'table table-bordered table-sm codeset-table';
@@ -1314,6 +1369,9 @@
             td.dataset.col = header;
             if (header.endsWith('_COMPARE')) {
               td.classList.add('compare-col');
+              if (basePartnerFor[header]) {
+                td.dataset.baseTarget = basePartnerFor[header];
+              }
             }
             const value = header.endsWith('_COMPARE') ? (compRow ? compRow[header] : '') : (baseRow ? baseRow[header] : '');
             const input = createInput(sheet, header, value);
@@ -1353,6 +1411,9 @@
               });
               td.appendChild(clearBtn);
             }
+            if (comparePartnerFor[header]) {
+              td.dataset.compareTarget = comparePartnerFor[header];
+            }
             if (input) {
               td.appendChild(input);
             }
@@ -1361,14 +1422,59 @@
           return tr;
         }
 
+        function readCellValue(cell) {
+          const input = cell?.querySelector('input, select');
+          if (input) return input.value ?? '';
+          const text = cell?.querySelector('.cell-text');
+          if (text) return text.textContent ?? '';
+          return cell?.textContent ?? '';
+        }
+
+        function applyDiffForPair(baseCell, compareCell) {
+          if (!baseCell) return;
+          const baseVal = normalizeValue(readCellValue(baseCell));
+          const compareVal = normalizeValue(readCellValue(compareCell));
+          const isDifferent = baseVal !== compareVal;
+          if (isDifferent) {
+            baseCell.classList.add('diff-cell');
+            compareCell?.classList.add('diff-cell');
+          } else {
+            baseCell.classList.remove('diff-cell');
+            compareCell?.classList.remove('diff-cell');
+          }
+        }
+
+        function updateRowDiff(rowEl) {
+          if (!rowEl) return;
+          const baseCells = rowEl.querySelectorAll('td[data-compare-target]');
+          baseCells.forEach(baseCell => {
+            const compareHeader = baseCell.dataset.compareTarget;
+            const compareIdx = headerIndexMap[compareHeader];
+            const compareCell = compareIdx === undefined ? null : rowEl.children[compareIdx];
+            applyDiffForPair(baseCell, compareCell);
+          });
+        }
+
         baseRows.forEach((row, idx) => {
-          tbody.appendChild(buildRow(row, compRows[idx] || {}, idx));
+          const tr = buildRow(row, compRows[idx] || {}, idx);
+          tbody.appendChild(tr);
+          updateRowDiff(tr);
         });
 
         table.appendChild(tbody);
         scrollContainer.appendChild(table);
         container.appendChild(scrollContainer);
         enableColumnHighlight(table);
+
+        table.addEventListener('input', event => {
+          const rowEl = event.target.closest('tr');
+          if (rowEl) updateRowDiff(rowEl);
+        });
+
+        table.addEventListener('change', event => {
+          const rowEl = event.target.closest('tr');
+          if (rowEl) updateRowDiff(rowEl);
+        });
 
         const addBtn = document.createElement('button');
         addBtn.className = 'btn btn-primary';
@@ -1475,8 +1581,25 @@
           if (!importInput.files.length) return;
           const fd = new FormData();
           fd.append('workbook', importInput.files[0]);
-          const resp = await fetch('/import', { method: 'POST', body: fd });
-          if (resp.ok) location.reload();
+          fd.append('stage_only', '1');
+          try {
+            const resp = await fetch('/import', { method: 'POST', body: fd });
+            if (!resp.ok) {
+              const message = (await resp.text()) || 'Import failed';
+              alert(message);
+              return;
+            }
+            let data = {};
+            try {
+              data = await resp.json();
+            } catch (_) {}
+            const dest = window.location.pathname + window.location.search;
+            window.location.replace(dest);
+          } catch (err) {
+            alert('Import failed');
+          } finally {
+            importInput.value = '';
+          }
         });
         buttons.appendChild(importBtn);
         buttons.appendChild(importInput);
@@ -1624,6 +1747,57 @@
           }
         } catch {
           downloadErrorsCsvFallback();
+        }
+      });
+
+      const confirmImportBtn = document.getElementById('confirm-import-all');
+      const cancelImportBtn = document.getElementById('cancel-import');
+
+      function setPendingImportButtonsDisabled(disabled) {
+        if (confirmImportBtn) confirmImportBtn.disabled = disabled;
+        if (cancelImportBtn) cancelImportBtn.disabled = disabled;
+      }
+
+      async function postImportDecision(action) {
+        const resp = await fetch('/import/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action })
+        });
+        return resp;
+      }
+
+      confirmImportBtn?.addEventListener('click', async () => {
+        setPendingImportButtonsDisabled(true);
+        try {
+          const resp = await postImportDecision('apply_all');
+          if (resp.ok) {
+            location.reload();
+          } else {
+            const message = await resp.text();
+            alert(message || 'Failed to apply import');
+            setPendingImportButtonsDisabled(false);
+          }
+        } catch {
+          alert('Failed to apply import');
+          setPendingImportButtonsDisabled(false);
+        }
+      });
+
+      cancelImportBtn?.addEventListener('click', async () => {
+        setPendingImportButtonsDisabled(true);
+        try {
+          const resp = await postImportDecision('cancel');
+          if (resp.ok) {
+            location.reload();
+          } else {
+            const message = await resp.text();
+            alert(message || 'Failed to cancel import');
+            setPendingImportButtonsDisabled(false);
+          }
+        } catch {
+          alert('Failed to cancel import');
+          setPendingImportButtonsDisabled(false);
         }
       });
 
