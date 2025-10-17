@@ -535,6 +535,7 @@
       const repoSave = scope.querySelector('.js-repo-save');
       const fileInput = scope.querySelector('.js-file-input');
       const fileLabel = scope.querySelector('.js-file-label');
+      const defaultLabelText = fileLabel ? fileLabel.textContent : '';
 
       function updateLoadEnable(){
         const hasRepo = !!(repoSelect && !repoSelect.disabled && repoSelect.value);
@@ -624,7 +625,9 @@
       compareWorkbookSelect?.addEventListener('change', updateHighlights);
 
       fileInput?.addEventListener('change', () => {
-        const name = fileInput.files.length ? fileInput.files[0].name : 'Choose File';
+        const name = fileInput.files.length
+          ? fileInput.files[0].name
+          : (defaultLabelText || 'Choose File');
         if (fileLabel) { fileLabel.textContent = name; fileLabel.title = name; }
       });
 
@@ -1677,8 +1680,24 @@
           const fd = new FormData();
           fd.append('workbook', importInput.files[0]);
           fd.append('stage_only', '1');
-          const resp = await fetch('/import', { method: 'POST', body: fd });
-          if (resp.ok) location.reload();
+          try {
+            const resp = await fetch('/import', { method: 'POST', body: fd });
+            if (!resp.ok) {
+              const message = (await resp.text()) || 'Import failed';
+              alert(message);
+              return;
+            }
+            let data = {};
+            try {
+              data = await resp.json();
+            } catch (_) {}
+            const dest = window.location.pathname + window.location.search;
+            window.location.replace(dest);
+          } catch (err) {
+            alert('Import failed');
+          } finally {
+            importInput.value = '';
+          }
         });
         buttons.appendChild(importBtn);
         buttons.appendChild(importInput);
